@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
+import com.zfgc.zfgbb.model.forum.BBLocalDate;
 
 import lombok.Data;
 
@@ -16,8 +17,19 @@ public class UserBioInfo extends BaseModel {
 	private String personalText;
 	private String signature;
 	private String signatureParsed;
-	private LocalDate birthDate;
+	private String location;
+	
+	private String birthDate;
+	private String lastLogin;
+	private String dateRegistered;
+	private String dateFormat;
+	private String timeFormat;
 	private Integer genderId;
+	private Integer karmaBad;
+	private Integer karmaGood;
+	private String websiteTitle;
+	private String websiteUrl;
+	private String realName;
 	
 	private Avatar avatar;
 

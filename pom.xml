@@ -107,6 +107,11 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>1.6.3</version>
+    </dependency>
 	</dependencies>
 
 	<build>
@@ -132,6 +137,20 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>org.mapstruct</groupId>
+                        <artifactId>mapstruct-processor</artifactId>
+                        <version>1.6.3</version>
+                    </path>
+                    <!-- other annotation processors -->
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
 		</plugins>
 	</build>
 	<repositories>
