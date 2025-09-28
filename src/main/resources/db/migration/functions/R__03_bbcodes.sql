@@ -80,6 +80,7 @@ select zfgbb.create_bbcode_config(20, 'color', '</span>', true);
 select zfgbb.create_bbcode_config(21, 'green', '</span>', true);
 select zfgbb.create_bbcode_config(22, 'list', '</ul></span>', true);
 select zfgbb.create_bbcode_config(23, 'li', '</li>', true);
+select zfgbb.create_bbcode_config(24, 'size', '</span>', true);
 
 --attribute modes
 --add at least one attribute mode for each bbcode
@@ -127,3 +128,6 @@ select zfgbb.create_bbcode_attr_mode(21,'green','<span style="color:green">','</
 select zfgbb.create_bbcode_attr_mode(22, 'list','<span><ul>','</ul></span>', false, false);
 
 select zfgbb.create_bbcode_attr_mode(23, 'li','<li>','</li>', false, false);
+
+select zfgbb.create_bbcode_attr_mode(24, 'size','<span style=''font-size:{{0}};''>','</span>', false, false);
+select zfgbb.create_bbcode_attr(8, 0, 24, 'NAMELESS', 1);

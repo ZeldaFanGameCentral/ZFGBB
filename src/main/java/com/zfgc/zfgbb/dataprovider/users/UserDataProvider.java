@@ -31,6 +31,7 @@ import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
+import com.zfgc.zfgbb.services.forum.BBCodeService;
 
 @Repository
 public class UserDataProvider extends AbstractDataProvider {
@@ -52,6 +53,9 @@ public class UserDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private UserContactInfoDao contactInfoDao;
+	
+	@Autowired
+	private BBCodeService bbcodeService;
 	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
@@ -87,6 +91,14 @@ public class UserDataProvider extends AbstractDataProvider {
 			
 			bioInfoDbo.ifPresent(bioInfo -> {
 				user.setBioInfo(mapper.map(bioInfo, UserBioInfo.class));
+				
+				try {
+					user.getBioInfo().setSignatureParsed(bbcodeService.parseText(user.getBioInfo().getSignature()));
+				} catch (NoSuchFieldException | SecurityException | IllegalArgumentException
+						| IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				
 				if(Boolean.TRUE.equals(loadOptions.loadAvatar()) && bioInfo.getAvatarId() != null) {
 					AvatarDboExample avatarEx = new AvatarDboExample();
