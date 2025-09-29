@@ -25,6 +25,7 @@ import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
+import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.EmailAddress;
@@ -56,6 +57,9 @@ public class UserDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private BBCodeService bbcodeService;
+	
+	@Autowired
+	private UserBioInfoMap userBioInfoMap;
 	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
@@ -90,7 +94,7 @@ public class UserDataProvider extends AbstractDataProvider {
 			Optional<UserBioInfoDbo> bioInfoDbo = Optional.ofNullable(bioInfoDao.get(userId));
 			
 			bioInfoDbo.ifPresent(bioInfo -> {
-				user.setBioInfo(mapper.map(bioInfo, UserBioInfo.class));
+				user.setBioInfo(userBioInfoMap.toModel(bioInfo));
 				
 				try {
 					user.getBioInfo().setSignatureParsed(bbcodeService.parseText(user.getBioInfo().getSignature()));
