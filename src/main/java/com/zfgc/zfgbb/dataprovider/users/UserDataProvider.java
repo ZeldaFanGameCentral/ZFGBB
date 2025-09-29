@@ -25,12 +25,14 @@ import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
+import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
+import com.zfgc.zfgbb.services.forum.BBCodeService;
 
 @Repository
 public class UserDataProvider extends AbstractDataProvider {
@@ -52,6 +54,12 @@ public class UserDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private UserContactInfoDao contactInfoDao;
+	
+	@Autowired
+	private BBCodeService bbcodeService;
+	
+	@Autowired
+	private UserBioInfoMap userBioInfoMap;
 	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
@@ -86,7 +94,15 @@ public class UserDataProvider extends AbstractDataProvider {
 			Optional<UserBioInfoDbo> bioInfoDbo = Optional.ofNullable(bioInfoDao.get(userId));
 			
 			bioInfoDbo.ifPresent(bioInfo -> {
-				user.setBioInfo(mapper.map(bioInfo, UserBioInfo.class));
+				user.setBioInfo(userBioInfoMap.toModel(bioInfo));
+				
+				try {
+					user.getBioInfo().setSignatureParsed(bbcodeService.parseText(user.getBioInfo().getSignature()));
+				} catch (NoSuchFieldException | SecurityException | IllegalArgumentException
+						| IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				
 				if(Boolean.TRUE.equals(loadOptions.loadAvatar()) && bioInfo.getAvatarId() != null) {
 					AvatarDboExample avatarEx = new AvatarDboExample();

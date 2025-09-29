@@ -107,6 +107,11 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>1.6.3</version>
+    </dependency>
 	</dependencies>
 
 	<build>
@@ -126,9 +131,20 @@
 				<configuration>
 					<annotationProcessorPaths>
 						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
+			                <groupId>org.mapstruct</groupId>
+			                <artifactId>mapstruct-processor</artifactId>
+			                <version>1.6.3</version>
+			            </path>
+			            <path>
+			                <groupId>org.projectlombok</groupId>
+			                <artifactId>lombok</artifactId>
+			                <version>1.18.38</version>
+			            </path>
+			            <path>
+			                <groupId>org.projectlombok</groupId>
+			                <artifactId>lombok-mapstruct-binding</artifactId>
+			                <Version>0.2.0</Version>
+			            </path>
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
