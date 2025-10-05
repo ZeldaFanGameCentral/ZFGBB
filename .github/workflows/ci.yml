@@ -27,4 +27,4 @@ jobs:
       pull-requests: write
     steps:
       - name: Check if run is triggered by dependabot
-        uses: ZFGCCP/github-common/.github/actions/auto-approve-dependabot@main
+        uses: ZFGCCP/github-common/actions/auto-approve-dependabot@main
