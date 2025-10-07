@@ -17,14 +17,17 @@ import com.zfgc.zfgbb.config.loadoption.user.FullUserLoadOptions;
 import com.zfgc.zfgbb.config.loadoption.user.LoggedInUserLoadOptions;
 import com.zfgc.zfgbb.dao.UserPermissionViewDao;
 import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
+import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dbo.AvatarDbo;
 import com.zfgc.zfgbb.dbo.AvatarDboExample;
 import com.zfgc.zfgbb.dbo.EmailAddressDbo;
+import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
+import com.zfgc.zfgbb.mappers.MessageDboMapper;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
@@ -61,6 +64,9 @@ public class UserDataProvider extends AbstractDataProvider {
 	@Autowired
 	private UserBioInfoMap userBioInfoMap;
 	
+	@Autowired
+	private MessageDboMapper messageDboMapper;
+	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName).andActiveFlagEqualTo(true);
@@ -95,6 +101,12 @@ public class UserDataProvider extends AbstractDataProvider {
 			
 			bioInfoDbo.ifPresent(bioInfo -> {
 				user.setBioInfo(userBioInfoMap.toModel(bioInfo));
+				
+				MessageDboExample msgEx = new MessageDboExample();
+				msgEx.createCriteria().andOwnerIdEqualTo(userId);
+				
+				Integer postCount = (int)messageDboMapper.countByExample(msgEx);
+				user.getBioInfo().setPostCount(postCount);
 				
 				try {
 					user.getBioInfo().setSignatureParsed(bbcodeService.parseText(user.getBioInfo().getSignature()));
