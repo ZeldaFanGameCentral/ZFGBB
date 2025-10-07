@@ -1,8 +1,14 @@
 package com.zfgc.zfgbb.model.users;
 
+import java.time.LocalDate;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
+import com.zfgc.zfgbb.model.forum.BBLocalDate;
 
+import lombok.Data;
+
+@Data
 public class UserBioInfo extends BaseModel {
 
 	@JsonIgnore
@@ -10,24 +16,24 @@ public class UserBioInfo extends BaseModel {
 	private String customTitle;
 	private String personalText;
 	private String signature;
+	private String signatureParsed;
+	private String location;
+	
+	private String birthDate;
+	private String lastLogin;
+	private String dateRegistered;
+	private String dateFormat;
+	private String timeFormat;
+	private Integer genderId;
+	private Integer karmaBad;
+	private Integer karmaGood;
+	private String websiteTitle;
+	private String websiteUrl;
+	private String realName;
+	private Boolean hideEmailFlag;
+	private Boolean hideOnlineStatus;
 	
 	private Avatar avatar;
-	
-	public String getCustomTitle() {
-		return customTitle;
-	}
-
-	public void setCustomTitle(String customTitle) {
-		this.customTitle = customTitle;
-	}
-
-	public String getPersonalText() {
-		return personalText;
-	}
-
-	public void setPersonalText(String personalText) {
-		this.personalText = personalText;
-	}
 
 	@Override
 	public Integer getId() {
@@ -38,29 +44,4 @@ public class UserBioInfo extends BaseModel {
 	public void setId(Integer id) {
 		userId = id;
 	}
-
-	public Integer getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Integer userId) {
-		this.userId = userId;
-	}
-
-	public String getSignature() {
-		return signature;
-	}
-
-	public void setSignature(String signature) {
-		this.signature = signature;
-	}
-
-	public Avatar getAvatar() {
-		return avatar;
-	}
-
-	public void setAvatar(Avatar avatar) {
-		this.avatar = avatar;
-	}
-	
 }

@@ -5,8 +5,8 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "maven"
+    directory: /
     schedule:
       interval: "weekly"
     commit-message:
@@ -14,12 +14,17 @@ updates:
       include: "scope"
     labels:
       - "dependencies"
-      - "javascript"
-      - "automerge"
-    open-pull-requests-limit: 5
-    allow:
-      - dependency-type: "direct"
-
+      - "java"
+    open-pull-requests-limit: 1
+    groups:
+      prod-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "production"
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -31,10 +36,11 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-      - "automerge"
-    open-pull-requests-limit: 5
-    allow:
-      - dependency-type: "direct"
+    open-pull-requests-limit: 1
+    groups:
+      all-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "devcontainers"
     directory: "/"
@@ -46,7 +52,4 @@ updates:
     labels:
       - "dependencies"
       - "devcontainers"
-      - "automerge"
-    open-pull-requests-limit: 5
-    allow:
-      - dependency-type: "direct"
+    open-pull-requests-limit: 1
