@@ -22,6 +22,7 @@
 		<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="birth_date" jdbcType="DATE" javaType="java.time.LocalDate"/>
+		<columnOverride column="date_registered" jdbcType="DATE" javaType="java.time.LocalDate"/>
     </table>
     
     <!-- <table schema="zfgbb" tableName="email_address" domainObjectName="EmailAddressDbo">
