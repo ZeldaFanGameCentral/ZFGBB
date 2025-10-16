@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ import com.zfgc.zfgbb.dbo.BoardSummaryViewDboExample;
 import com.zfgc.zfgbb.dbo.CategoryDboExample;
 import com.zfgc.zfgbb.dbo.ChildBoardViewDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.BoardSummaryViewDboMapper;
 import com.zfgc.zfgbb.mappers.ChildBoardViewDboMapper;
 import com.zfgc.zfgbb.model.forum.Board;
@@ -59,8 +61,8 @@ public class ForumDataProvider extends AbstractDataProvider {
 	private ChildBoardViewDboMapper childBoardMapper;
 	
 	public Board getBoard(Integer boardId, Integer pageNo, Integer threadsPerPage) {
-		BoardDbo boardDbo = boardDao.get(boardId);
-		Board board = mapper.map(boardDbo, Board.class);
+		Optional<BoardDbo> boardDbo = boardDao.get(boardId);
+		Board board = boardDbo.map(dbo -> mapper.map(dbo, Board.class)).orElseThrow(() -> new ZfgcNotFoundException());
 		
 		List<Thread> unstickyThreads = threadDataProvider.getThreadsByBoardId(boardId, pageNo, threadsPerPage, false);
 		List<Thread> stickyThreads = threadDataProvider.getThreadsByBoardId(boardId, null, null, true);
@@ -130,7 +132,7 @@ public class ForumDataProvider extends AbstractDataProvider {
 	public Forum getForum() {
 		Forum forum = new Forum();
 		
-		BoardDbo boardDbo = boardDao.get(0);
+		BoardDbo boardDbo = boardDao.get(0).orElseThrow(() -> new ZfgcNotFoundException());
 		forum.setBoardName(boardDbo.getBoardName());
 
 		List<Category> categories = getCategories(0);

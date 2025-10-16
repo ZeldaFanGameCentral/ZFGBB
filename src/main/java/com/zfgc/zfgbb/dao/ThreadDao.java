@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -20,8 +21,8 @@ public class ThreadDao extends AbstractDao<ThreadDboExample, ThreadDboMapper, Th
     }
 	
 	@Override
-	public ThreadDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<ThreadDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override

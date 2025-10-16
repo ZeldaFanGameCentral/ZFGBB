@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao.forum;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -19,8 +20,8 @@ public class PollDao extends AbstractDao<PollDboExample, PollDboMapper, PollDbo>
 	}
 
 	@Override
-	public PollDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<PollDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao.forum;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
@@ -19,7 +20,7 @@ public class CurrentMessageDao extends AbstractDao<CurrentMessageDboExample, Cur
 	}
 
 	@Override
-	public CurrentMessageDbo get(Integer id) {
+	public Optional<CurrentMessageDbo> get(Integer id) {
 		throw new UnsupportedOperationException();
 	}
 

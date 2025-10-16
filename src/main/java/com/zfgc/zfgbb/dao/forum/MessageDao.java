@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.dao.forum;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -23,8 +24,8 @@ public class MessageDao extends AbstractDao<MessageDboExample, MessageDboMapper,
     }
 	
 	@Override
-	public MessageDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<MessageDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao.core;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -19,8 +20,8 @@ public class ContentResourceDao extends AbstractDao<ContentResourceDboExample, C
 	}
 
 	@Override
-	public ContentResourceDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<ContentResourceDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override
