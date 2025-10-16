@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao.forum;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
@@ -17,8 +18,8 @@ public class MessageHistoryDao extends AbstractDao<MessageHistoryDboExample, Mes
 	}
 
 	@Override
-	public MessageHistoryDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<MessageHistoryDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override

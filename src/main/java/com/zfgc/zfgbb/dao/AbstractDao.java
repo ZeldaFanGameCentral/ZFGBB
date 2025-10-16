@@ -2,15 +2,17 @@ package com.zfgc.zfgbb.dao;
 
 import java.util.ConcurrentModificationException;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.zfgc.zfgbb.dbo.AbstractDbo;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 
 public abstract class AbstractDao<DbExample, DbMapper, Dbo extends AbstractDbo> {
 	
 	protected DbMapper mapper;
-	public abstract Dbo get(Integer id);
+	public abstract Optional<Dbo> get(Integer id);
 	public abstract List<Dbo> get(DbExample ex);
 	
 	public AbstractDao(DbMapper mapper) {
@@ -24,7 +26,7 @@ public abstract class AbstractDao<DbExample, DbMapper, Dbo extends AbstractDbo> 
 		}
 		else {
 			//get record from database
-			Dbo existing = get(toSave.getPkId());
+			Dbo existing = get(toSave.getPkId()).orElseThrow(() -> new ZfgcNotFoundException());
 			if(existing.getUpdatedTime().isAfter(toSave.getUpdatedTime())) {
 				//concurrency problem, get this garbo outta here
 				throw new ConcurrentModificationException();
@@ -34,7 +36,7 @@ public abstract class AbstractDao<DbExample, DbMapper, Dbo extends AbstractDbo> 
 		}
 		
 		//return the most up to date version of the record
-		return get(toSave.getPkId());
+		return get(toSave.getPkId()).get();
 	}
 	
 	public DbMapper getMapper() {

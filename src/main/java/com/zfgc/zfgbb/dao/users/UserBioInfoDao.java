@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao.users;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -19,8 +20,8 @@ public class UserBioInfoDao extends AbstractDao<UserBioInfoDboExample, UserBioIn
 	}
 
 	@Override
-	public UserBioInfoDbo get(Integer id) {
-		return mapper.selectByPrimaryKey(id);
+	public Optional<UserBioInfoDbo> get(Integer id) {
+		return Optional.ofNullable(mapper.selectByPrimaryKey(id));
 	}
 
 	@Override

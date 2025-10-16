@@ -97,7 +97,7 @@ public class UserDataProvider extends AbstractDataProvider {
 		}
 		
 		if(Boolean.TRUE.equals(loadOptions.loadBio())) {
-			Optional<UserBioInfoDbo> bioInfoDbo = Optional.ofNullable(bioInfoDao.get(userId));
+			Optional<UserBioInfoDbo> bioInfoDbo = bioInfoDao.get(userId);
 			
 			bioInfoDbo.ifPresent(bioInfo -> {
 				user.setBioInfo(userBioInfoMap.toModel(bioInfo));
@@ -132,9 +132,9 @@ public class UserDataProvider extends AbstractDataProvider {
 		}
 		
 		if(Boolean.TRUE.equals(loadOptions.loadContactInfo())) {
-			Optional<UserContactInfoDbo> contactInfoDbo = Optional.ofNullable(contactInfoDao.get(userId));
+			Optional<UserContactInfoDbo> contactInfoDbo = contactInfoDao.get(userId);
 			contactInfoDbo.ifPresent(ci -> {
-									EmailAddressDbo email = emailDao.get(ci.getEmailAddressId());
+									EmailAddressDbo email = emailDao.get(ci.getEmailAddressId()).get();
 									user.setContactInfo(mapper.map(ci, UserContactInfo.class));
 									user.getContactInfo().setEmailAddress(mapper.map(email, EmailAddress.class));
 								});

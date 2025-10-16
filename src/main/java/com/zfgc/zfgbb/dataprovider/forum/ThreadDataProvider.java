@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ import com.zfgc.zfgbb.dbo.PollQuestionDbo;
 import com.zfgc.zfgbb.dbo.PollQuestionDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
@@ -72,10 +74,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	private MessageDboMapper messageMapper;
 	
 	public Thread getThread(Integer threadId, Integer page, Integer count) {
-		ThreadDbo threadDb = threadDao.get(threadId);
-		Thread result = null;
-		if(threadDb != null) {
-			result = mapper.map(threadDb, Thread.class);
+		Optional<ThreadDbo> threadDb = threadDao.get(threadId);
+		return threadDb.map(threadOptional -> {
+			Thread result = mapper.map(threadOptional, Thread.class);
 			
 			//get messages
 			result.setMessages(super.convertDboListToModel(messageDataProvider.getMessagesForThread(threadId, page, count), Message.class));
@@ -90,8 +91,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 			ex.createCriteria().andThreadIdEqualTo(threadId);
 			long msgCount = messageMapper.countByExample(ex);
 			result.setPageCount((int)Math.ceil((double)msgCount / (double)count));
-		}
-		return result;
+			
+			return result;
+		}).orElseThrow(() -> new ZfgcNotFoundException());
 	}
 	
 	public Poll getPollInfo(Integer threadId) {
@@ -170,10 +172,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	}
 	
 	public Thread getThread(Integer threadId) {
-		ThreadDbo threadDb = threadDao.get(threadId);
-		Thread result = null;
-		if(threadDb != null) {
-			result = mapper.map(threadDao.get(threadId), Thread.class);
+		Optional<ThreadDbo> threadDb = threadDao.get(threadId);
+		return threadDb.map(threadOpt -> {
+			Thread result = mapper.map(threadOpt, Thread.class);
 			
 			//get permissions for the parent board
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
@@ -182,9 +183,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 			ex.createCriteria().andThreadIdEqualTo(threadId);
 			long count = messageMapper.countByExample(ex);
 			result.setPageCount((int)Math.ceil(count / 10));
-		}
-		
-		return result;
+			
+			return result;
+		}).orElseThrow(() -> new ZfgcNotFoundException());
 	}
 	
 	public Thread saveThread(Thread thread) {

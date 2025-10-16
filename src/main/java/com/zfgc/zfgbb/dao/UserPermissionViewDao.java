@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -19,7 +20,7 @@ public class UserPermissionViewDao extends AbstractDao<UserPermissionViewDboExam
 	}
 
 	@Override
-	public UserPermissionViewDbo get(Integer id) {
+	public Optional<UserPermissionViewDbo> get(Integer id) {
 		return null;
 	}
 

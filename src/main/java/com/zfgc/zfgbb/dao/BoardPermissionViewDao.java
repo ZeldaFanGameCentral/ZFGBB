@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dao;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -19,7 +20,7 @@ public class BoardPermissionViewDao extends AbstractDao<BoardPermissionViewDboEx
 	}
 
 	@Override
-	public BoardPermissionViewDbo get(Integer id) {
+	public Optional<BoardPermissionViewDbo> get(Integer id) {
 		return null;
 	}
 
