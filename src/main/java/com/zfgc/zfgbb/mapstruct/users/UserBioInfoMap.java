@@ -12,13 +12,16 @@ import com.zfgc.zfgbb.model.users.UserBioInfo;
 @Mapper(config=BBMapperConfig.class, imports=DateTimeFormatter.class)
 public interface UserBioInfoMap {
 
+	@Mapping(target = "postCount", ignore = true)
 	@Mapping(target="avatar", ignore=true)
 	@Mapping(target="id", source="pkId")
 	@Mapping(target="signatureParsed", ignore=true)
 	@Mapping(target="dateFormat", ignore=true)
 	@Mapping(target="createdTs", source="createdTime")
 	@Mapping(target="updatedTs", source="updatedTime")
-	@Mapping(target="birthDate", expression="java(dbo.getBirthDate().format(DateTimeFormatter.ofPattern(\"MM-dd-yyyy\")))")
+	//todo: move these to the service so they can be formatted by the user's actual preferred format
+	@Mapping(target="birthDate", expression="java(dbo.getBirthDate().format(DateTimeFormatter.ofPattern(\"MM/dd/yyyy\")))")
+	@Mapping(target="dateRegistered", expression="java(dbo.getDateRegistered().format(DateTimeFormatter.ofPattern(\"MM/dd/yyyy\")))")
 	UserBioInfo toModel(UserBioInfoDbo dbo);
 	
 	@Mapping(target="migrationHash", ignore=true)

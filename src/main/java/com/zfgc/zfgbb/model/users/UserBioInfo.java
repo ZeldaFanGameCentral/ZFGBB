@@ -32,6 +32,7 @@ public class UserBioInfo extends BaseModel {
 	private String realName;
 	private Boolean hideEmailFlag;
 	private Boolean hideOnlineStatus;
+	private Integer postCount;
 	
 	private Avatar avatar;
 
