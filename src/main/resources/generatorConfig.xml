@@ -5,11 +5,14 @@
   <properties resource="application.properties"/>
   <context id="zfgc3_context" targetRuntime="MyBatis3">
 
-    <jdbcConnection connectionURL="jdbc:postgresql://localhost:5432/zfgbb"
+    <!-- <jdbcConnection connectionURL="jdbc:postgresql://localhost:5432/zfgbb"
     				driverClass="org.postgresql.Driver"
     				password="postgres"
-    				userId="postgres"/>
-    				
+    				userId="postgres"/> -->
+    <jdbcConnection driverClass="${jdbc.driverClass}"
+    	connectionURL="${jdbc.url}" 
+    	userId="${jdbc.userId}" 
+    	password="${jdbc.password}" />
     <javaModelGenerator targetPackage="com.zfgc.zfgbb.dbo" targetProject="zfgbb">
     </javaModelGenerator>
     <sqlMapGenerator targetPackage="com.zfgc.zfgbb.mappers" targetProject="zfgbb">

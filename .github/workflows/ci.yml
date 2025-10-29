@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [17]
+        java-version: [21]
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK ${{ matrix.java-version}} for x64
@@ -27,4 +27,4 @@ jobs:
       pull-requests: write
     steps:
       - name: Check if run is triggered by dependabot
-        uses: ZFGCCP/github-common/actions/auto-approve-dependabot@main
+        uses: ZeldaFanGameCentral/github-common/actions/auto-approve-dependabot@main
