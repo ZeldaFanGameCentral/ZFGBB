@@ -18,12 +18,33 @@
     
 
     <!-- tables -->
-    <table schema="zfgbb" tableName="user_bio_info" domainObjectName="UserBioInfoDbo">
+    <table schema="zfgbb" tableName="user_poll_choice" domainObjectName="UserPollChoiceDbo">
+    <generatedKey column="user_poll_choice_id" sqlStatement="JDBC" identity="true" />
+    	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+    </table>
+    
+    <table schema="zfgbb" tableName="poll_choice" domainObjectName="PollChoiceDbo">
+    	<generatedKey column="poll_choice_id" sqlStatement="JDBC" identity="true" />
+    	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="active_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+    
+    <table schema="zfgbb" tableName="poll" domainObjectName="PollDbo">
+    <generatedKey column="poll_id" sqlStatement="JDBC" identity="true" />
+    	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="expire_time" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime"/>
+		<columnOverride column="guest_vote_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+    
+    <!-- <table schema="zfgbb" tableName="user_bio_info" domainObjectName="UserBioInfoDbo">
 		<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="birth_date" jdbcType="DATE" javaType="java.time.LocalDate"/>
 		<columnOverride column="date_registered" jdbcType="DATE" javaType="java.time.LocalDate"/>
-    </table>
+    </table> -->
     
     <!-- <table schema="zfgbb" tableName="email_address" domainObjectName="EmailAddressDbo">
 		<generatedKey column="email_address_id" sqlStatement="JDBC" identity="true" />
