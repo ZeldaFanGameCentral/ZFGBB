@@ -145,19 +145,8 @@ public class ForumService extends AbstractService {
 	
 	public Thread getThread(Integer threadId, Integer page, Integer count, User zfgcUser) {
 		Thread thread = threadDataProvider.getThread(threadId, page, count);
-		AtomicBoolean found = new AtomicBoolean(false);
-		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
-		thread.getBoardPermissions().forEach(bp -> {
-			if(userPerms.contains(bp.getPermissionId())) {
-				found.set(true);
-			}
-		});
 		
-		if(found.get() == false) {
-			throw new ZfgcNotFoundException();
-		}
-		
-		//super.secureObject(thread, zfgcUser);
+		super.secureObject(thread, zfgcUser);
 		
 		//parse messages
 		thread.getMessages().forEach(message -> {

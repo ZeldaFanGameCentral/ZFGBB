@@ -1,18 +1,37 @@
 package com.zfgc.zfgbb.model.forum;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder(toBuilder=true)
 public class Poll extends BaseModel {
 	@JsonIgnore
 	private Integer pollId;
-    private String pollQuestion;
-    private Integer threadId;
+	private String pollQuestion;
+	private Integer threadId;
+	private Boolean votingLockedFlag;
+	
+	@JsonIgnore
+	private LocalDateTime expireTime;
+	private Boolean hideResultsFlag;
+	private Boolean changeVoteFlag;
+	private Integer createdUserId;
+	private Boolean guestVoteFlag;
+	private Integer guestVoteCount;
+	private Integer resetPoll;
+	private Integer maxVotes;
+	private String migrationHash;
     
-    private List<PollQuestion> answers = new ArrayList<>();
+    @Builder.Default
+    private List<PollChoice> answers = new ArrayList<>();
     
 	@Override
 	public Integer getId() {
@@ -22,22 +41,8 @@ public class Poll extends BaseModel {
 	public void setId(Integer id) {
 		pollId = id;
 	}
-	public String getPollQuestion() {
-		return pollQuestion;
-	}
-	public void setPollQuestion(String pollQuestion) {
-		this.pollQuestion = pollQuestion;
-	}
-	public Integer getThreadId() {
-		return threadId;
-	}
-	public void setThreadId(Integer threadId) {
-		this.threadId = threadId;
-	}
-	public List<PollQuestion> getAnswers() {
-		return answers;
-	}
-	public void setAnswers(List<PollQuestion> answers) {
-		this.answers = answers;
+	
+	public Integer getVotes() {
+		return answers.stream().mapToInt(ans -> ans.getVotes()).sum() + guestVoteCount;
 	}
 }

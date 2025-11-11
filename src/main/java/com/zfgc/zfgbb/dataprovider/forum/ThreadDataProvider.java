@@ -13,8 +13,8 @@ import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dao.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
 import com.zfgc.zfgbb.dao.forum.PollDao;
-import com.zfgc.zfgbb.dao.forum.PollQuestionDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
 import com.zfgc.zfgbb.dbo.AllMessagesInThreadViewDbo;
@@ -23,6 +23,8 @@ import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDbo;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDboExample;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
+import com.zfgc.zfgbb.dbo.PollChoiceDbo;
+import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
 import com.zfgc.zfgbb.dbo.PollDbo;
 import com.zfgc.zfgbb.dbo.PollDboExample;
 import com.zfgc.zfgbb.dbo.PollQuestionDbo;
@@ -33,12 +35,11 @@ import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
-import com.zfgc.zfgbb.mappers.ThreadDboMapper;
+import com.zfgc.zfgbb.mapstruct.forum.PollMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.forum.LatestMessage;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.Poll;
-import com.zfgc.zfgbb.model.forum.PollQuestion;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -59,7 +60,7 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	private PollDao pollDao;
 	
 	@Autowired
-	private PollQuestionDao pollQuestionDao;
+	private PollChoiceDao pollChoiceDao;
 	
 	@Autowired
 	private UserDao userDao;
@@ -72,6 +73,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private MessageDboMapper messageMapper;
+	
+	@Autowired
+	private PollMap pollMap;
 	
 	public Thread getThread(Integer threadId, Integer page, Integer count) {
 		Optional<ThreadDbo> threadDb = threadDao.get(threadId);
@@ -99,19 +103,21 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	public Poll getPollInfo(Integer threadId) {
 		PollDboExample pollEx = new PollDboExample();
 		pollEx.createCriteria().andThreadIdEqualTo(threadId);
-		PollDbo pollDb = pollDao.get(pollEx).stream().findFirst().orElse(null);
-		Poll result = null;
-		if(pollDb != null) {
-			result = mapper.map(pollDb, Poll.class);
-			
-			PollQuestionDboExample ex = new PollQuestionDboExample();
-			ex.createCriteria().andPollIdEqualTo(result.getId());
-			
-			List<PollQuestionDbo> answers = pollQuestionDao.get(ex);
-			result.setAnswers(super.convertDboListToModel(answers, PollQuestion.class));
-		}
-		
-		return result;
+		return pollDao.get(pollEx).stream()
+						  .findFirst()
+						  .map(poll -> {
+							  	PollChoiceDboExample choiceEx = new PollChoiceDboExample();
+							  	choiceEx.createCriteria().andActiveFlagEqualTo(true)
+							  							 .andPollIdEqualTo(poll.getPollId());
+							  	List<PollChoiceDbo> choices = pollChoiceDao.get(choiceEx);
+							  	
+							  	Poll result = pollMap.toModel(poll, choices);
+								
+							  	PollQuestionDboExample ex = new PollQuestionDboExample();
+								ex.createCriteria().andPollIdEqualTo(result.getId());
+								
+								return result;
+						  }).orElse(null);
 	}
 	
 	public List<Thread> getThreadsByBoardId(Integer boardId, Integer pageNo, Integer threadsPerPage, Boolean sticky){
@@ -198,14 +204,8 @@ public class ThreadDataProvider extends AbstractDataProvider {
 		thread.setUpdatedTs(threadDbo.getUpdatedTime());
 		
 		if(thread.getPollInfo() != null) {
-			PollDbo poll = mapper.map(thread.getPollInfo(), PollDbo.class);
+			PollDbo poll = pollMap.toDbo(thread.getPollInfo());
 			pollDao.save(poll);
-			
-			thread.getPollInfo().getAnswers().forEach(ans -> {
-				ans.setPollId(poll.getPollId());
-				PollQuestionDbo answerDb = mapper.map(ans, PollQuestionDbo.class);
-				pollQuestionDao.save(answerDb);
-			});
 		}
 		
 		return getThread(thread.getId());
