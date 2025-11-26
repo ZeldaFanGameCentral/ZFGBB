@@ -18,7 +18,7 @@
     
 
     <!-- tables -->
-    <table schema="zfgbb" tableName="user_poll_choice" domainObjectName="UserPollChoiceDbo">
+   <!--  <table schema="zfgbb" tableName="user_poll_choice" domainObjectName="UserPollChoiceDbo">
     <generatedKey column="user_poll_choice_id" sqlStatement="JDBC" identity="true" />
     	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
@@ -29,7 +29,7 @@
     	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="active_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
-    </table>
+    </table> -->
     
     <table schema="zfgbb" tableName="poll" domainObjectName="PollDbo">
     <generatedKey column="poll_id" sqlStatement="JDBC" identity="true" />
