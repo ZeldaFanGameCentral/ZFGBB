@@ -24,6 +24,9 @@ TBD. We could use some help writing this out.
     - [Running Tests](#running-tests)
     - [Running MyBatis Generator](#running-mybatis-generator)
     - [Docker](#docker)
+      - [Utilizing pgadmin](#utilizing-pgadmin)
+      - [Viewing Logs for Docker](#viewing-logs-for-docker)
+    - [Tearing down Docker](#tearing-down-docker)
       - [Example Usages of Docker](#example-usages-of-docker)
     - [Workflow - Typical Development Workflow](#workflow---typical-development-workflow)
 
@@ -41,7 +44,7 @@ Clone the repository.
 git clone https://github.com/ZFGC/ZFGCBB.git
 ```
 
-- Java 17
+- Java 21
 - Maven
 - Docker
 
@@ -61,9 +64,12 @@ The script will run depending on your OS, which the following below are supporte
   - Ubuntu
   - Arch Linux
 
+> [!IMPORTANT]
+> This script will be deprecated in favor of the [nix flake](./flake.nix) in the future.
+
 ##### Configuring the `.env` file
 
-The `.env` file is used to configure the application. 
+The `.env` file is used to configure the application.
 
 ##### Setting up the PostgreSQL database
 
@@ -100,7 +106,7 @@ Eclipse will respect the applications.properties file, so you can use that to co
 To run the application in development mode, run the following command:
 
 ```bash
-mvn clean run package -Dmaven.test.skip=true
+mvn run package
 ```
 
 This will start the application in development mode, and you can access it at `http://0.0.0.0:8080`.
@@ -110,7 +116,7 @@ This will start the application in development mode, and you can access it at `h
 To build the application, run the following command:
 
 ```bash
-mvn clean compile package -Dmaven.test.skip=true
+mvn package
 ```
 
 This will create a `.war` file in the `target` directory.
@@ -149,31 +155,54 @@ docker compose up -d
 
 You can access the application at `http://0.0.0.0:8080`.
 
+#### Utilizing pgadmin
+
+To stand up pgadmin, run the following command:
+
+```bash
+docker compose -f ./docker-compose.yml -f ./docker-compose.service.pgadmin.yml up -d pgadmi
+n
+```
+
+The docker compose yml files are split up to allow for easier customization of a local docker compose workspace.
+
 You can access pgadmin at `http://0.0.0.0:5050`.
 
+#### Viewing Logs for Docker
+
 View the logs using `docker compose logs -f`, or for a specific service (i.e. postgresql) `docker compose logs -f zfgbb_postgresql`.
+
+### Tearing down Docker
 
 To stop the application, run the following command:
 
 ```bash
-docker compose down -v
+docker compose down -vvv
 ```
 
-We pass the `-v` flag to the `down` command to remove the volumes.
+To tear down pgadmin, run the following command:
+
+```bash
+docker compose -f ./docker-compose.yml -f ./docker-compose.service.pgadmin.yml down -vvv
+```
+
+We pass the `-vvv` flag to the `down` command to remove the volumes.
 
 #### Example Usages of Docker
 
 - Run the application in debug mode on your machine.
   1. Run the following command to start the postgres database.
+
      ```bash
      docker compose up -d postgresql
      ```
+
   2. Use the `Debug Backend` action in VSCode to start the application in debug mode.
 
 ### Workflow - Typical Development Workflow
 
 1. Read the [Code of Conduct](CODE_OF_CONDUCT.md).
-2. If you are not part of the ZFGCCP organization, you will need to fork this repository.
+2. If you are not part of the [ZeldaFanGameCentral](https://github.com/ZeldaFanGameCentral/) organization, you will need to fork this repository.
 3. Make sure you are on the `development` branch. `git switch development && git pull`.
 4. Make a new branch for your changes. `git switch -c my-new-branch`.
    1. How do I name my branch? See the next section, we have some recommendations, but we don't have any official rules so you can use whatever naming convention you prefer for your branch.
@@ -186,9 +215,9 @@ We pass the `-v` flag to the `down` command to remove the volumes.
       6. You are ready to start working on your branch!
 5. Working on your changes: Use your IDE of choice to edit files and save changes.
    1. TBD add instructions.
-   5. Stage and commit your changes.
-   6. Push your changes to your branch on GitHub.
-6. [Create a new pull request](https://github.com/ZFGCCP/ZFGCBB-React/compare) and request a review from one of the maintainers.
+   2. Stage and commit your changes.
+   3. Push your changes to your branch on GitHub.
+6. [Create a new pull request](https://github.com/ZeldaFanGameCentral/ZFGCBB-React/compare) and request a review from one of the maintainers.
    1. Add a bullet point list of changes you made.
    2. Mention the issue number you are working on.
       1. If there is no issue, you can create one.

@@ -4,16 +4,22 @@ ADD ./mvn* ./
 ADD ./pom.xml ./
 
 ADD ./src ./src
-RUN mvn clean compile package -Dmaven.test.skip=true
+RUN mvn clean package -Dmaven.test.skip=true
 
 # FIXME: This image should be switched to gcr.io/distroless/java-base-debian12 because it is much smaller. For now, this will work.
 FROM tomcat:jre17-temurin-noble AS deploy
 
+# Copy WAR
 COPY --from=build /usr/src/target/*.war /usr/local/tomcat/webapps/
-RUN mkdir -p /usr/local/tomcat/webapps/content/images
+
+# Create content directories INSIDE the image
+RUN mkdir -p \
+    /usr/local/tomcat/webapps/content/images \
+    && chown -R 1000:1000 /usr/local/tomcat/webapps
 
 EXPOSE ${ZFGBB_BACKEND_PORT:-8080}
 CMD ["catalina.sh", "run"]
+
 
 FROM postgres:16-alpine AS database
 ADD ./scripts/sql/provisioning/1-zfgbb.initialize-database.sh /docker-entrypoint-initdb.d/1-zfgbb.initialize-database.sh

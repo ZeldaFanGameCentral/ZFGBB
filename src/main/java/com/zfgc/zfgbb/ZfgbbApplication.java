@@ -37,32 +37,4 @@ public class ZfgbbApplication {
 		return modelMapper;
 	}
 
-	@Bean
-	public WebMvcConfigurer corsConfigurer() {
-		return new WebMvcConfigurer() {
-			@Override
-			public void addCorsMappings(CorsRegistry registry) {
-				registry.addMapping("/**")
-						.allowedOriginPatterns(
-								// Development endpoints
-								"http://localhost:*",
-								"https://localhost:*",
-								"http://localhost:5173",
-								"https://localhost:5173",
-								"https://zfgccp.github.io",
-								// Production endpoints
-								"http://*.zfgc.com",
-								"https://*.zfgc.com",
-								"http://zfgc.com",
-								"https://zfgc.com",
-								"http://zfgc.com:28080",
-								"https://zfgc.com:28080")
-						.allowedMethods("*")
-						.allowedHeaders("*")
-						.exposedHeaders("Authorization")
-						.allowCredentials(true);
-			}
-		};
-	}
-
 }

@@ -20,17 +20,19 @@ public class ContentController extends BaseController {
 
 	@Autowired
 	private ContentService contentService;
-	
+
 	@GetMapping("image/{resourceId}")
-	public ResponseEntity getImageResource(@PathVariable("resourceId") Integer resourceId) throws MalformedURLException {
+	public ResponseEntity<Resource> getImageResource(@PathVariable("resourceId") Integer resourceId)
+			throws MalformedURLException {
 		return prepareResource(contentService.getImageResource(resourceId));
 	}
-	
-	private ResponseEntity prepareResource(Resource resource) {
+
+	private ResponseEntity<Resource> prepareResource(Resource resource) {
 		return ResponseEntity.ok()
-				.contentType(MediaType.IMAGE_GIF)
+				.contentType(
+						contentService.getMimeType(resource.getFilename()).orElse(MediaType.APPLICATION_OCTET_STREAM))
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
 				.body(resource);
 	}
-	
+
 }

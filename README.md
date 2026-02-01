@@ -4,7 +4,7 @@
 
 A modern BBS software for the ZFGC community, written in Java.
 
-Bringin back the Drama Llama from the dead! If you are looking for the frontend, where the drama llama roams, please visit <https://github.com/ZFGCCP/ZFGCBB-React>.
+Bringin back the Drama Llama from the dead! If you are looking for the frontend, where the drama llama roams, please visit <https://github.com/ZeldaFanGameCentral/ZFGCBB-React>.
 
 ## Table of Contents
 
@@ -33,8 +33,8 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 ### Workflow - Frontend - CI
 
-[![Workflow - Frontend - CI](https://github.com/ZFGCCP/ZFGCBB-React/actions/workflows/workflow-ci.yml/badge.svg)](https://github.com/ZFGCCP/ZFGCBB-React/actions/workflows/workflow-ci.yml)
+[![Workflow - Frontend - CI](https://github.com/ZeldaFanGameCentral/ZFGCBB-React/actions/workflows/workflow-ci.yml/badge.svg)](https://github.com/ZeldaFanGameCentral/ZFGCBB-React/actions/workflows/workflow-ci.yml)
 
 ### Workflow - Backend - CI
 
-[![Workflow - Backend - CI](https://github.com/ZFGCCP/ZFGCBB/actions/workflows/ci.yml/badge.svg)](https://github.com/ZFGCCP/ZFGCBB/actions/workflows/ci.yml)
+[![Workflow - Backend - CI](https://github.com/ZeldaFanGameCentral/ZFGCBB/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeldaFanGameCentral/ZFGCBB/actions/workflows/ci.yml)

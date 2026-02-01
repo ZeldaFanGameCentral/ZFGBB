@@ -1,88 +1,103 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 cat <<EOF
 Usage: $0 [POSTGRES_USER] [POSTGRES_PASSWORD] [ZFGBB_DATABASE] [ZFGBB_USER] [ZFGBB_USER_PASSWORD]
-Example: $0 postgres 123456 zfgc_dev zfgbb_user 123456
 
-If no arguments are provided, the script will use the following defaults:
+Example:
+  $0 postgres 123456 zfgc_dev zfgbb_user 123456
+
+If no arguments are provided, the following defaults are used:
 
 POSTGRES_USER: postgres
 POSTGRES_PASSWORD: 123456
 ZFGBB_DATABASE: zfgc_dev
 ZFGBB_USER: zfgbb_user
 ZFGBB_USER_PASSWORD: 123456
+
+This script:
+- Creates the application role if missing
+- Creates the database if missing
+- Ensures schema ZFGBB exists and is OWNED by the application user
+- Runs provisioning SQL with correct ownership so Flyway can manage views
 EOF
-    exit 1
+  exit 0
 fi
 
-if [ -z "$POSTGRES_USER" ]; then
-    POSTGRES_USER=${1:-postgres}
-fi
+POSTGRES_USER="${POSTGRES_USER:-${1:-postgres}}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-${2:-123456}}"
+ZFGBB_DATABASE="${ZFGBB_DATABASE:-${3:-zfgc_dev}}"
+ZFGBB_USER="${ZFGBB_USER:-${4:-zfgbb_user}}"
+ZFGBB_USER_PASSWORD="${ZFGBB_USER_PASSWORD:-${5:-123456}}"
 
-if [ -z "$POSTGRES_PASSWORD" ]; then
-    POSTGRES_PASSWORD=${2:-123456}
-fi
+echo "------------------------------------------------------------"
+echo "Initializing ZFGBB database"
+echo "  POSTGRES_USER      = ${POSTGRES_USER}"
+echo "  ZFGBB_DATABASE     = ${ZFGBB_DATABASE}"
+echo "  ZFGBB_USER         = ${ZFGBB_USER}"
+echo "------------------------------------------------------------"
 
-if [ -z "$ZFGBB_DATABASE" ]; then
-    ZFGBB_DATABASE=${3:-zfgc_dev}
-fi
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+  DO \$\$
+  BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${ZFGBB_USER}') THEN
+      CREATE ROLE ${ZFGBB_USER}
+        LOGIN
+        PASSWORD '${ZFGBB_USER_PASSWORD}'
+        NOSUPERUSER
+        NOCREATEDB
+        NOCREATEROLE
+        INHERIT;
+      COMMENT ON ROLE ${ZFGBB_USER} IS 'ZFGBB application database user';
+    END IF;
+  END
+  \$\$;
 
-if [ -z "$ZFGBB_USER" ]; then
-    ZFGBB_USER=${4:-zfgbb_user}
-fi
+  SELECT 'CREATE DATABASE ${ZFGBB_DATABASE} OWNER ${ZFGBB_USER}'
+  WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${ZFGBB_DATABASE}')\gexec
+EOSQL
 
-if [ -z "$ZFGBB_USER_PASSWORD" ]; then
-    ZFGBB_USER_PASSWORD=${5:-123456}
-fi
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$ZFGBB_DATABASE" <<-EOSQL
+  DO \$\$
+  BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'zfgcadmin') THEN
+      CREATE ROLE zfgcadmin NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT;
+      COMMENT ON ROLE zfgcadmin IS 'ZFGC application database admin';
+    END IF;
+  END
+  \$\$;
 
-echo "Setting up database..."
+  -- Ensure schema exists and is OWNED BY FLYWAY USER
+  CREATE SCHEMA IF NOT EXISTS zfgbb AUTHORIZATION ${ZFGBB_USER};
+  ALTER SCHEMA zfgbb OWNER TO ${ZFGBB_USER};
 
-echo "Creating roles... [1/4]"
-psql --username "$POSTGRES_USER" --command "
-	-- Create Roles
-	CREATE ROLE ZFGCADMIN
-	WITH
-		NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION NOBYPASSRLS CONNECTION
-	LIMIT
-		-1;
+  GRANT USAGE, CREATE ON SCHEMA zfgbb TO ${ZFGBB_USER};
+  GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA zfgbb TO ${ZFGBB_USER};
+  GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA zfgbb TO ${ZFGBB_USER};
+  GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA zfgbb TO ${ZFGBB_USER};
 
-	COMMENT ON ROLE ZFGCADMIN IS 'Admin users.';
+  -- Admin role access
+  GRANT USAGE ON SCHEMA zfgbb TO zfgcadmin;
+  GRANT ALL PRIVILEGES ON ALL TABLES    IN SCHEMA zfgbb TO zfgcadmin;
+  GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA zfgbb TO zfgcadmin;
+  GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA zfgbb TO zfgcadmin;
 
-	-- Create User
-	CREATE ROLE $ZFGBB_USER
-	WITH
-		LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT NOREPLICATION NOBYPASSRLS CONNECTION
-	LIMIT
-		-1 PASSWORD '$ZFGBB_USER_PASSWORD';
+  GRANT zfgcadmin TO ${ZFGBB_USER};
 
-	GRANT ZFGCADMIN TO $ZFGBB_USER
-	WITH
-		ADMIN OPTION;
+  -- Default privileges FOR FLYWAY USER (this is the missing piece)
+  ALTER DEFAULT PRIVILEGES FOR ROLE ${ZFGBB_USER} IN SCHEMA zfgbb
+    GRANT ALL ON TABLES TO ${ZFGBB_USER};
 
-	COMMENT ON ROLE $ZFGBB_USER IS 'Default ZFGBB User.';
-"
+  ALTER DEFAULT PRIVILEGES FOR ROLE ${ZFGBB_USER} IN SCHEMA zfgbb
+    GRANT ALL ON SEQUENCES TO ${ZFGBB_USER};
 
-DB_EXISTS=$(psql --username "$POSTGRES_USER" --dbname "$ZFGBB_DATABASE" --command "SELECT 1 FROM pg_database WHERE datname = '$ZFGBB_DATABASE';")
-if [ -n "$DB_EXISTS" ]; then
-	echo "Database already exists."
-else 
-	echo "Creating database... [2/4]"
-	psql --username "$POSTGRES_USER" --command  "CREATE DATABASE $ZFGBB_DATABASE WITH OWNER = $ZFGBB_USER;"
-fi
+  ALTER DEFAULT PRIVILEGES FOR ROLE ${ZFGBB_USER} IN SCHEMA zfgbb
+    GRANT ALL ON FUNCTIONS TO ${ZFGBB_USER};
+	
+	ALTER SCHEMA zfgbb OWNER TO zfgcadmin;
+	ALTER TABLE ALL IN SCHEMA zfgbb OWNER TO zfgcadmin;
 
-psql --username "$POSTGRES_USER" --dbname "$ZFGBB_DATABASE" --command "GRANT ALL ON DATABASE $ZFGBB_DATABASE TO zfgcadmin WITH GRANT OPTION; GRANT ALL ON DATABASE $ZFGBB_DATABASE TO $ZFGBB_USER;"
+EOSQL
 
-echo "Creating schema... [3/4]"
-psql --username "$POSTGRES_USER" --dbname "$ZFGBB_DATABASE" --command "CREATE SCHEMA IF NOT EXISTS ZFGBB AUTHORIZATION $ZFGBB_USER;" \
-	--command "COMMENT ON SCHEMA ZFGBB IS 'ZFGBB Schema.';" \
-	--command "GRANT ALL ON SCHEMA ZFGBB TO $ZFGBB_USER;" \
-	--command "GRANT ALL ON SCHEMA ZFGBB TO ZFGCADMIN WITH GRANT OPTION;" \
-	--command "ALTER DEFAULT PRIVILEGES IN SCHEMA ZFGBB GRANT ALL ON TABLES TO ZFGCADMIN;" \
-	--command "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ZFGBB TO ZFGCADMIN;"
-
-echo "Provisioning database... [4/4]"
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-psql --username "$POSTGRES_USER" --dbname "$ZFGBB_DATABASE" -a -f "$SCRIPT_DIR/2-provision-database"
+echo "ZFGBB database provisioning complete"
