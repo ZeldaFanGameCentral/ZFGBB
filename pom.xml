@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.2</version>
+    <version>4.0.3</version>
     <relativePath/>
   </parent>
 
@@ -30,7 +30,7 @@
     <commons-lang3.version>3.20.0</commons-lang3.version>
     <guava.version>33.5.0-jre</guava.version>
 
-    <testcontainers.version>1.19.8</testcontainers.version>
+    <testcontainers.version>2.0.3</testcontainers.version>
   </properties>
 
   <dependencyManagement>
