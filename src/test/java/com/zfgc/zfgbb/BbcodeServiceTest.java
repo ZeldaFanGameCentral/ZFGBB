@@ -21,7 +21,7 @@ import com.zfgc.zfgbb.model.forum.BBCodeAttributeMode;
 import com.zfgc.zfgbb.model.forum.BBCodeConfig;
 import com.zfgc.zfgbb.services.forum.BBCodeService;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BbcodeServiceTest {
