@@ -22,7 +22,6 @@ class ZfgbbComposeSmokeTest {
 	@SuppressWarnings("resource")
 	@Container
 	static ComposeContainer environment = new ComposeContainer(new File("docker-compose.yml"))
-			.withLocalCompose(true)
 			.withEnv("COMPOSE_PROJECT_NAME", PROJECT_NAME)
 			.withExposedService(
 					"api",
