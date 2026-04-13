@@ -4,7 +4,17 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.zfgc.zfgbb.model.forum.Message;
+import com.zfgc.zfgbb.model.forum.MessageHistory;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@SuperBuilder(toBuilder=true)
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class BaseModel {
 	@JsonIgnore
 	private LocalDateTime updatedTs;

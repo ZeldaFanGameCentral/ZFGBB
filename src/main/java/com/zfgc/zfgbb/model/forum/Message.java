@@ -9,6 +9,18 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 import com.zfgc.zfgbb.model.User;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+
+@Getter
+@Setter
+@SuperBuilder(toBuilder=true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Message extends BaseModel {
 	@JsonIgnore
 	private Integer messageId;
@@ -18,23 +30,8 @@ public class Message extends BaseModel {
 	
 	private User createdUser;
 	
+	@Builder.Default
 	private MessageHistory currentMessage = new MessageHistory();
-	
-	public Integer getMessageId() {
-		return messageId;
-	}
-
-	public void setMessageId(Integer messageId) {
-		this.messageId = messageId;
-	}
-
-	public Integer getOwnerId() {
-		return ownerId;
-	}
-
-	public void setOwnerId(Integer ownerId) {
-		this.ownerId = ownerId;
-	}
 
 	@Override
 	public Integer getId() {
@@ -45,42 +42,10 @@ public class Message extends BaseModel {
 	public void setId(Integer id) {
 		messageId = id;
 	}
-
-	public Integer getThreadId() {
-		return threadId;
-	}
-
-	public void setThreadId(Integer threadId) {
-		this.threadId = threadId;
-	}
 	
 	@JsonIgnore
 	public LocalDateTime getLatestMessageTs() {
 		return currentMessage.getCreatedTs();
-	}
-
-	public MessageHistory getCurrentMessage() {
-		return currentMessage;
-	}
-
-	public void setCurrentMessage(MessageHistory currentMessage) {
-		this.currentMessage = currentMessage;
-	}
-
-	public Integer getPostInThread() {
-		return postInThread;
-	}
-
-	public void setPostInThread(Integer postInThread) {
-		this.postInThread = postInThread;
-	}
-
-	public User getCreatedUser() {
-		return createdUser;
-	}
-
-	public void setCreatedUser(User createdUser) {
-		this.createdUser = createdUser;
 	}
 	
 }

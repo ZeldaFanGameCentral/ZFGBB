@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.controller.forum;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,8 +34,13 @@ public class MessageController extends BaseController {
 	
 	@PostMapping("/{threadId}")
 	//@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_POSTER')")
-	public ResponseEntity addMessageToThread(@PathVariable("threadId") Integer threadId, @RequestBody Message message) {
+	public ResponseEntity addMessageToThread(@PathVariable Integer threadId, @RequestBody Message message) {
 		return ResponseEntity.ok(forumService.saveMessage(message, super.zfgcUser()));
+	}
+	
+	@GetMapping("/user/{userId}")
+	public List<Message> getMessagesByUser(@PathVariable Integer userId) {
+		return forumService.getMessagesByUserId(userId, null, null);
 	}
 	
 }

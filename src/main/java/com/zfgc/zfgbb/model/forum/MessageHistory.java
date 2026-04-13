@@ -1,10 +1,19 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.format.DateTimeFormatter;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder(toBuilder=true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class MessageHistory extends BaseModel {
 	@JsonIgnore
 	private Integer messageHistoryId;
@@ -14,24 +23,6 @@ public class MessageHistory extends BaseModel {
 	private Boolean currentFlag;
 	private Integer ipAddressId;
 	
-	public Integer getMessageHistoryId() {
-		return messageHistoryId;
-	}
-	public void setMessageHistoryId(Integer messageHistoryId) {
-		this.messageHistoryId = messageHistoryId;
-	}
-	public Integer getMessageId() {
-		return messageId;
-	}
-	public void setMessageId(Integer messageId) {
-		this.messageId = messageId;
-	}
-	public String getMessageText() {
-		return messageText;
-	}
-	public void setMessageText(String messageText) {
-		this.messageText = messageText;
-	}
 	@Override
 	public Integer getId() {
 		return messageHistoryId;
@@ -39,23 +30,5 @@ public class MessageHistory extends BaseModel {
 	@Override
 	public void setId(Integer id) {
 		messageHistoryId = id;
-	}
-	public Boolean getCurrentFlag() {
-		return currentFlag;
-	}
-	public void setCurrentFlag(Boolean currentFlag) {
-		this.currentFlag = currentFlag;
-	}
-	public String getUnparsedText() {
-		return unparsedText;
-	}
-	public void setUnparsedText(String unparsedText) {
-		this.unparsedText = unparsedText;
-	}
-	public Integer getIpAddressId() {
-		return ipAddressId;
-	}
-	public void setIpAddressId(Integer ipAddressId) {
-		this.ipAddressId = ipAddressId;
 	}
 }

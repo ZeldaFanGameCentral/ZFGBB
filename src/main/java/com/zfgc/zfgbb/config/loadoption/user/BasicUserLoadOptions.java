@@ -12,6 +12,10 @@ public class BasicUserLoadOptions extends BaseLoadOption {
 		return true;
 	}
 	
+	public boolean loadKarma() {
+		return false;
+	}
+	
 	public boolean loadPermissions() {
 		return false;
 	}

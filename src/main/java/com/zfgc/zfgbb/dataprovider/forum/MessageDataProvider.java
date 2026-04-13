@@ -14,12 +14,14 @@ import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
+import com.zfgc.zfgbb.dbo.CurrentMessageDbo;
 import com.zfgc.zfgbb.dbo.CurrentMessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mapstruct.forum.MessageMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
@@ -37,6 +39,9 @@ public class MessageDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private UserDataProvider userDataProvider;
+	
+	@Autowired
+	private MessageMap messageMap;
 	
 	public Message getMessage(Integer messageId) {
 		Message message = mapper.map(messageDao.get(messageId), Message.class);
@@ -71,26 +76,23 @@ public class MessageDataProvider extends AbstractDataProvider {
 		ex.createCriteria().andThreadIdEqualTo(threadId)
 						   .andPostInThreadBetween(start, start + count - 1);
 		ex.setOrderByClause("post_in_thread asc");
-		ex.setOrderByClause("post_in_thread asc");
-		
-		
-		
-		List<Message> messages = currentMessageDao.get(ex)
+
+		return currentMessageDao.get(ex)
 						 .stream()
-						 .map(message -> {
-							 Message msg = mapper.map(message, Message.class);
-							 MessageHistory hist = mapper.map(message, MessageHistory.class);
-							 hist.setUnparsedText(hist.getMessageText());
-							 msg.setCurrentMessage(hist);
-							 
-							 msg.setCreatedUser(userDataProvider.getUser(msg.getOwnerId()));
-							 
-							 return msg;
-						 }).collect(Collectors.toList());
-						 
-		
-		
-		return super.convertDboListToModel(messages, Message.class);
+						 .map(this::mapMessage).toList();
+	}
+	
+	private Message mapMessage(CurrentMessageDbo msgDbo){
+		 
+		 MessageHistory hist = mapper.map(msgDbo, MessageHistory.class);
+		 hist.setUnparsedText(hist.getMessageText());
+		 
+		 User createdUser = userDataProvider.getUser(msgDbo.getOwnerId());
+		 
+		 return messageMap.toModel(msgDbo, createdUser)
+		 		   .toBuilder()
+		 		   .currentMessage(hist)
+		 		   .build();
 	}
 	
 	public Message postMessageToThread(Integer threadId, Message message) {
@@ -153,5 +155,16 @@ public class MessageDataProvider extends AbstractDataProvider {
 		Long count = messageDao.getMapper().countByExample(ex);
 		
 		return count;
+	}
+	
+	public List<Message> getMessagesByUser(Integer userId, Integer page, Integer count){
+		//Integer start = ((page - 1)*count) + 1;
+		CurrentMessageDboExample ex = new CurrentMessageDboExample();
+		ex.createCriteria().andOwnerIdEqualTo(userId);;
+		ex.setOrderByClause("post_in_thread asc");
+
+		return currentMessageDao.get(ex)
+						 .stream()
+						 .map(this::mapMessage).toList();
 	}
 }

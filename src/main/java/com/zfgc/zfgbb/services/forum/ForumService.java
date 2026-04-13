@@ -230,4 +230,20 @@ public class ForumService extends AbstractService {
 		Thread newThread = getThreadTemplate(split.getBoardId(), user);
 		return threadDataProvider.splitThread(split, newThread);
 	}
+	
+	public List<Message> getMessagesByUserId(Integer userId, Integer pageNo, Integer count){
+		//todo: permissions from thread
+		return messageDataProvider.getMessagesByUser(userId, pageNo, count)
+								  .stream()
+								  .map(message -> {
+									  try {
+										String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
+									  	message.getCurrentMessage().setMessageText(parsed);
+									  	return message;
+									  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+										e.printStackTrace();
+										throw new RuntimeException(e);
+									}
+								  }).toList();
+	}
 }
