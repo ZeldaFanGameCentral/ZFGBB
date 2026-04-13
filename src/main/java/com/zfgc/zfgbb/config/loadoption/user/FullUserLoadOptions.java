@@ -10,4 +10,9 @@ public class FullUserLoadOptions extends BasicUserLoadOptions {
 	public boolean loadPermissions() {
 		return true;
 	}
+	
+	@Override
+	public boolean loadKarma() {
+		return true;
+	}
 }

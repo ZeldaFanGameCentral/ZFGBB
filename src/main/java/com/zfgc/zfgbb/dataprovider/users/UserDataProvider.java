@@ -26,8 +26,12 @@ import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
+import com.zfgc.zfgbb.dbo.UserKarmaViewDbo;
+import com.zfgc.zfgbb.dbo.UserKarmaViewDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mappers.UserKarmaViewDboMapper;
+import com.zfgc.zfgbb.mapstruct.users.KarmaMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
@@ -66,6 +70,12 @@ public class UserDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private MessageDboMapper messageDboMapper;
+	
+	@Autowired
+	private UserKarmaViewDboMapper karmaViewDboMapper;
+	
+	@Autowired
+	private KarmaMap karmaMap;
 	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
@@ -126,6 +136,14 @@ public class UserDataProvider extends AbstractDataProvider {
 										   .ifPresent(av -> {
 											   user.getBioInfo().setAvatar(mapper.map(av, Avatar.class));
 										   });
+				}
+				
+				if(Boolean.TRUE.equals(loadOptions.loadKarma())) {
+					UserKarmaViewDboExample karmaEx = new UserKarmaViewDboExample();
+					karmaEx.createCriteria().andReceivingUserIdEqualTo(userId);
+					List<UserKarmaViewDbo> karmaList = karmaViewDboMapper.selectByExample(karmaEx);
+					
+					user.getBioInfo().setKarma(karmaMap.toViewModelList(karmaList));
 				}
 			});
 			

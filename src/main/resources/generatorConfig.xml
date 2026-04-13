@@ -18,12 +18,18 @@
     
 
     <!-- tables -->
-    <table schema="zfgbb" tableName="karma" domainObjectName="KarmaDbo">
+    <table schema="zfgbb" tableName="user_karma_view" domainObjectName="UserKarmaViewDbo">
+    <generatedKey column="karma_id" sqlStatement="JDBC" identity="true" />
+    	<columnOverride column="karma_given_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+		<columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+    
+    <!-- <table schema="zfgbb" tableName="karma" domainObjectName="KarmaDbo">
     <generatedKey column="karma_id" sqlStatement="JDBC" identity="true" />
     	<columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
 		<columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
-    </table>
+    </table> -->
     
    <!--  <table schema="zfgbb" tableName="user_poll_choice" domainObjectName="UserPollChoiceDbo">
     <generatedKey column="user_poll_choice_id" sqlStatement="JDBC" identity="true" />

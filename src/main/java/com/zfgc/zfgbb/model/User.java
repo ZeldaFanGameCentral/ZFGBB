@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.zfgc.zfgbb.model.forum.Message;
+import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.EmailAddress;
@@ -18,12 +20,18 @@ import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 @Setter
+@SuperBuilder(toBuilder=true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class User extends BaseModel implements UserDetails {
 	@JsonIgnore
 	private Integer userId;
