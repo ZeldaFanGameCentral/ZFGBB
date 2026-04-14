@@ -31,10 +31,16 @@ public class BBCodeService {
 	@Autowired
 	BBCodeDataProvider bbCodeDataProvider;
 
-	public String parseText(String input)
-			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+	public String parseText(String input) {
 
-		final char[] inputChar = ZfgcStringUtils.getUnderlyingStringArray(input.replace("\n", "<br/>"));
+		char[] inputChar = null;
+		
+		try {
+			inputChar = ZfgcStringUtils.getUnderlyingStringArray(input.replace("\n", "<br/>"));
+		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		}
 		final int length = inputChar.length;
 		final MutableInt NEG = new MutableInt(-1);
 		StringBuilder output = new StringBuilder();

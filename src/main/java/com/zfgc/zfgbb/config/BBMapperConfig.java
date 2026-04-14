@@ -9,8 +9,9 @@ import com.zfgc.zfgbb.model.BaseModel;
 
 @MapperConfig(
 	    componentModel = "spring",
-	    unmappedTargetPolicy = ReportingPolicy.WARN,
+	    unmappedTargetPolicy = ReportingPolicy.ERROR,
 	    unmappedSourcePolicy = ReportingPolicy.IGNORE
+	    
 	)
 public interface BBMapperConfig {
 }
