@@ -264,17 +264,11 @@ public class BbcodeServiceTest {
 
 	@Test
 	public void caseMismatchTest() {
-		try {
 			String result = service
 					.parseText("[IMG]http://img.photobucket.com/albums/v191/legofreak1988/avy-sig/corpse.jpg[/img]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-img'><img src='http://img.photobucket.com/albums/v191/legofreak1988/avy-sig/corpse.jpg'/></span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
@@ -284,16 +278,10 @@ public class BbcodeServiceTest {
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'>Authored by test</span><span class='bbcode-quote-block'>test</span>"));
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -306,16 +294,10 @@ public class BbcodeServiceTest {
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span>"));
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
+		}  catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -379,16 +361,10 @@ public class BbcodeServiceTest {
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'><span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span></span>"));
-		} catch (NoSuchFieldException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -397,268 +373,158 @@ public class BbcodeServiceTest {
 
 	@Test
 	public void parseTextCode() {
-		try {
 			String result = service.parseText("[code]test[/code]");
 
 			assertTrue(result
 					.equals("<span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextCodeEmbedded() {
-		try {
 			String result = service.parseText("[code]test[code]test[quote][/code]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test[code]test[quote]</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextQuoteNoParam() {
-		try {
 			String result = service.parseText("[quote]test[/quote]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'>Quote</span><span class='bbcode-quote-block'>test</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextQuoteTwo() {
-		try {
 			String result = service.parseText(
 					"[quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote][quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span><span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextStrayClosing() {
-		try {
 			String result = service.parseText("This is my [/quote] house");
 
 			assertEquals("This is my [/quote] house", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextStrayOpening() {
-		try {
 			String result = service.parseText("This is my [code] house");
 
 			assertTrue(result.equals(
 					"This is my <span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'> house</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 
 	@Test
 	public void parseTextStrayClosingEmbedded() {
-		try {
+
 			String result = service.parseText("[quote author=MG-Zero]This is [/code] my house[/quote]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'>Authored by MG-Zero</span><span class='bbcode-quote-block'>This is [/code]</span> my house[/quote]"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 
 	@Test
 	public void parseTextStrayMismatched() {
-		try {
 			String result = service.parseText("[b][i]This is my house[/b][/i]");
 
 			assertTrue(result
 					.equals("<span class='bbcode-b'><span class='bbcode-i'>This is my house[/b]</span>[/i]</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 
 	@Test
 	public void parseTextStrayClosingOutside() {
-		try {
 			String result = service.parseText("[quote author=MG-Zero]This is my house[/quote][/code]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'>Authored by MG-Zero</span><span class='bbcode-quote-block'>This is my house</span>[/code]"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 	}
 
 	@Test
 	public void parseTextMattyBoyTestBadInput() {
-		try {
 			String result = service.parseText(
 					"[b][code]test[/code][/b][b]hey[b]yo[b]wassup[b][i][u]bitch!!![/i][/u][/b][/b][/b][/b]  [i][u]yeah man[/i][/u] ");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-b'><span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span></span><span class='bbcode-b'>hey<span class='bbcode-b'>yo<span class='bbcode-b'>wassup<span class='bbcode-b'><span class='bbcode-i'><span class='bbcode-u'>bitch!!![/i]</span>[/u]</span></span></span></span></span>  <span class='bbcode-i'><span class='bbcode-u'>yeah man[/i]</span>[/u]</span> "));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
 	@Test
 	public void parseTextMattyBoyTestGoodInput() {
-		try {
 			String result = service.parseText(
 					"[b][code]test[/code][/b][b]hey[b]yo[b]wassup[b][i][u]bitch!!![/u][/i][/b][/b][/b][/b]  [i][u]yeah man[/u][/i] o");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-b'><span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span></span><span class='bbcode-b'>hey<span class='bbcode-b'>yo<span class='bbcode-b'>wassup<span class='bbcode-b'><span class='bbcode-i'><span class='bbcode-u'>bitch!!!</span></span></span></span></span></span>  <span class='bbcode-i'><span class='bbcode-u'>yeah man</span></span> o"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
 	@Test
 	public void parseTextNamelessAttribute() {
-		try {
 			String result = service.parseText("[quote=MGZero]test[/quote]");
 
 			assertTrue(result.equals(
 					"<span class='bbcode-quote-header'>Authored by MGZero</span><span class='bbcode-quote-block'>test</span>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextUrlContent() {
-		try {
 			String result = service.parseText("[url]http://zfgc.com[/url]");
 
 			assertEquals("<a href='http://zfgc.com'>http://zfgc.com</a>", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextUrlContentEmbedded() {
-		try {
 			String result = service.parseText("[url][b]http://zfgc.com[/b][/url]");
 
 			assertEquals("<a href='http://zfgc.com'><span class='bbcode-b'>http://zfgc.com</span></a>", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextUrlImgEmbedded() {
-		try {
 			String result = service.parseText("[url=https://somelink.com][img]https://someimg.jpg[/img][/url]");
 
 			assertTrue(result.equals(
 					"<a href='https://somelink.com'><span class='bbcode-img'><img src='https://someimg.jpg'/></span></a>"));
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	// @Test
 	public void parseTextUrlContentEmbeddedStray() {
-		try {
 			String result = service.parseText("[url][/b]http://zfgc.com[/url]");
 			// current output: "<a href='{{c}}'>[/b]</span>http://zfgc.com[/url]"
 			// FIXME: handle stray closing tags, seems to be something with the way the
 			// cursor flushes text?
 			assertEquals("<a href='[/b]http://zfgc.com'>[/b]http://zfgc.com</a>", result);
-
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextImg() {
-		try {
 			String result = service.parseText("[img]http://zfgc.com[/img]");
 
 			assertEquals("<span class='bbcode-img'><img src='http://zfgc.com'/></span>", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextImgStrayEmbedded() {
-		try {
 			String result = service.parseText("[img][/b]http://zfgc.com[/img]");
 
 			assertEquals("<span class='bbcode-img'><img src='[/b]http://zfgc.com'/></span>", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	@Test
 	public void parseTextInvalidTag() {
-		try {
 			String result = service.parseText("i am [hr] a [hr] dumb [b]test[/b]");
 			assertEquals("i am [hr] a [hr] dumb <span class='bbcode-b'>test</span>", result);
-		} catch (NoSuchFieldException | SecurityException
-				| IllegalArgumentException | IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 }

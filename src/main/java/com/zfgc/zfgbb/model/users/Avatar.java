@@ -3,6 +3,15 @@ package com.zfgc.zfgbb.model.users;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder(toBuilder=true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Avatar extends BaseModel {
 	@JsonIgnore
 	private Integer avatarId;
@@ -10,32 +19,6 @@ public class Avatar extends BaseModel {
 	private String url;
 	private Boolean activeFlag;
 	private Integer contentResourceId;
-	private Integer userId;
-
-
-	public Integer getAvatarId() {
-		return avatarId;
-	}
-
-	public void setAvatarId(Integer avatarId) {
-		this.avatarId = avatarId;
-	}
-
-	public String getUrl() {
-		return url;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
-	}
-
-	public Boolean getActiveFlag() {
-		return activeFlag;
-	}
-
-	public void setActiveFlag(Boolean activeFlag) {
-		this.activeFlag = activeFlag;
-	}
 
 	@Override
 	public Integer getId() {
@@ -45,22 +28,6 @@ public class Avatar extends BaseModel {
 	@Override
 	public void setId(Integer id) {
 		avatarId = id;
-	}
-
-	public Integer getContentResourceId() {
-		return contentResourceId;
-	}
-
-	public void setContentResourceId(Integer contentResourceId) {
-		this.contentResourceId = contentResourceId;
-	}
-
-	public Integer getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Integer userId) {
-		this.userId = userId;
 	}
 	
 }

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,14 +32,19 @@ import com.zfgc.zfgbb.dbo.UserKarmaViewDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
 import com.zfgc.zfgbb.mappers.UserKarmaViewDboMapper;
+import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.KarmaMap;
+import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
+import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
+import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
+import com.zfgc.zfgbb.model.users.UserKarmaView;
 import com.zfgc.zfgbb.services.forum.BBCodeService;
 
 @Repository
@@ -66,6 +72,9 @@ public class UserDataProvider extends AbstractDataProvider {
 	private BBCodeService bbcodeService;
 	
 	@Autowired
+	private UserMap userMap;
+	
+	@Autowired
 	private UserBioInfoMap userBioInfoMap;
 	
 	@Autowired
@@ -76,6 +85,15 @@ public class UserDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private KarmaMap karmaMap;
+	
+	@Autowired
+	private UserContactInfoMap userContactInfoMap;
+	
+	@Autowired
+	private AvatarMap avatarMap;
+	
+	@Autowired
+	private PermissionMap permissionMap;
 	
 	public User getUser(String userName) {
 		UserDboExample ex = new UserDboExample();
@@ -94,70 +112,75 @@ public class UserDataProvider extends AbstractDataProvider {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdEqualTo(userId).andActiveFlagEqualTo(true);
 		UserDbo userDb = userDao.get(ex).stream().findFirst().orElse(createGuest());
-		
-		User user = mapper.map(userDb, User.class);
 
 		//todo: setup guest permissions
-		if(Boolean.TRUE.equals(loadOptions.loadPermissions())){
-			UserPermissionViewDboExample upEx = new UserPermissionViewDboExample();
-			upEx.createCriteria().andUserIdEqualTo(user.getUserId());
-			List<Permission> permissions = convertDboListToModel(userPermissionDao.get(upEx), Permission.class);
-	
-			user.setPermissions(permissions);
-		}
+		UserPermissionViewDboExample upEx = new UserPermissionViewDboExample();
+		upEx.createCriteria().andUserIdEqualTo(userDb.getUserId());
+		List<Permission> permissions = 
+				Boolean.TRUE.equals(loadOptions.loadPermissions()) ?
+			    userPermissionDao.get(upEx).stream().map(permissionMap::toModel).toList() :
+			    Collections.emptyList();
 		
-		if(Boolean.TRUE.equals(loadOptions.loadBio())) {
-			Optional<UserBioInfoDbo> bioInfoDbo = bioInfoDao.get(userId);
-			
-			bioInfoDbo.ifPresent(bioInfo -> {
-				user.setBioInfo(userBioInfoMap.toModel(bioInfo));
-				
-				MessageDboExample msgEx = new MessageDboExample();
-				msgEx.createCriteria().andOwnerIdEqualTo(userId);
-				
-				Integer postCount = (int)messageDboMapper.countByExample(msgEx);
-				user.getBioInfo().setPostCount(postCount);
-				
-				try {
-					user.getBioInfo().setSignatureParsed(bbcodeService.parseText(user.getBioInfo().getSignature()));
-				} catch (NoSuchFieldException | SecurityException | IllegalArgumentException
-						| IllegalAccessException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				if(Boolean.TRUE.equals(loadOptions.loadAvatar()) && bioInfo.getAvatarId() != null) {
-					AvatarDboExample avatarEx = new AvatarDboExample();
-					avatarEx.createCriteria().andAvatarIdEqualTo(bioInfo.getAvatarId())
-											 .andActiveFlagEqualTo(true);
-					
-					avatarDao.get(avatarEx).stream()
-										   .findFirst()
-										   .ifPresent(av -> {
-											   user.getBioInfo().setAvatar(mapper.map(av, Avatar.class));
-										   });
-				}
-				
-				if(Boolean.TRUE.equals(loadOptions.loadKarma())) {
-					UserKarmaViewDboExample karmaEx = new UserKarmaViewDboExample();
-					karmaEx.createCriteria().andReceivingUserIdEqualTo(userId);
-					List<UserKarmaViewDbo> karmaList = karmaViewDboMapper.selectByExample(karmaEx);
-					
-					user.getBioInfo().setKarma(karmaMap.toViewModelList(karmaList));
-				}
-			});
-			
-		}
+		Optional<UserBioInfo> bioInfo = 
+				Boolean.TRUE.equals(loadOptions.loadBio()) ?
+				  bioInfoDao.get(userId)
+				  .map(bioInfoDbo -> {
+					  	MessageDboExample msgEx = new MessageDboExample();
+						msgEx.createCriteria().andOwnerIdEqualTo(userId);
+						
+						Integer postCount = (int)messageDboMapper.countByExample(msgEx);
+						
+						String signatureParsed = "";
+						signatureParsed = bbcodeService.parseText(bioInfoDbo.getSignature());
+						
+						//load avatar
+						AvatarDboExample avatarEx = new AvatarDboExample();
+						if(bioInfoDbo.getAvatarId() != null) {
+							avatarEx.createCriteria().andAvatarIdEqualTo(bioInfoDbo.getAvatarId())
+												 	 .andActiveFlagEqualTo(true);
+						}
+						Optional<Avatar> avatar = 
+								Boolean.TRUE.equals(loadOptions.loadAvatar()) && bioInfoDbo.getAvatarId() != null ?
+								avatarDao.get(avatarEx).stream()
+								   .findFirst()
+								   .map(avatarMap::toModel) :
+							   Optional.empty();
+								
+						//load karma
+						UserKarmaViewDboExample karmaEx = new UserKarmaViewDboExample();
+						karmaEx.createCriteria().andReceivingUserIdEqualTo(userId);
+						List<UserKarmaView> karmaList = 
+								Boolean.TRUE.equals(loadOptions.loadKarma()) ?
+								karmaViewDboMapper.selectByExample(karmaEx).stream().map(karmaMap::toViewModel).toList() :
+								Collections.emptyList();
+						
+						
+						return userBioInfoMap.toModel(bioInfoDbo)
+											 .toBuilder()
+											 .postCount(postCount)
+											 .signatureParsed(signatureParsed)
+											 .karma(karmaList)
+											 .avatar(avatar.orElse(null))
+											 .build();
+				  }) :
+				  Optional.empty();
 		
-		if(Boolean.TRUE.equals(loadOptions.loadContactInfo())) {
-			Optional<UserContactInfoDbo> contactInfoDbo = contactInfoDao.get(userId);
-			contactInfoDbo.ifPresent(ci -> {
-									EmailAddressDbo email = emailDao.get(ci.getEmailAddressId()).get();
-									user.setContactInfo(mapper.map(ci, UserContactInfo.class));
-									user.getContactInfo().setEmailAddress(mapper.map(email, EmailAddress.class));
-								});
-		}
-		return user;
+		
+		Optional<UserContactInfo> contactInfo = 
+				Boolean.TRUE.equals(loadOptions.loadContactInfo()) ?
+				contactInfoDao.get(userId)
+							  .map(ci -> {
+								  EmailAddressDbo email = emailDao.get(ci.getEmailAddressId()).get();
+								  return userContactInfoMap.toModel(ci, email);
+							  }) :
+				Optional.empty();
+
+		return userMap.toModel(userDb)
+				       .toBuilder()
+				       .bioInfo(bioInfo.orElse(null))
+				       .contactInfo(contactInfo.orElse(null))
+				       .permissions(permissions)
+				       .build();
 	}
 	
 	public User createUser(User user) {

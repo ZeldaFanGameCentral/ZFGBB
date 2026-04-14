@@ -150,7 +150,6 @@ public class ForumService extends AbstractService {
 		
 		//parse messages
 		thread.getMessages().forEach(message -> {
-			try {
 				String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
 				message.getCurrentMessage().setMessageText(parsed);
 				
@@ -158,10 +157,6 @@ public class ForumService extends AbstractService {
 					String parsedSignature = bbCodeService.parseText(message.getCreatedUser().getBioInfo().getSignature());
 					message.getCreatedUser().getBioInfo().setSignature(parsedSignature);
 				}
-			} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-				e.printStackTrace();
-				throw new RuntimeException(e);
-			}
 		});
 		
 		return thread;
@@ -236,14 +231,10 @@ public class ForumService extends AbstractService {
 		return messageDataProvider.getMessagesByUser(userId, pageNo, count)
 								  .stream()
 								  .map(message -> {
-									  try {
 										String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
 									  	message.getCurrentMessage().setMessageText(parsed);
 									  	return message;
-									  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-										e.printStackTrace();
-										throw new RuntimeException(e);
-									}
+									  
 								  }).toList();
 	}
 }
