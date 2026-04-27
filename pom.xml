@@ -31,8 +31,12 @@
     <guava.version>33.6.0-jre</guava.version>
 
     <testcontainers.version>2.0.4</testcontainers.version>
-    <testcontainers.postgresql.version>1.21.4</testcontainers.postgresql.version>
-    <testcontainers.junit-jupiter.version>2.0.4</testcontainers.junit-jupiter.version>
+    <SPRING_PROFILES_ACTIVE>local</SPRING_PROFILES_ACTIVE>
+    <SPRING_DATASOURCE_URL>jdbc:postgresql://localhost:5432/zfgc_dev</SPRING_DATASOURCE_URL>
+    <SPRING_DATASOURCE_USERNAME>zfgbb_user</SPRING_DATASOURCE_USERNAME>
+    <SPRING_DATASOURCE_PASSWORD>123456</SPRING_DATASOURCE_PASSWORD>
+    <ZFGBB_CONTENT_PATH>./backend-assets</ZFGBB_CONTENT_PATH>
+    <ZFGBB_CONTENT_IMAGES>images</ZFGBB_CONTENT_IMAGES>
   </properties>
 
   <dependencyManagement>
@@ -96,8 +100,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
     </dependency>
 
     <dependency>
@@ -141,9 +145,24 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Used at compile time by DboOverridesPlugin (an MBG plugin in src/main/java).
+         Provided scope since the generator brings its own copy at generation time. -->
+    <dependency>
+      <groupId>org.mybatis.generator</groupId>
+      <artifactId>mybatis-generator-core</artifactId>
+      <version>2.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -163,22 +182,82 @@
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
-      <version>${testcontainers.junit-jupiter.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>postgresql</artifactId>
+      <artifactId>testcontainers-postgresql</artifactId>
       <scope>test</scope>
-      <version>${testcontainers.postgresql.version}</version>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.2.1</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>read-project-properties</goal>
+            </goals>
+            <configuration>
+              <quiet>true</quiet>
+              <files>
+                <file>${project.basedir}/.env.local</file>
+              </files>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
+            <spring.datasource.url>${SPRING_DATASOURCE_URL}</spring.datasource.url>
+            <spring.datasource.username>${SPRING_DATASOURCE_USERNAME}</spring.datasource.username>
+            <spring.datasource.password>${SPRING_DATASOURCE_PASSWORD}</spring.datasource.password>
+            <zfgbb.content.path>${ZFGBB_CONTENT_PATH}</zfgbb.content.path>
+            <zfgbb.content.images>${ZFGBB_CONTENT_IMAGES}</zfgbb.content.images>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-maven-plugin</artifactId>
+        <version>11.14.1</version>
+        <configuration>
+          <url>${SPRING_DATASOURCE_URL}</url>
+          <user>${SPRING_DATASOURCE_USERNAME}</user>
+          <password>${SPRING_DATASOURCE_PASSWORD}</password>
+          <schemas>
+            <schema>zfgbb</schema>
+          </schemas>
+          <defaultSchema>zfgbb</defaultSchema>
+          <createSchemas>true</createSchemas>
+          <baselineOnMigrate>true</baselineOnMigrate>
+          <locations>
+            <location>classpath:db/migration</location>
+          </locations>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>11.14.1</version>
+          </dependency>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.10</version>
+          </dependency>
+        </dependencies>
       </plugin>
 
       <plugin>
@@ -205,6 +284,30 @@
         </configuration>
       </plugin>
 
+      <!-- Packages the in-tree MBG plugin (src/main/java/com/zfgc/zfgbb/mbg/) into a jar
+           that mybatis-generator-maven-plugin can load via a system-scope <dependency>.
+           Bound to process-classes so it runs after compile and before any generate run. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jar-mbg-plugin</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <jar destfile="${project.build.directory}/mbg-plugin.jar"
+                     basedir="${project.build.outputDirectory}"
+                     includes="com/zfgc/zfgbb/mbg/**"/>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.mybatis.generator</groupId>
         <artifactId>mybatis-generator-maven-plugin</artifactId>
@@ -213,9 +316,67 @@
           <configurationFile>
             src/main/resources/generatorConfig.xml
           </configurationFile>
+          <overwrite>true</overwrite>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.10</version>
+          </dependency>
+          <!-- The DboOverridesPlugin jar built by maven-antrun above. The canonical
+               regen workflow is `mvn compile mybatis-generator:generate`; the compile
+               step's process-classes phase produces this jar. -->
+          <dependency>
+            <groupId>com.zfgc</groupId>
+            <artifactId>zfgbb-mbg-plugin</artifactId>
+            <version>local</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/target/mbg-plugin.jar</systemPath>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!--
+      Dev seed data. Tracked in a separate flyway_seed_history table so it
+      doesn't pollute the real flyway_schema_history. Workflow:
+
+        mvn flyway:migrate              schema only (real migrations)
+        mvn flyway:migrate -Pseed       seed only (sample dev data)
+        mvn flyway:clean -Pseed         wipe seeded rows + history table
+
+      The seed never runs as part of normal app boot — it's strictly opt-in.
+    -->
+    <profile>
+      <id>seed</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <configuration>
+              <locations>
+                <location>classpath:db/seed</location>
+              </locations>
+              <table>flyway_seed_history</table>
+              <!-- baselineOnMigrate=true is inherited from the main config and is
+                   needed because the schema (already populated by real migrations) is
+                   not empty when the seed runs for the first time. baselineVersion=0
+                   makes Flyway baseline at v0 instead of "the latest seed version it
+                   sees", so V1__core_dev_data.sql actually runs. -->
+              <baselineVersion>0</baselineVersion>
+              <!-- DO NOT enable cleanDisabled=false here. Flyway clean drops
+                   the entire schema, not just seeded rows. To reset dev data
+                   to a clean state, rebuild the DB from scratch via the
+                   "Reset DB and seed" task in .vscode/tasks.json. -->
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

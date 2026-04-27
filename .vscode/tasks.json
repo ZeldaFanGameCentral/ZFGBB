@@ -1,0 +1,85 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Postgres (docker compose)",
+            "detail": "Starts the docker-compose postgresql service, waits for it to become healthy.",
+            "type": "shell",
+            "command": "docker compose up -d --wait postgresql",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Stop Postgres (docker compose)",
+            "detail": "Stops the docker-compose postgresql service. Data volume is preserved.",
+            "type": "shell",
+            "command": "docker compose stop postgresql",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Flyway migrate",
+            "detail": "Applies pending Flyway schema migrations against the dev database.",
+            "type": "shell",
+            "command": "mvn flyway:migrate",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Seed dev data",
+            "detail": "Inserts sample categories, boards, users (admin/alice/bob/carol — password 'password123'), threads and messages. Tracked in flyway_seed_history; safe to re-run (no-op if already applied).",
+            "type": "shell",
+            "command": "mvn flyway:migrate -Pseed",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Start Postgres (docker compose)",
+                "Flyway migrate"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Reset DB and seed",
+            "detail": "Nuclear reset: drops and recreates the zfgbb schema (with the same ownership/grants the docker init sets up), reapplies all migrations, then seeds dev data. Use when the dev DB has gotten into a bad state.",
+            "type": "shell",
+            "command": "docker compose exec -T postgresql psql -U postgres -d zfgc_dev -c 'drop schema if exists zfgbb cascade; create schema zfgbb authorization zfgbb_user; alter schema zfgbb owner to zfgcadmin; grant usage, create on schema zfgbb to zfgbb_user; grant zfgcadmin to zfgbb_user;' && mvn flyway:migrate && mvn flyway:migrate -Pseed",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Start Postgres (docker compose)"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

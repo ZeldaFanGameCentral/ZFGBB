@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,7 +33,8 @@ public class ThreadController extends BaseController {
 	}
 	
 	@PostMapping
-	public ResponseEntity saveThread(@RequestParam("boardId") Integer boardId, Thread thread) {
+	public ResponseEntity saveThread(@RequestParam("boardId") Integer boardId, @RequestBody Thread thread) {
+		thread.setBoardId(boardId);
 		Thread saved = forumService.saveThread(thread, super.zfgcUser());
 		return ResponseEntity.ok(saved);
 	}
@@ -75,7 +77,7 @@ public class ThreadController extends BaseController {
 	
 	@PostMapping("/{threadId}/split")
 	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity splitThread(@PathVariable("threadId") Integer threadId, ThreadSplit threadSplit) {
+	public ResponseEntity splitThread(@PathVariable("threadId") Integer threadId, @RequestBody ThreadSplit threadSplit) {
 		return ResponseEntity.ok(forumService.splitThread(threadSplit, super.zfgcUser()));
 	}
 }

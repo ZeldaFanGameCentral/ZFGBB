@@ -1,56 +1,47 @@
 package com.zfgc.zfgbb.config.security;
 
-import javax.crypto.spec.SecretKeySpec;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.switchuser.SwitchUserFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-	// userDetailsService bean
 	@Autowired
-	private OauthUsersDetailsServiceImpl oauthUsersDetailsServiceImpl;
-
-	@Bean
-	public Oauth2AuthorizationFilter jwtAuthTokenFilterBean() throws Exception {
-		return new Oauth2AuthorizationFilter(oauthUsersDetailsServiceImpl);
-	}
+	private JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		// test key for now
-		/*
-		 * SecretKeySpec key = new SecretKeySpec(authKey.getBytes(), "HMACSHA256");
-		 * 
-		 * http.httpBasic(httpBasic -> httpBasic.disable())
-		 * .csrf(csrf -> csrf.disable())
-		 * .authorizeHttpRequests(req -> req.requestMatchers("//*.map",
-		 * "/**").permitAll())
-		 * .authorizeHttpRequests(req -> req.anyRequest().authenticated())
-		 * .oauth2ResourceServer(oauth -> oauth.jwt(jwt ->
-		 * jwt.decoder(NimbusJwtDecoder.withSecretKey(key).build())));
-		 */
-
 		http
-				.cors(Customizer.withDefaults()).csrf(csrf -> csrf.disable())
-				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-						.anyRequest().permitAll());
-		http.addFilterAfter(jwtAuthTokenFilterBean(), SwitchUserFilter.class);
+			.cors(Customizer.withDefaults())
+			.csrf(csrf -> csrf.disable())
+			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+				// CORS preflight
+				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+				// auth endpoints (login/refresh/logout/register) must be reachable without a token
+				.requestMatchers("/users/auth/**", "/users/register").permitAll()
+				// first-run install endpoints. Token check + installed-marker check live
+				// inside SystemController; SecurityConfig just lets the request reach it.
+				.requestMatchers("/system/install/**").permitAll()
+				// Default rule: every read is public; every write requires auth.
+				// Finer-grained role checks live on individual handlers via @PreAuthorize.
+				// Permission-table-driven gating is planned but not implemented yet.
+				.requestMatchers(HttpMethod.GET,
+					"/",
+					"/board/**", "/thread/**", "/message/**",
+					"/content/**", "/resources/**", "/user-profile/**",
+					"/users/loggedInUser").permitAll()
+				.anyRequest().authenticated())
+			.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
+
 		return http.build();
-
 	}
-
 }

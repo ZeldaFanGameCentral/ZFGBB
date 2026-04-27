@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.dao.forum;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,14 +29,11 @@ public class MessageDao extends AbstractDao<MessageDboExample, MessageDboMapper,
 
 	@Override
 	protected void update(MessageDbo toSave) {
-		toSave.setUpdatedTs(LocalDateTime.now());
 		mapper.updateByPrimaryKey(toSave);
 	}
 
 	@Override
 	protected void create(MessageDbo toCreate) {
-		toCreate.setCreatedTs(LocalDateTime.now());
-		toCreate.setUpdatedTs(LocalDateTime.now());
 		mapper.insert(toCreate);
 	}
 
@@ -50,5 +46,4 @@ public class MessageDao extends AbstractDao<MessageDboExample, MessageDboMapper,
 	public void delete(MessageDboExample ex) {
 		mapper.deleteByExample(ex);
 	}
-	
 }

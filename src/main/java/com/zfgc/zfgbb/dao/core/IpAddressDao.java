@@ -38,5 +38,4 @@ public class IpAddressDao extends AbstractDao<IpAddressDboExample, IpAddressDboM
 	protected void create(IpAddressDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

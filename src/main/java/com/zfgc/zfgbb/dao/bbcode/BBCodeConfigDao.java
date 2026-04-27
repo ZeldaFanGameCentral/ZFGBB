@@ -38,5 +38,4 @@ public class BBCodeConfigDao extends AbstractDao<BBCodeConfigDboExample, BBCodeC
 	protected void create(BBCodeConfigDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

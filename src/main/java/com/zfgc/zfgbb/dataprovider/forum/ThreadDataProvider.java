@@ -200,8 +200,8 @@ public class ThreadDataProvider extends AbstractDataProvider {
 		//create the thread dbo first
 		threadDbo = threadDao.save(threadDbo);
 		thread.setThreadId(threadDbo.getThreadId());
-		thread.setCreatedTs(threadDbo.getCreatedTime());
-		thread.setUpdatedTs(threadDbo.getUpdatedTime());
+		thread.setCreatedTs(threadDbo.getCreatedTs());
+		thread.setUpdatedTs(threadDbo.getUpdatedTs());
 		
 		if(thread.getPollInfo() != null) {
 			PollDbo poll = pollMap.toDbo(thread.getPollInfo());

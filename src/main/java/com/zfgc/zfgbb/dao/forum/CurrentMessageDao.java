@@ -38,5 +38,4 @@ public class CurrentMessageDao extends AbstractDao<CurrentMessageDboExample, Cur
 	protected void create(CurrentMessageDbo toCreate) {
 		throw new UnsupportedOperationException();
 	}
-	
 }

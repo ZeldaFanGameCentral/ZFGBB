@@ -38,5 +38,4 @@ public class BoardPermissionViewDao extends AbstractDao<BoardPermissionViewDboEx
 	protected void create(BoardPermissionViewDbo toCreate) {
 		
 	}
-	
 }

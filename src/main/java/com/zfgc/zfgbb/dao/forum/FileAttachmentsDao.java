@@ -39,5 +39,4 @@ public class FileAttachmentsDao extends AbstractDao<FileAttachmentDboExample, Fi
 	protected void create(FileAttachmentDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }

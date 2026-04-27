@@ -17,14 +17,14 @@ public class Thread extends BaseModel implements Securable {
 	@JsonIgnore
 	private Integer threadId;
     private String threadName;
-    private Boolean lockedFlag;
-    private Boolean pinnedFlag;
+    private Boolean lockedFlag = false;
+    private Boolean pinnedFlag = false;
     private Integer boardId;
     private Integer createdUserId;
-    
+
     private User createdUser;
     private Integer postCount;
-    private Integer viewCount;
+    private Integer viewCount = 0;
     private Integer pageCount;
     
 	@JsonIgnore

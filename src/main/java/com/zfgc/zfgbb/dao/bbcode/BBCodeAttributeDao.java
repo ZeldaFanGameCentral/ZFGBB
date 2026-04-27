@@ -39,5 +39,4 @@ public class BBCodeAttributeDao extends AbstractDao<BBCodeAttributeDboExample, B
 	protected void create(BBCodeAttributeDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

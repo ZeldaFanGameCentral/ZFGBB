@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -18,11 +15,16 @@
         },
         {
             "type": "java",
-            "name": "Debug Backend (docker)",
+            "name": "Debug Backend (Docker postgres)",
             "request": "launch",
             "mainClass": "com.zfgc.zfgbb.ZfgbbApplication",
             "projectName": "zfgbb",
-            "envFile": "${workspaceFolder}/.env.docker"
+            "preLaunchTask": "Start Postgres (docker compose)",
+            "envFile": "${workspaceFolder}/.env.local",
+            "env": {
+                "ZFGBB_CONTENT_PATH": "${workspaceFolder}/backend-assets",
+                "ZFGBB_CONTENT_IMAGES": "${workspaceFolder}/backend-assets"
+            }
         }
     ]
 }

@@ -201,18 +201,21 @@ public class PollQuestionDbo extends AbstractDbo {
         this.updatedTs = updatedTs;
     }
 
-	@Override
-	public Integer getPkId() {
-		return pollQuestionId;
-	}
+    // Hand-written: the poll_question table was dropped in V20251019.1; this DBO
+    // exists only because dead code in ThreadDataProvider still references it.
+    // Cleanup of the dead references is tracked separately.
+    @Override
+    public Integer getPkId() {
+        return pollQuestionId;
+    }
 
-	@Override
-	public LocalDateTime getUpdatedTime() {
-		return updatedTs;
-	}
+    @Override
+    public LocalDateTime getCreatedTime() {
+        return createdTs;
+    }
 
-	@Override
-	public LocalDateTime getCreatedTime() {
-		return createdTs;
-	}
+    @Override
+    public LocalDateTime getUpdatedTime() {
+        return updatedTs;
+    }
 }

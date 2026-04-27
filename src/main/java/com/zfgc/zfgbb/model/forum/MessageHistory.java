@@ -20,7 +20,8 @@ public class MessageHistory extends BaseModel {
 	private Integer messageId;
 	private String messageText;
 	private String unparsedText;
-	private Boolean currentFlag;
+	@Builder.Default
+	private Boolean currentFlag = true;
 	private Integer ipAddressId;
 	
 	@Override

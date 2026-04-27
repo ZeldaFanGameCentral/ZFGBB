@@ -38,5 +38,4 @@ public class ContentResourceDao extends AbstractDao<ContentResourceDboExample, C
 	protected void create(ContentResourceDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }

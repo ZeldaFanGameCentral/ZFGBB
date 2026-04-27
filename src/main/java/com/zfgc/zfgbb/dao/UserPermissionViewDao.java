@@ -38,5 +38,4 @@ public class UserPermissionViewDao extends AbstractDao<UserPermissionViewDboExam
 	protected void create(UserPermissionViewDbo toCreate) {
 		
 	}
-	
 }

@@ -62,6 +62,12 @@ public class MessageDataProvider extends AbstractDataProvider {
 		history.setMessageId(messageDbo.getMessageId());
 		MessageHistoryDbo historyDbo = mapper.map(history, MessageHistoryDbo.class);
 		historyDbo.setMessageText(history.getUnparsedText());
+		// New history rows are always the current revision; the older revision (if any)
+		// will be flipped to false when an edit comes in. Default here so the caller
+		// doesn't have to set it on every fresh post.
+		if (historyDbo.getCurrentFlag() == null) {
+			historyDbo.setCurrentFlag(true);
+		}
 		historyDbo = messageHistoryDao.save(historyDbo);
 		
 		Message result = mapper.map(messageDbo, Message.class);
@@ -130,7 +136,7 @@ public class MessageDataProvider extends AbstractDataProvider {
 		ex.createCriteria().andThreadIdEqualTo(threadId);
 		
 		List<MessageDbo> messages = messageDao.get(ex);
-		List<Integer> messageIds = messages.stream().map(MessageDbo::getPkId).collect(Collectors.toList());
+		List<Integer> messageIds = messages.stream().map(MessageDbo::getMessageId).collect(Collectors.toList());
 		MessageHistoryDboExample hEx = new MessageHistoryDboExample();
 		hEx.createCriteria().andMessageIdIn(messageIds);
 		
