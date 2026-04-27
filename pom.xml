@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.5</version>
+    <version>4.0.6</version>
     <relativePath/>
   </parent>
 
@@ -145,8 +145,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Used at compile time by DboOverridesPlugin (an MBG plugin in src/main/java).
-         Provided scope since the generator brings its own copy at generation time. -->
     <dependency>
       <groupId>org.mybatis.generator</groupId>
       <artifactId>mybatis-generator-core</artifactId>
@@ -283,10 +281,6 @@
           </annotationProcessorPaths>
         </configuration>
       </plugin>
-
-      <!-- Packages the in-tree MBG plugin (src/main/java/com/zfgc/zfgbb/mbg/) into a jar
-           that mybatis-generator-maven-plugin can load via a system-scope <dependency>.
-           Bound to process-classes so it runs after compile and before any generate run. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
@@ -324,9 +318,6 @@
             <artifactId>postgresql</artifactId>
             <version>42.7.10</version>
           </dependency>
-          <!-- The DboOverridesPlugin jar built by maven-antrun above. The canonical
-               regen workflow is `mvn compile mybatis-generator:generate`; the compile
-               step's process-classes phase produces this jar. -->
           <dependency>
             <groupId>com.zfgc</groupId>
             <artifactId>zfgbb-mbg-plugin</artifactId>
@@ -340,16 +331,6 @@
   </build>
 
   <profiles>
-    <!--
-      Dev seed data. Tracked in a separate flyway_seed_history table so it
-      doesn't pollute the real flyway_schema_history. Workflow:
-
-        mvn flyway:migrate              schema only (real migrations)
-        mvn flyway:migrate -Pseed       seed only (sample dev data)
-        mvn flyway:clean -Pseed         wipe seeded rows + history table
-
-      The seed never runs as part of normal app boot — it's strictly opt-in.
-    -->
     <profile>
       <id>seed</id>
       <build>
@@ -362,16 +343,7 @@
                 <location>classpath:db/seed</location>
               </locations>
               <table>flyway_seed_history</table>
-              <!-- baselineOnMigrate=true is inherited from the main config and is
-                   needed because the schema (already populated by real migrations) is
-                   not empty when the seed runs for the first time. baselineVersion=0
-                   makes Flyway baseline at v0 instead of "the latest seed version it
-                   sees", so V1__core_dev_data.sql actually runs. -->
               <baselineVersion>0</baselineVersion>
-              <!-- DO NOT enable cleanDisabled=false here. Flyway clean drops
-                   the entire schema, not just seeded rows. To reset dev data
-                   to a clean state, rebuild the DB from scratch via the
-                   "Reset DB and seed" task in .vscode/tasks.json. -->
             </configuration>
           </plugin>
         </plugins>
