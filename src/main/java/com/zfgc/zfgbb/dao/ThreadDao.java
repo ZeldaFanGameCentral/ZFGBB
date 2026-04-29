@@ -44,5 +44,4 @@ public class ThreadDao extends AbstractDao<ThreadDboExample, ThreadDboMapper, Th
 	public void delete(ThreadDboExample ex) {
 		mapper.deleteByExample(ex);
 	}
-	
 }

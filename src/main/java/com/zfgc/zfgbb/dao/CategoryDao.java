@@ -39,5 +39,4 @@ public class CategoryDao extends AbstractDao<CategoryDboExample, CategoryDboMapp
 	protected void create(CategoryDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

@@ -1,0 +1,51 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Postgres (docker compose)",
+            "detail": "Starts the docker-compose postgresql service, waits for it to become healthy.",
+            "type": "shell",
+            "command": "docker compose up -d --wait postgresql",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Flyway migrate",
+            "detail": "Applies pending Flyway migrations (db/setup + db/migration) against the dev database.",
+            "type": "shell",
+            "command": "mvn flyway:migrate",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Reset DB",
+            "detail": "Drops the zfgbb schema and reapplies all migrations from V0 (setup) onward. After this completes, hit POST /system/install to populate admin + sample data.",
+            "type": "shell",
+            "command": "docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn flyway:migrate",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": [
+                "Start Postgres (docker compose)"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

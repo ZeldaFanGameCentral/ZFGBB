@@ -39,5 +39,4 @@ public class BoardDao extends AbstractDao<BoardDboExample, BoardDboMapper, Board
 	public List<BoardDbo> get(BoardDboExample ex) {
 		return mapper.selectByExample(ex);
 	}
-	
 }

@@ -29,212 +29,225 @@ import com.zfgc.zfgbb.model.users.Permission;
 @Service
 @Transactional
 public class ForumService extends AbstractService {
-	
+
 	@Autowired
 	private ForumDataProvider forumDataProvider;
-	
+
 	@Autowired
 	private BBCodeService bbCodeService;
-	
+
 	@Autowired
 	private ThreadDataProvider threadDataProvider;
-	
+
 	@Autowired
 	private MessageDataProvider messageDataProvider;
-	
+
 	@Autowired
 	private IpService ipService;
-	
+
 	public Forum getForum(User zfgcUser) {
 		Forum forum = forumDataProvider.getForum();
 		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
-		
+
 		forum.getCategories().stream().filter(c -> c.getBoards() != null).forEach(c -> {
 			List<BoardSummary> remove = new ArrayList<>();
 			c.getBoards().forEach(b -> {
 				AtomicBoolean found = new AtomicBoolean(false);
-				if(b.getBoardPerms() != null) {
+				if (b.getBoardPerms() != null) {
 					b.getBoardPerms().forEach(bp -> {
-						if(userPerms.contains(bp.getPermissionId())) {
+						if (userPerms.contains(bp.getPermissionId())) {
 							found.set(true);
 						}
 					});
 				}
-				
-				if(found.get() == false) {
+
+				if (found.get() == false) {
 					remove.add(b);
 				}
 			});
 			c.getBoards().removeAll(remove);
 		});
-		//super.secureObject(forum, zfgcUser);
-		
+		// super.secureObject(forum, zfgcUser);
+
 		forum.setCategories(forum.getCategories().stream()
-												 .filter(c -> c.getBoards() != null && !c.getBoards().isEmpty()).toList());
-		
+				.filter(c -> c.getBoards() != null && !c.getBoards().isEmpty()).toList());
+
 		return forum;
 	}
-	
+
 	public Board getBoard(Integer boardId, Integer pageNo, User zfgcUser) {
 		Board board = forumDataProvider.getBoard(boardId, pageNo, 10);
 		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
 		AtomicBoolean found = new AtomicBoolean(false);
 		board.getBoardPerms().forEach(bp -> {
-			if(userPerms.contains(bp.getPermissionId())) {
+			if (userPerms.contains(bp.getPermissionId())) {
 				found.set(true);
 			}
 		});
-		
-		if(found.get() == false) {
+
+		if (found.get() == false) {
 			throw new ZfgcNotFoundException();
 		}
 		return board;
 	}
-	
+
 	public Thread getThreadTemplate(Integer boardId, User zfgcUser) {
 		Thread thread = new Thread();
 		thread.setBoardId(boardId);
 		thread.setCreatedUserId(zfgcUser.getUserId());
 		thread.setBoardPermissions(forumDataProvider.getBoardPermissions(thread.getBoardId()));
 		super.secureObject(thread, zfgcUser);
-		
+
 		Message message = getMessageTemplate(boardId, null, null, zfgcUser);
 		thread.getMessages().add(message);
-		
+
 		return thread;
 	}
-	
+
 	public Message getMessageTemplate(Integer boardId, Integer threadId, Integer messageId, User zfgcUser) {
-		/*Thread permissionCheck = new Thread();
-		permissionCheck.setBoardPermissions(forumDataProvider.getBoardPermissions(boardId));
-		super.secureObject(permissionCheck, zfgcUser);*/
-		
+		/*
+		 * Thread permissionCheck = new Thread();
+		 * permissionCheck.setBoardPermissions(forumDataProvider.getBoardPermissions(
+		 * boardId));
+		 * super.secureObject(permissionCheck, zfgcUser);
+		 */
+
 		Message message = null;
 		message = new Message();
 		message.setOwnerId(zfgcUser.getUserId());
 		message.setThreadId(threadId);
 		message.getCurrentMessage().setCurrentFlag(true);
-		
+
 		return message;
-		
+
 	}
-	
+
 	public Thread saveThread(Thread thread, User zfgcUser) {
-		//first, lets make sure the user actually can post to this board
-		//thread.setBoardPermissions(forumDataProvider.getBoardPermissions(thread.getBoardId()));
-		//super.secureObject(thread, zfgcUser);
-		
-		Thread saved = threadDataProvider.getThread(thread.getThreadId(), 1, 1);
-		
-		//then ensure the user didn't fuck with the owner of the thread template
-		if(saved == null) {
+		// first, lets make sure the user actually can post to this board
+		thread.setBoardPermissions(forumDataProvider.getBoardPermissions(thread.getBoardId()));
+		super.secureObject(thread, zfgcUser);
+
+		Thread saved = thread.getThreadId() != null
+				? threadDataProvider.getThread(thread.getThreadId(), 1, 1)
+				: null;
+
+		// then ensure the user didn't fuck with the owner of the thread template
+		if (saved == null) {
 			thread.setCreatedUserId(zfgcUser.getUserId());
-		}
-		else {
+		} else {
 			thread.setCreatedUserId(saved.getCreatedUserId());
 		}
-		
-		//finally, save the thread
+
+		// finally, save the thread
+		Message firstMessage = (saved == null && thread.getMessages() != null && !thread.getMessages().isEmpty())
+				? thread.getMessages().get(0)
+				: null;
+
 		thread = threadDataProvider.saveThread(thread);
-		if(saved == null) {
-			saveMessage(thread.getMessages().get(0), zfgcUser);
+		if (saved == null && firstMessage != null) {
+			firstMessage.setThreadId(thread.getThreadId());
+			saveMessage(firstMessage, zfgcUser);
 		}
-		
+
 		return thread;
 	}
-	
+
 	public Thread getThread(Integer threadId, Integer page, Integer count, User zfgcUser) {
 		Thread thread = threadDataProvider.getThread(threadId, page, count);
-		
+
 		super.secureObject(thread, zfgcUser);
-		
-		//parse messages
+
+		// parse messages
 		thread.getMessages().forEach(message -> {
-				String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
-				message.getCurrentMessage().setMessageText(parsed);
-				
-				if(message.getCreatedUser().getBioInfo() != null && !StringUtils.isEmpty(message.getCreatedUser().getBioInfo().getSignature())) {
-					String parsedSignature = bbCodeService.parseText(message.getCreatedUser().getBioInfo().getSignature());
-					message.getCreatedUser().getBioInfo().setSignature(parsedSignature);
-				}
+			String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
+			message.getCurrentMessage().setMessageText(parsed);
+
+			if (message.getCreatedUser().getBioInfo() != null
+					&& !StringUtils.isEmpty(message.getCreatedUser().getBioInfo().getSignature())) {
+				String parsedSignature = bbCodeService.parseText(message.getCreatedUser().getBioInfo().getSignature());
+				message.getCreatedUser().getBioInfo().setSignature(parsedSignature);
+			}
 		});
-		
+
 		return thread;
 	}
-	
+
 	public Message saveMessage(Message message, User user) {
 		Thread thread = threadDataProvider.getThread(message.getThreadId());
 		Long postCount = messageDataProvider.getTotalPostsInThread(thread.getThreadId());
 		message.setPostInThread(postCount.intValue());
 		super.secureObject(thread, user);
-		
+
+		// always stamp owner from the authenticated user — never trust the request >: O
+		message.setOwnerId(user.getUserId());
+
 		IpAddress ip = ipService.getClientIp();
-		message.getCurrentMessage().setIpAddressId(ip.getId());
-		
-		message.setPostInThread(postCount.intValue());
-		
+		if (message.getCurrentMessage() != null && ip != null) {
+			message.getCurrentMessage().setIpAddressId(ip.getId());
+		}
+
 		return messageDataProvider.saveMessage(message);
 	}
-	
+
 	public void deleteThread(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		
+
 		threadDataProvider.deleteThread(threadId);
 	}
-	
+
 	public Thread moveThread(Integer threadId, Integer boardId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		
+
 		thread.setBoardId(boardId);
 		return threadDataProvider.saveThread(thread);
 	}
-	
+
 	public Thread toggleLocked(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		
+
 		thread.setLockedFlag(!thread.getLockedFlag());
 		return threadDataProvider.saveThread(thread);
 	}
-	
+
 	public Thread toggleSticky(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		
+
 		thread.setPinnedFlag(!thread.getPinnedFlag());
 		return threadDataProvider.saveThread(thread);
 	}
-	
+
 	public ThreadSplit getSplitTemplate(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		
+
 		ThreadSplit template = new ThreadSplit();
 		template.setThreadId(threadId);
 		template.setBoardId(thread.getBoardId());
-		
+
 		return template;
 	}
-	
+
 	public Thread splitThread(ThreadSplit split, User user) {
 		Thread thread = threadDataProvider.getThread(split.getThreadId());
 		super.secureObject(thread, user);
-		
+
 		Thread newThread = getThreadTemplate(split.getBoardId(), user);
 		return threadDataProvider.splitThread(split, newThread);
 	}
-	
-	public List<Message> getMessagesByUserId(Integer userId, Integer pageNo, Integer count){
-		//todo: permissions from thread
+
+	public List<Message> getMessagesByUserId(Integer userId, Integer pageNo, Integer count) {
+		// todo: permissions from thread
 		return messageDataProvider.getMessagesByUser(userId, pageNo, count)
-								  .stream()
-								  .map(message -> {
-										String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
-									  	message.getCurrentMessage().setMessageText(parsed);
-									  	return message;
-									  
-								  }).toList();
+				.stream()
+				.map(message -> {
+					String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
+					message.getCurrentMessage().setMessageText(parsed);
+					return message;
+
+				}).toList();
 	}
 }

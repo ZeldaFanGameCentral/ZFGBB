@@ -32,9 +32,12 @@ public class BBCodeService {
 	BBCodeDataProvider bbCodeDataProvider;
 
 	public String parseText(String input) {
+		if (input == null) {
+			return "";
+		}
 
 		char[] inputChar = null;
-		
+
 		try {
 			inputChar = ZfgcStringUtils.getUnderlyingStringArray(input.replace("\n", "<br/>"));
 		} catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {

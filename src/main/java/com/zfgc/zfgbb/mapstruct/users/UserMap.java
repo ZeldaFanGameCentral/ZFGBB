@@ -15,7 +15,6 @@ public interface UserMap {
 	@Mapping(target = "contactInfo", ignore = true)
 	@Mapping(target = "currentIpAddress", ignore = true)
 	@Mapping(target = "email", ignore = true)
-	@Mapping(target = "password", ignore = true)
 	@Mapping(target = "permissions", ignore = true)
 	User toModel(UserDbo dbo);
 }

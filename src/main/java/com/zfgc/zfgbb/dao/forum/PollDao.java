@@ -38,5 +38,4 @@ public class PollDao extends AbstractDao<PollDboExample, PollDboMapper, PollDbo>
 	protected void create(PollDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

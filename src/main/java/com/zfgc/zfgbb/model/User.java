@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.model;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +17,7 @@ import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.EmailAddress;
+import com.zfgc.zfgbb.model.users.PasswordAlgo;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
@@ -40,7 +42,18 @@ public class User extends BaseModel implements UserDetails {
 	private Boolean activeFlag;
 	private EmailAddress email;
 	private String ssoKey;
-	private String password;
+	@JsonIgnore
+	private String passwordHash;
+	@JsonIgnore
+	private PasswordAlgo passwordAlgo;
+	@JsonIgnore
+	private String passwordSalt;
+	@JsonIgnore
+	private LocalDateTime lockedUntilTs;
+	@JsonIgnore
+	private Integer failedLoginCount;
+	@JsonIgnore
+	private LocalDateTime passwordChangedTs;
 	private List<Permission> permissions = new ArrayList<>();
 	
 	private IpAddress currentIpAddress;
@@ -73,26 +86,27 @@ public class User extends BaseModel implements UserDetails {
 
 	@Override
 	public boolean isAccountNonExpired() {
-		// TODO Auto-generated method stub
-		return false;
+		// No account-expiry policy yet (no use case). Reserved for future use; if/when
+		// added, store an account_expires_ts column and compare against now() here.
+		return true;
 	}
 
 	@Override
 	public boolean isAccountNonLocked() {
-		// TODO Auto-generated method stub
-		return false;
+		return lockedUntilTs == null || lockedUntilTs.isBefore(LocalDateTime.now());
 	}
 
 	@Override
 	public boolean isCredentialsNonExpired() {
-		// TODO Auto-generated method stub
-		return false;
+		// The configurable max-age policy is enforced server-side in AuthService.login()
+		// (where we have @Value access). This default keeps the UserDetails contract
+		// satisfied for code paths that consult UserDetails directly.
+		return true;
 	}
 
 	@Override
 	public boolean isEnabled() {
-		// TODO Auto-generated method stub
-		return false;
+		return Boolean.TRUE.equals(activeFlag);
 	}
 
 	@Override
@@ -170,12 +184,9 @@ public class User extends BaseModel implements UserDetails {
 	}
 
 	@Override
+	@JsonIgnore
 	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
+		return passwordHash;
 	}
 
 	public UserBioInfo getBioInfo() {

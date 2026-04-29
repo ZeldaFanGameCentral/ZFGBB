@@ -36,5 +36,4 @@ public class PollChoiceDao extends AbstractDao<PollChoiceDboExample, PollChoiceD
 	protected void create(PollChoiceDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-
 }

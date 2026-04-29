@@ -27,8 +27,8 @@ public class MessageController extends BaseController {
 	
 	@GetMapping("/template")
 	//@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_CREATOR')")
-	public ResponseEntity getMessageTemplate(@RequestParam("threadId") Integer threadId, Thread thread) {
-		Message template = forumService.getMessageTemplate(thread.getBoardId(), thread.getThreadId(), null, super.zfgcUser());
+	public ResponseEntity getMessageTemplate(@RequestParam("threadId") Integer threadId) {
+		Message template = forumService.getMessageTemplate(null, threadId, null, super.zfgcUser());
 		return ResponseEntity.ok(template);
 	}
 	

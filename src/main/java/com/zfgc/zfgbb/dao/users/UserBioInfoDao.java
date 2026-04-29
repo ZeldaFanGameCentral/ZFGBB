@@ -39,5 +39,4 @@ public class UserBioInfoDao extends AbstractDao<UserBioInfoDboExample, UserBioIn
 	protected void create(UserBioInfoDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }

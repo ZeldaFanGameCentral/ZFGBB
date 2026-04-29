@@ -39,5 +39,4 @@ public class AvatarDao extends AbstractDao<AvatarDboExample, AvatarDboMapper, Av
 	protected void create(AvatarDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }

@@ -2,19 +2,27 @@ package com.zfgc.zfgbb.dbo;
 
 import java.time.LocalDateTime;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public abstract class AbstractDbo {
-	
+
 	public abstract Integer getPkId();
-	public abstract LocalDateTime getUpdatedTime();
+
 	public abstract LocalDateTime getCreatedTime();
-	private LocalDateTime updatedTs;
-	private LocalDateTime createdTs;
-	
-	
-	
+
+	public abstract LocalDateTime getUpdatedTime();
+
+	public LocalDateTime getCreatedTs() {
+		return null;
+	}
+
+	public void setCreatedTs(LocalDateTime createdTs) {
+		// no-op fallback; subclass overrides when a created_ts column exists
+	}
+
+	public LocalDateTime getUpdatedTs() {
+		return null;
+	}
+
+	public void setUpdatedTs(LocalDateTime updatedTs) {
+		// no-op fallback; subclass overrides when an updated_ts column exists
+	}
 }

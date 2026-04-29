@@ -41,5 +41,4 @@ public class EmailAddressDao extends AbstractDao<EmailAddressDboExample, EmailAd
 	protected void create(EmailAddressDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }

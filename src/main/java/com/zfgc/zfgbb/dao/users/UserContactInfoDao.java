@@ -37,5 +37,4 @@ public class UserContactInfoDao extends AbstractDao<UserContactInfoDboExample, U
 	@Override
 	protected void create(UserContactInfoDbo toCreate) {
 		mapper.insert(toCreate);
-	}
-} 
+	}} 

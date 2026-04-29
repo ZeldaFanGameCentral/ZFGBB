@@ -38,5 +38,4 @@ public class UserDao extends AbstractDao<UserDboExample, UserDboMapper, UserDbo>
 	protected void create(UserDbo toCreate) {
 		mapper.insert(toCreate);
 	}
-	
 }
