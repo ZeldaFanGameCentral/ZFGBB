@@ -31,11 +31,7 @@ class LoginRegisterPostFlowTest {
 
 	@Container
 	static PostgreSQLContainer pg = new PostgreSQLContainer("postgres:16")
-			.withDatabaseName("zfgbb_test")
-			.withUsername("postgres")
-			.withPassword("postgres")
-			.withEnv("PGDATA", "/tmp/postgres-data")
-			.withInitScript("testcontainers-init.sql");
+			.withEnv("PGDATA", "/tmp/postgres-data");
 
 	@DynamicPropertySource
 	static void datasource(DynamicPropertyRegistry r) {

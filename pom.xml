@@ -241,8 +241,10 @@
           <createSchemas>true</createSchemas>
           <baselineOnMigrate>true</baselineOnMigrate>
           <locations>
+            <location>classpath:db/setup</location>
             <location>classpath:db/migration</location>
           </locations>
+          <outOfOrder>true</outOfOrder>
         </configuration>
         <dependencies>
           <dependency>
