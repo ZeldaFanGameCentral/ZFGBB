@@ -1,7 +1,9 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,7 +63,18 @@ public class JobService {
 	@Autowired private UserPollChoiceConverter userPollChoiceConverter;
 	@Autowired private KarmaConverter karmaConverter;
 
-	public Job submit(JobType type) {
+	public List<Job> submit(JobType type) {
+		if (type == JobType.MIGRATE_SMF_INSTALLATION) {
+			List<Job> submitted = new ArrayList<>(JobType.SMF_INSTALLATION_PIPELINE.size());
+			for (JobType step : JobType.SMF_INSTALLATION_PIPELINE) {
+				submitted.add(submitOne(step));
+			}
+			return submitted;
+		}
+		return List.of(submitOne(type));
+	}
+
+	private Job submitOne(JobType type) {
 		Job job = new Job();
 		job.setId(UUID.randomUUID());
 		job.setType(type);
@@ -114,6 +127,8 @@ public class JobService {
 			case POLL_CHOICES -> pollChoiceConverter.convertToZfgbb();
 			case USER_POLL_CHOICES -> userPollChoiceConverter.convertToZfgbb();
 			case KARMA -> karmaConverter.convertToZfgbb();
+			case MIGRATE_SMF_INSTALLATION -> throw new IllegalStateException(
+					"MIGRATE_SMF_INSTALLATION is a pipeline marker, not a single converter");
 		}
 		if (Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException();

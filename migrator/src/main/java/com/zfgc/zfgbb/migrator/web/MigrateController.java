@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.migrator.web;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -30,12 +31,12 @@ public class MigrateController {
 	}
 
 	@PostMapping("/jobs")
-	public ResponseEntity<Job> submit(@RequestBody MigrateJobRequest request) {
+	public ResponseEntity<List<Job>> submit(@RequestBody MigrateJobRequest request) {
 		if (request == null || request.getType() == null) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "type is required");
 		}
-		Job job = jobService.submit(request.getType());
-		return ResponseEntity.accepted().body(job);
+		List<Job> submitted = jobService.submit(request.getType());
+		return ResponseEntity.accepted().body(submitted);
 	}
 
 	@GetMapping("/jobs")

@@ -335,9 +335,22 @@ When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. T
 
 #### Submitting and tracking jobs
 
-Jobs run one at a time on a single-threaded executor, in submit order. The endpoints return immediately with a job id you poll for status.
+Jobs run one at a time on a single-threaded executor, in submit order. The submit endpoint returns immediately with a list of job ids you poll for status.
 
-Submit a job:
+The simplest path — run the whole SMF migration in the canonical order:
+
+```bash
+curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{"type": "MIGRATE_SMF_INSTALLATION"}'
+# 202 Accepted
+# [{"id":"...","type":"USERS","state":"QUEUED",...},
+#  {"id":"...","type":"CATEGORIES","state":"QUEUED",...},
+#  ... 13 more ...]
+```
+
+Or submit a single converter when you need to re-run one step:
 
 ```bash
 curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
@@ -345,21 +358,21 @@ curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{"type": "USERS"}'
 # 202 Accepted
-# {"id":"e2c1...","type":"USERS","state":"QUEUED","submittedAt":"2026-04-29T20:05:00Z",...}
+# [{"id":"e2c1...","type":"USERS","state":"QUEUED",...}]
 ```
 
-Poll a single job:
-
-```bash
-curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
-```
-
-List all jobs:
+List all jobs (handy for watching pipeline progress):
 
 ```bash
 curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
   http://localhost:8080/zfgbb/system/migrate/jobs
+```
+
+Poll one job:
+
+```bash
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
 ```
 
 Cancel a running or queued job:
@@ -370,7 +383,7 @@ curl -sX DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
 # 204 No Content
 ```
 
-Available job types: `USERS`, `CATEGORIES`, `BOARDS`, `THREADS`, `MESSAGES`, `IPS`, `MESSAGE_HISTORY`, `USER_BIO_INFO`, `ATTACHMENTS`, `ATTACHMENT_FILES`, `USER_CONTACT_INFO`, `POLLS`, `POLL_CHOICES`, `USER_POLL_CHOICES`, `KARMA`. `ATTACHMENTS` migrates the file-attachment metadata rows; `ATTACHMENT_FILES` is a separate step that copies SMF's hash-named files on disk back to their original filenames (run it after `ATTACHMENTS`).
+Available individual job types: `USERS`, `CATEGORIES`, `BOARDS`, `THREADS`, `MESSAGES`, `IPS`, `MESSAGE_HISTORY`, `USER_BIO_INFO`, `ATTACHMENTS`, `ATTACHMENT_FILES`, `USER_CONTACT_INFO`, `POLLS`, `POLL_CHOICES`, `USER_POLL_CHOICES`, `KARMA`. `ATTACHMENTS` migrates the file-attachment metadata rows; `ATTACHMENT_FILES` is a separate step that copies SMF's hash-named files on disk back to their original filenames. Failures don't halt the pipeline — subsequent jobs keep running, so a failed step shows up as one `FAILED` entry in the list while the rest complete.
 
 #### Production note
 

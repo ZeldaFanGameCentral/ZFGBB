@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -56,7 +57,9 @@ class MigratorAutoConfigEnabledTest {
 		assertNotNull(smfDataSource, "Secondary smfDataSource should be defined");
 		assertTrue(ctx.containsBean("smfSqlSessionTemplate"), "smfSqlSessionTemplate should be defined");
 
-		var job = jobService.submit(JobType.CATEGORIES);
+		var jobs = jobService.submit(JobType.CATEGORIES);
+		assertEquals(1, jobs.size());
+		var job = jobs.get(0);
 		assertNotNull(job.getId());
 		var state = job.getState();
 		assertTrue(state == JobState.QUEUED || state == JobState.RUNNING,

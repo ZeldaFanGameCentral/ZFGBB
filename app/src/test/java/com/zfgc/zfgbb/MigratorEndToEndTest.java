@@ -59,7 +59,7 @@ class MigratorEndToEndTest {
 
 	@Test
 	void categories_job_migrates_smf_rows_into_zfgbb() throws Exception {
-		Job job = jobService.submit(JobType.CATEGORIES);
+		Job job = jobService.submit(JobType.CATEGORIES).get(0);
 		assertNotNull(job.getId());
 
 		Job finished = waitForTerminal(job, Duration.ofSeconds(30));
@@ -80,7 +80,7 @@ class MigratorEndToEndTest {
 
 	@Test
 	void cancel_marks_job_cancelled() throws Exception {
-		Job job = jobService.submit(JobType.MESSAGES);
+		Job job = jobService.submit(JobType.MESSAGES).get(0);
 		jobService.cancel(job.getId());
 		Job finished = waitForTerminal(job, Duration.ofSeconds(30));
 		assertTrue(finished.getState() == JobState.CANCELLED || finished.getState() == JobState.COMPLETED,
