@@ -11,13 +11,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.zfgc.zfgbb")
+@ComponentScan(basePackages = "com.zfgc.zfgbb",
+		excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.zfgc\\.zfgbb\\.migrator\\..*"))
 @MapperScan("com.zfgc.zfgbb.mappers")
 @EnableMethodSecurity(prePostEnabled = true)
 public class ZfgbbApplication {

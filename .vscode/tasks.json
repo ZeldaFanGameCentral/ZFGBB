@@ -20,7 +20,7 @@
             "label": "Flyway migrate",
             "detail": "Applies pending Flyway migrations (db/setup + db/migration) against the dev database.",
             "type": "shell",
-            "command": "mvn flyway:migrate",
+            "command": "mvn -pl app -am flyway:migrate",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -34,7 +34,7 @@
             "label": "Reset DB",
             "detail": "Drops the zfgbb schema and reapplies all migrations from V0 (setup) onward. After this completes, hit POST /system/install to populate admin + sample data.",
             "type": "shell",
-            "command": "docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn flyway:migrate",
+            "command": "docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

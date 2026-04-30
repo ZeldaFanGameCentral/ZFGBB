@@ -1,0 +1,18 @@
+package com.zfgc.zfgbb.migrator.jobs;
+
+public enum JobType {
+	USERS,
+	CATEGORIES,
+	BOARDS,
+	THREADS,
+	MESSAGES,
+	IPS,
+	MESSAGE_HISTORY,
+	USER_BIO_INFO,
+	ATTACHMENTS,
+	USER_CONTACT_INFO,
+	POLLS,
+	POLL_CHOICES,
+	USER_POLL_CHOICES,
+	KARMA;
+}

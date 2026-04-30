@@ -6,7 +6,7 @@
             "name": "Debug Backend",
             "request": "launch",
             "mainClass": "com.zfgc.zfgbb.ZfgbbApplication",
-            "projectName": "zfgbb",
+            "projectName": "zfgbb-app",
             "envFile": "${workspaceFolder}/.env.local",
             "env": {
                 "ZFGBB_CONTENT_PATH": "${workspaceFolder}/backend-assets",
@@ -18,7 +18,7 @@
             "name": "Debug Backend (Docker postgres)",
             "request": "launch",
             "mainClass": "com.zfgc.zfgbb.ZfgbbApplication",
-            "projectName": "zfgbb",
+            "projectName": "zfgbb-app",
             "preLaunchTask": "Start Postgres (docker compose)",
             "envFile": "${workspaceFolder}/.env.local",
             "env": {

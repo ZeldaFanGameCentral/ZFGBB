@@ -175,6 +175,12 @@
       <columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table> -->
 
+    <!-- <table schema="zfgbb" tableName="gender_lkup" domainObjectName="GenderLkupDbo">
+      <generatedKey column="gender_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+    </table> -->
+
     <!-- ===== bbcode ===== -->
 
     <!-- <table schema="zfgbb" tableName="attribute_data_type" domainObjectName="AttributeDataTypeDbo">

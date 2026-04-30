@@ -26,6 +26,10 @@ TBD. We could use some help writing this out.
       - [Utilizing pgadmin](#utilizing-pgadmin)
       - [Viewing Logs for Docker](#viewing-logs-for-docker)
     - [Tearing down Docker](#tearing-down-docker)
+    - [Migrating from SMF2](#migrating-from-smf2)
+      - [Enabling the migrator](#enabling-the-migrator)
+      - [Submitting and tracking jobs](#submitting-and-tracking-jobs)
+      - [Production note](#production-note)
     - [Workflow - Typical Development Workflow](#workflow---typical-development-workflow)
 
 ## Development
@@ -152,7 +156,7 @@ docker compose up -d postgresql pgadmin
 
 You can access the pgadmin at `http://0.0.0.0:5050`.
 
-When the container starts for the first time, the postgres image creates the database and the `zfgbb_user` connection role from `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` in [.env.docker](./.env.docker). Subsequent app boots run Flyway, which applies [V0__zfgbb-setup.sql](./src/main/resources/db/setup/V0__zfgbb-setup.sql) (creates the `zfgcadmin` table-owner role and the `zfgbb` schema) and then the rest of the schema migrations. If you want more information about docker, you can read the [Docker](#docker) section for more info!
+When the container starts for the first time, the postgres image creates the database and the `zfgbb_user` connection role from `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` in [.env.docker](./.env.docker). Subsequent app boots run Flyway, which applies [V0__zfgbb-setup.sql](./app/src/main/resources/db/setup/V0__zfgbb-setup.sql) (creates the `zfgcadmin` table-owner role and the `zfgbb` schema) and then the rest of the schema migrations. If you want more information about docker, you can read the [Docker](#docker) section for more info!
 
 ##### First-run installation: `/system/install`
 
@@ -188,7 +192,7 @@ curl -sX POST http://localhost:8080/zfgbb/system/install \
 # {"installed":true,"adminUserId":1,"siteName":"ZFGBB Dev","sampleDataApplied":true}
 ```
 
-After install, the endpoint returns 404 to subsequent calls and the `installed: true` flag stays in `system_config`. To re-test the install flow, use the **Reset DB** VS Code task (or `docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn flyway:migrate`) to wipe + re-migrate, then re-run the install.
+After install, the endpoint returns 404 to subsequent calls and the `installed: true` flag stays in `system_config`. To re-test the install flow, use the **Reset DB** VS Code task (or `docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate`) to wipe + re-migrate, then re-run the install.
 
 `applySampleData: true` runs `db/seed/V1__core_dev_data.sql` — categories, boards, the alice/bob/carol sample users (password `password123`), a starter thread or two. Skip it for a minimal install.
 
@@ -236,21 +240,25 @@ This will create a `.war` file in the `target` directory.
 
 ### Running Tests
 
-To run the tests, run the following command:
+To run the tests for the backend application, run the following command:
 
 ```bash
-mvn test
+mvn -pl app -am test
 ```
 
-This will run all the tests in the [src/test](src/test) directory.
+This will run all the tests in [app/src/test](app/src/test).
+
+To run the full reactor (all modules), use `mvn test` from the repo root.
 
 ### Running MyBatis Generator
 
-To run the MyBatis generator, run the following command:
+The MyBatis Generator config and the generated DBOs/mappers live in the [model](./model) module. To regenerate, run from the repo root:
 
 ```bash
-mvn mybatis-generator:generate
+mvn -pl model -am mybatis-generator:generate
 ```
+
+The custom plugin that emits the `AbstractDbo` overrides lives in the [mbg-plugin](./mbg-plugin) module — `-am` makes sure it gets compiled before the generator runs.
 
 ### Docker
 
@@ -300,6 +308,64 @@ docker compose -f ./docker-compose.yml -f ./docker-compose.service.pgadmin.yml d
 ```
 
 We pass the `-vvv` flag to the `down` command to remove the volumes.
+
+### Migrating from SMF2
+
+ZFGBB ships with an opt-in migrator that pulls forum data out of an SMF2 (Simple Machines Forum) MySQL database into the live ZFGBB Postgres database. The migrator is a separate library module ([migrator](./migrator)) that auto-configures into the running ZFGBB app when enabled.
+
+#### Enabling the migrator
+
+Off by default. To turn it on, set the following environment variables (or properties) before booting the app:
+
+```bash
+ZFGBB_MIGRATOR_ENABLED=true
+ZFGBB_MIGRATOR_SMF_JDBC_URL=jdbc:mysql://your-smf-host:3306/your_smf_db
+ZFGBB_MIGRATOR_SMF_USERNAME=smf_reader
+ZFGBB_MIGRATOR_SMF_PASSWORD=...
+```
+
+When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. They require the `ZFGC_SITE_ADMIN` role — log in as the site admin created during `/system/install` to obtain a token.
+
+#### Submitting and tracking jobs
+
+Jobs run one at a time on a single-threaded executor, in submit order. The endpoints return immediately with a job id you poll for status.
+
+Submit a job:
+
+```bash
+curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{"type": "USERS"}'
+# 202 Accepted
+# {"id":"e2c1...","type":"USERS","state":"QUEUED","submittedAt":"2026-04-29T20:05:00Z",...}
+```
+
+Poll a single job:
+
+```bash
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
+```
+
+List all jobs:
+
+```bash
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs
+```
+
+Cancel a running or queued job:
+
+```bash
+curl -sX DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
+# 204 No Content
+```
+
+#### Production note
+
+Leave `ZFGBB_MIGRATOR_ENABLED=false` for normal production deployments. Only flip it on for the duration of a one-shot migration, then disable and restart.
 
 ### Workflow - Typical Development Workflow
 
