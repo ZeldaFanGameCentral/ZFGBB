@@ -28,6 +28,7 @@ import com.zfgc.zfgbb.mappers.AvatarDboMapper;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
 import com.zfgc.zfgbb.mappers.GenderLkupDboMapper;
 import com.zfgc.zfgbb.mappers.UserBioInfoDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
@@ -36,7 +37,13 @@ import com.zfgc.zfgbb.migrator.smf.mappers.SMFAttachmentsDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
 
 @Component
-public class UserBioInfoConverter {
+public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBioInfoDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.USER_BIO_INFO;
+	}
+
 	
 	@Autowired
 	public SMFMembersDbMapper smfMembersMapper;
@@ -56,8 +63,9 @@ public class UserBioInfoConverter {
 	@Autowired
 	private GenderLkupDboMapper genderLkupMapper;
 	
+	@Override
 	@Transactional
-	public Map<Integer,UserBioInfoDbo> convertToZfgbb() {
+	public Map<Integer, UserBioInfoDbo> convertToZfgbb() {
 		List<SMFMembersDbWithBLOBs> SMFMembers = smfMembersMapper.selectByExampleWithBLOBs(new SMFMembersDbExample());
 		Map<Integer,UserBioInfoDbo> result = new HashMap<>();
 		

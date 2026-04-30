@@ -4,33 +4,21 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.zfgc.zfgbb.migrator.converters.AttachmentFilesConverter;
-import com.zfgc.zfgbb.migrator.converters.AttachmentsConverter;
-import com.zfgc.zfgbb.migrator.converters.BoardConverter;
-import com.zfgc.zfgbb.migrator.converters.CategoryConverter;
-import com.zfgc.zfgbb.migrator.converters.IpAddressConverter;
-import com.zfgc.zfgbb.migrator.converters.KarmaConverter;
-import com.zfgc.zfgbb.migrator.converters.MessageConverter;
-import com.zfgc.zfgbb.migrator.converters.MessageHistoryConverter;
-import com.zfgc.zfgbb.migrator.converters.PollChoiceConverter;
-import com.zfgc.zfgbb.migrator.converters.PollConverter;
-import com.zfgc.zfgbb.migrator.converters.ThreadConverter;
-import com.zfgc.zfgbb.migrator.converters.UserBioInfoConverter;
-import com.zfgc.zfgbb.migrator.converters.UserContactInfoConverter;
-import com.zfgc.zfgbb.migrator.converters.UserPollChoiceConverter;
-import com.zfgc.zfgbb.migrator.converters.UsersConverter;
+import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
 
 import jakarta.annotation.PreDestroy;
 
@@ -47,21 +35,12 @@ public class JobService {
 		return t;
 	});
 
-	@Autowired private UsersConverter usersConverter;
-	@Autowired private CategoryConverter categoryConverter;
-	@Autowired private BoardConverter boardConverter;
-	@Autowired private ThreadConverter threadConverter;
-	@Autowired private MessageConverter messageConverter;
-	@Autowired private IpAddressConverter ipAddressConverter;
-	@Autowired private MessageHistoryConverter messageHistoryConverter;
-	@Autowired private UserBioInfoConverter userBioInfoConverter;
-	@Autowired private AttachmentsConverter attachmentsConverter;
-	@Autowired private AttachmentFilesConverter attachmentFilesConverter;
-	@Autowired private UserContactInfoConverter userContactInfoConverter;
-	@Autowired private PollConverter pollConverter;
-	@Autowired private PollChoiceConverter pollChoiceConverter;
-	@Autowired private UserPollChoiceConverter userPollChoiceConverter;
-	@Autowired private KarmaConverter karmaConverter;
+	private final Map<JobType, AbstractConverter<?>> convertersByType;
+
+	public JobService(List<AbstractConverter<?>> converters) {
+		this.convertersByType = converters.stream()
+				.collect(Collectors.toMap(AbstractConverter::getType, Function.identity()));
+	}
 
 	public List<Job> submit(JobType type) {
 		if (type == JobType.MIGRATE_SMF_INSTALLATION) {
@@ -111,25 +90,11 @@ public class JobService {
 	}
 
 	private void dispatch(JobType type) throws Exception {
-		switch (type) {
-			case USERS -> usersConverter.convertToZfgbb();
-			case CATEGORIES -> categoryConverter.convertToZfgbb();
-			case BOARDS -> boardConverter.convertToZfgbb();
-			case THREADS -> threadConverter.convertToZfgbb();
-			case MESSAGES -> messageConverter.convertToZfgbb();
-			case IPS -> ipAddressConverter.convertToZfgbb();
-			case MESSAGE_HISTORY -> messageHistoryConverter.convertToZfgbb();
-			case USER_BIO_INFO -> userBioInfoConverter.convertToZfgbb();
-			case ATTACHMENTS -> attachmentsConverter.convertToZfgbb();
-			case ATTACHMENT_FILES -> attachmentFilesConverter.convertToZfgbb();
-			case USER_CONTACT_INFO -> userContactInfoConverter.convertToZfgbb();
-			case POLLS -> pollConverter.convertToZfgbb();
-			case POLL_CHOICES -> pollChoiceConverter.convertToZfgbb();
-			case USER_POLL_CHOICES -> userPollChoiceConverter.convertToZfgbb();
-			case KARMA -> karmaConverter.convertToZfgbb();
-			case MIGRATE_SMF_INSTALLATION -> throw new IllegalStateException(
-					"MIGRATE_SMF_INSTALLATION is a pipeline marker, not a single converter");
+		AbstractConverter<?> converter = convertersByType.get(type);
+		if (converter == null) {
+			throw new IllegalStateException(type + " has no associated converter (likely a pipeline marker)");
 		}
+		converter.convertToZfgbb();
 		if (Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException();
 		}

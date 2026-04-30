@@ -27,6 +27,18 @@ public final class SmfTestFixture {
 	private SmfTestFixture() {
 	}
 
+	public static void main(String[] args) throws IOException {
+		if (args.length != 1) {
+			System.err.println("usage: SmfTestFixture <output-path>");
+			System.exit(2);
+		}
+		String raw = readEntryFromZip();
+		String prefixed = raw.replace("{$db_prefix}", SmfVersion.SUPPORTED_TABLE_PREFIX);
+		String ddlOnly = stripSeedInserts(prefixed);
+		Files.writeString(Path.of(args[0]), ddlOnly, StandardCharsets.UTF_8);
+		System.out.println("wrote " + args[0]);
+	}
+
 	public static Path schemaSql() throws IOException {
 		Path cached = cachedSchemaSql;
 		if (cached != null && Files.exists(cached)) {

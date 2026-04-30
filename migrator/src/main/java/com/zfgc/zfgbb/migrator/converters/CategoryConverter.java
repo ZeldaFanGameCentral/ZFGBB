@@ -9,20 +9,27 @@ import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.CategoryDbo;
 import com.zfgc.zfgbb.mappers.CategoryDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFCategoryDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFCategoryDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFCategoryDbMapper;
 
 @Component
-public class CategoryConverter extends AbstractConverter {
-	
+public class CategoryConverter extends AbstractConverter<Map<Integer, CategoryDbo>> {
+
 	@Autowired
 	public SMFCategoryDbMapper smfCategoryMapper;
-	
+
 	@Autowired
 	public CategoryDboMapper categoryDboMapper;
-	
-	public Map<Integer,CategoryDbo> convertToZfgbb() {
+
+	@Override
+	public JobType getType() {
+		return JobType.CATEGORIES;
+	}
+
+	@Override
+	public Map<Integer, CategoryDbo> convertToZfgbb() {
 		List<SMFCategoryDb> SMFCategories = smfCategoryMapper.selectByExample(new SMFCategoryDbExample());
 		Map<Integer,CategoryDbo> result = new HashMap<>();
 		

@@ -9,12 +9,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -32,7 +43,10 @@ import com.zfgc.zfgbb.migrator.jobs.JobType;
 
 @SpringBootTest
 @Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class MigrateSmfInstallationE2ETest {
+
+	private static final Pattern ATTACH_REF = Pattern.compile("\\[attach=(\\d+)\\]");
 
 	@TempDir
 	static Path attachmentsSource;
@@ -88,17 +102,108 @@ class MigrateSmfInstallationE2ETest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	private JdbcTemplate smfJdbc;
+
+	@Autowired
+	void initSmfJdbc(@Qualifier("smfDataSource") DataSource smfDataSource) {
+		this.smfJdbc = new JdbcTemplate(smfDataSource);
+	}
+
 	@Test
+	@Order(1)
 	void migrate_smf_installation_pipeline_runs_all_converters() throws Exception {
 		List<Job> submitted = jobService.submit(JobType.MIGRATE_SMF_INSTALLATION);
 		assertEquals(JobType.SMF_INSTALLATION_PIPELINE.size(), submitted.size(),
 				"Pipeline should submit one job per converter type");
 
-		List<Job> finished = waitForAllTerminal(submitted, Duration.ofMinutes(2));
+		assertAllCompleted(waitForAllTerminal(submitted, Duration.ofMinutes(2)));
 
+		assertSameCount("smf_1members", "zfgbb.user");
+		assertSameCount("smf_1categories", "zfgbb.category");
+		assertSameCount("smf_1boards", "zfgbb.board");
+		assertSameCount("smf_1topics", "zfgbb.thread");
+		assertSameCount("smf_1messages", "zfgbb.message");
+		assertSameCount("smf_1members", "zfgbb.user_bio_info");
+		assertSameCount("smf_1members", "zfgbb.user_contact_info");
+		assertSameCount("smf_1members", "zfgbb.email_address");
+		assertSameCount("smf_1polls", "zfgbb.poll");
+		assertSameCount("smf_1poll_choices", "zfgbb.poll_choice");
+		assertSameCount("smf_1log_karma", "zfgbb.karma");
+		assertSameCount("smf_1attachments where id_msg > 0", "zfgbb.file_attachments");
+
+		assertSourceMatchesTarget(
+				"select count(distinct poster_ip) from smf_1messages",
+				"select count(*) from zfgbb.ip_address");
+		assertSourceMatchesTarget(
+				"select (select count(*) from smf_1messages) + (select count(*) from smf_1messages_history)",
+				"select count(*) from zfgbb.message_history");
+		assertSourceMatchesTarget(
+				"select count(*) from smf_1log_polls where id_member != 0",
+				"select count(*) from zfgbb.user_poll_choice");
+
+		assertNoOrphanAttachmentRefs();
+		assertAllMigratedFilesPresentInTarget();
+	}
+
+	@Test
+	@Order(2)
+	void rerunning_attachments_does_not_double_rewrite() throws Exception {
+		List<String> beforeBodies = jdbcTemplate.queryForList(
+				"select message_text from zfgbb.message_history where message_text like '%[attach=%' order by message_history_id",
+				String.class);
+		Integer markersBefore = jdbcTemplate.queryForObject(
+				"select count(*) from zfgbb.migrator_attachment_ref_rewrites", Integer.class);
+
+		Job rerun = jobService.submit(JobType.ATTACHMENTS).get(0);
+		Job finished = waitForAllTerminal(List.of(rerun), Duration.ofMinutes(2)).get(0);
+		assertEquals(JobState.COMPLETED, finished.getState(),
+				"re-running ATTACHMENTS should COMPLETE; got " + finished.getState()
+						+ " (error=" + finished.getError() + ")");
+
+		List<String> afterBodies = jdbcTemplate.queryForList(
+				"select message_text from zfgbb.message_history where message_text like '%[attach=%' order by message_history_id",
+				String.class);
+		Integer markersAfter = jdbcTemplate.queryForObject(
+				"select count(*) from zfgbb.migrator_attachment_ref_rewrites", Integer.class);
+
+		assertEquals(beforeBodies, afterBodies, "[attach=N] bodies must be unchanged on re-run");
+		assertEquals(markersBefore, markersAfter,
+				"re-run should not add new rewrite markers (already-done rows are skipped)");
+	}
+
+	@Test
+	@Order(3)
+	void cancel_marks_queued_job_as_cancelled() throws Exception {
+		List<Job> padding = new ArrayList<>();
+		for (int i = 0; i < 5; i++) {
+			padding.add(jobService.submit(JobType.CATEGORIES).get(0));
+		}
+		Job target = jobService.submit(JobType.CATEGORIES).get(0);
+		jobService.cancel(target.getId());
+
+		Job finished = waitForAllTerminal(List.of(target), Duration.ofMinutes(2)).get(0);
+		assertEquals(JobState.CANCELLED, finished.getState(),
+				"cancelling a queued job should leave it CANCELLED; got " + finished.getState());
+
+		waitForAllTerminal(padding, Duration.ofMinutes(2));
+	}
+
+	private void assertSameCount(String smfFromAndWhere, String zfgbbTable) {
+		assertSourceMatchesTarget(
+				"select count(*) from " + smfFromAndWhere,
+				"select count(*) from " + zfgbbTable);
+	}
+
+	private void assertSourceMatchesTarget(String smfQuery, String zfgbbQuery) {
+		Integer source = smfJdbc.queryForObject(smfQuery, Integer.class);
+		Integer target = jdbcTemplate.queryForObject(zfgbbQuery, Integer.class);
+		assertEquals(source, target, smfQuery + "  vs  " + zfgbbQuery);
+	}
+
+	private void assertAllCompleted(List<Job> jobs) {
 		StringBuilder report = new StringBuilder();
 		int failed = 0;
-		for (Job j : finished) {
+		for (Job j : jobs) {
 			report.append("  ").append(j.getType()).append(" -> ").append(j.getState());
 			if (j.getError() != null) {
 				report.append(" (").append(j.getError()).append(")");
@@ -109,29 +214,37 @@ class MigrateSmfInstallationE2ETest {
 		if (failed > 0) {
 			fail("Pipeline had " + failed + " failed job(s):\n" + report);
 		}
-
-		assertEquals(2, count("zfgbb.user where user_name in ('alice', 'bob')"), "users migrated");
-		assertEquals(2, count("zfgbb.category where category_name in ('General', 'Off-Topic')"), "categories migrated");
-		assertEquals(3, count("zfgbb.board where board_name in ('Announcements', 'Sub-Board', 'Random Chat')"), "boards migrated");
-		assertEquals(2, count("zfgbb.thread where thread_name in ('Welcome', 'Random thought')"), "threads migrated");
-		assertEquals(5, count("zfgbb.message"), "messages migrated");
-		assertTrue(count("zfgbb.message_history") >= 2, "at least the two edits + current snapshots in message_history");
-		assertEquals(1, count("zfgbb.poll where poll_question = 'Favorite color?'"), "poll migrated");
-		assertEquals(2, count("zfgbb.poll_choice where choice_text in ('Red', 'Blue')"), "poll choices migrated");
-		assertEquals(2, count("zfgbb.user_poll_choice"), "individual user votes migrated");
-		assertEquals(2, count("zfgbb.karma"), "karma rows migrated");
-		assertEquals(2, count("zfgbb.file_attachments"), "file attachment rows migrated");
-
-		assertTrue(Files.exists(attachmentsTarget.resolve("hello.txt")),
-				"hello.txt should be written by ATTACHMENT_FILES");
-		assertTrue(Files.exists(attachmentsTarget.resolve("sunset.png")),
-				"sunset.png should be written by ATTACHMENT_FILES");
-		assertEquals("hello", Files.readString(attachmentsTarget.resolve("hello.txt")));
 	}
 
-	private int count(String fromAndWhere) {
-		Integer n = jdbcTemplate.queryForObject("select count(*) from " + fromAndWhere, Integer.class);
-		return n == null ? 0 : n;
+	private void assertNoOrphanAttachmentRefs() {
+		Set<Integer> validIds = new HashSet<>(jdbcTemplate.queryForList(
+				"select file_attachment_id from zfgbb.file_attachments", Integer.class));
+		List<String> bodies = jdbcTemplate.queryForList(
+				"select message_text from zfgbb.message_history where message_text like '%[attach=%'",
+				String.class);
+		assertTrue(!bodies.isEmpty(),
+				"fixture should produce at least one [attach=N] body for the rewrite check to mean anything");
+		for (String body : bodies) {
+			Matcher m = ATTACH_REF.matcher(body);
+			while (m.find()) {
+				int id = Integer.parseInt(m.group(1));
+				assertTrue(validIds.contains(id),
+						"[attach=" + id + "] in body does not resolve to a file_attachments row: " + body);
+			}
+		}
+	}
+
+	private void assertAllMigratedFilesPresentInTarget() {
+		List<String> filenames = jdbcTemplate.queryForList(
+				"select cr.filename from zfgbb.content_resource cr "
+						+ "join zfgbb.file_attachments fa on fa.content_resource_id = cr.content_resource_id",
+				String.class);
+		assertTrue(!filenames.isEmpty(),
+				"fixture should produce at least one file attachment for ATTACHMENT_FILES to copy");
+		for (String fn : filenames) {
+			assertTrue(Files.exists(attachmentsTarget.resolve(fn)),
+					fn + " should be present in attachments target dir");
+		}
 	}
 
 	private List<Job> waitForAllTerminal(List<Job> jobs, Duration timeout) throws InterruptedException {

@@ -32,15 +32,14 @@ the SimpleMachines downloads area:
 If the upstream zip is updated, regenerate the pre-extracted SQL with:
 
 ```bash
-unzip -p app/src/test/resources/smf-fixtures/2.0.15/smf_2-0-15_install.zip install_2-0_mysql.sql \
-  | sed 's/{\$db_prefix}/smf_1/g' \
-  | awk '/^INSERT INTO /{skip=1} skip{if(/;\s*$/)skip=0; next} {print}' \
-  > app/src/test/resources/smf-fixtures/2.0.15/smf-schema.sql
+mvn -pl app -am test-compile
+java -cp "app/target/test-classes:$(mvn -pl app -am dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout | tail -1):app/target/classes:model/target/classes:migrator/target/classes" \
+  com.zfgc.zfgbb.SmfTestFixture \
+  app/src/test/resources/smf-fixtures/2.0.15/smf-schema.sql
 ```
 
-The integration test pulls the same content out of the zip at runtime
-(`SmfTestFixture#schemaSql`), so any drift between the two is caught by the
-`MigrateSmfInstallationE2ETest`.
+`SmfFixtureSchemaDriftTest` will fail if the committed `smf-schema.sql` and
+the runtime-extracted version diverge.
 
 ## License
 

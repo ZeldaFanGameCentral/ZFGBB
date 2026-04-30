@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
 import com.zfgc.zfgbb.mappers.IpAddressDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDb;
@@ -22,18 +23,24 @@ import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageHistoryDbMapper;
 
 @Component
-public class IpAddressConverter {
+public class IpAddressConverter extends AbstractConverter<Map<Integer, IpAddressDbo>> {
 
 	@Autowired
 	private SMFMessageDbMapper SMFMessageMapper;
-	
+
 	@Autowired
 	private IpAddressDboMapper ipAddressMapper;
-	
+
 	Logger logger = LoggerFactory.getLogger(IpAddressConverter.class);
-	
+
+	@Override
+	public JobType getType() {
+		return JobType.IPS;
+	}
+
+	@Override
 	@Transactional
-	public Map<Integer,IpAddressDbo> convertToZfgbb() {
+	public Map<Integer, IpAddressDbo> convertToZfgbb() {
 		List<SMFMessageDb> SMFMessages = SMFMessageMapper.selectByExample(new SMFMessageDbExample());
 		Map<String, IpAddressDbo> ipList = new HashMap<>();
 		Map<Integer, IpAddressDbo> result = new HashMap<>();

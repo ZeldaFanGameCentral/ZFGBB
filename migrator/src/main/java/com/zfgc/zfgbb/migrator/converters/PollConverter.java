@@ -23,11 +23,18 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFPollsDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFPollsDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFTopicDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFTopicDbExample;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFPollsDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFTopicDbMapper;
 
 @Component
-public class PollConverter extends AbstractConverter {
+public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.POLLS;
+	}
+
 
 	@Autowired
 	private SMFPollsDbMapper smfPollsMapper;
@@ -38,7 +45,8 @@ public class PollConverter extends AbstractConverter {
 	@Autowired
 	private SMFTopicDbMapper threadMapper;
 	
-	public Map<Integer,PollDbo> convertToZfgbb() {
+	@Override
+	public Map<Integer, PollDbo> convertToZfgbb() {
 		List<SMFPollsDb> smfPolls = smfPollsMapper.selectByExample(new SMFPollsDbExample());
 		SMFTopicDbExample threadEx = new SMFTopicDbExample();
 		threadEx.createCriteria().andIdPollIsNotNull().andIdPollNotEqualTo(0);

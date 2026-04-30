@@ -10,21 +10,28 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
 
 @Component
-public class UsersConverter {
-	
+public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
+
 	@Autowired
 	public SMFMembersDbMapper smfMembersMapper;
-	
+
 	@Autowired
 	public UserDboMapper userDboMapper;
-	
+
+	@Override
+	public JobType getType() {
+		return JobType.USERS;
+	}
+
+	@Override
 	@Transactional
-	public Map<Integer,UserDbo> convertToZfgbb() {
+	public Map<Integer, UserDbo> convertToZfgbb() {
 		List<SMFMembersDbWithBLOBs> SMFMembers = smfMembersMapper.selectByExampleWithBLOBs(new SMFMembersDbExample());
 		Map<Integer,UserDbo> result = new HashMap<>();
 		

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.mappers.ThreadDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFTopicDb;
@@ -20,7 +21,13 @@ import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFTopicDbMapper;
 
 @Component
-public class ThreadConverter extends AbstractConverter{
+public class ThreadConverter extends AbstractConverter<Map<Integer, ThreadDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.THREADS;
+	}
+
 	@Autowired
 	public SMFTopicDbMapper smfTopicMapper;
 	
@@ -32,7 +39,8 @@ public class ThreadConverter extends AbstractConverter{
 	
 	Logger logger = LoggerFactory.getLogger(ThreadConverter.class);
 	
-	public Map<Integer,ThreadDbo> convertToZfgbb() {
+	@Override
+	public Map<Integer, ThreadDbo> convertToZfgbb() {
 		List<SMFTopicDb> SMFCategories = smfTopicMapper.selectByExample(new SMFTopicDbExample());
 		Map<Integer,ThreadDbo> result = new HashMap<>();
 		

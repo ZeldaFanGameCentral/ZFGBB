@@ -13,12 +13,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFAttachmentsDbMapper;
 
 @Component
-public class AttachmentFilesConverter {
+public class AttachmentFilesConverter extends AbstractConverter<Void> {
+
+	@Override
+	public JobType getType() {
+		return JobType.ATTACHMENT_FILES;
+	}
+
 
 	private static final Logger logger = LoggerFactory.getLogger(AttachmentFilesConverter.class);
 
@@ -31,7 +38,8 @@ public class AttachmentFilesConverter {
 	@Value("${zfgbb.migrator.attachments.target-path:}")
 	private String targetPath;
 
-	public void convertToZfgbb() throws IOException {
+	@Override
+	public Void convertToZfgbb() throws IOException {
 		if (sourcePath == null || sourcePath.isBlank() || targetPath == null || targetPath.isBlank()) {
 			throw new IllegalStateException(
 					"zfgbb.migrator.attachments.source-path and target-path must both be set");
@@ -77,5 +85,6 @@ public class AttachmentFilesConverter {
 						}
 					});
 		}
+		return null;
 	}
 }

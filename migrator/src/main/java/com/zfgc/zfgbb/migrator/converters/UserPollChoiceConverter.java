@@ -13,6 +13,7 @@ import com.zfgc.zfgbb.dbo.UserPollChoiceDbo;
 import com.zfgc.zfgbb.dbo.UserPollChoiceDboExample;
 import com.zfgc.zfgbb.mappers.PollChoiceDboMapper;
 import com.zfgc.zfgbb.mappers.UserPollChoiceDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogPollsDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogPollsDbMapper;
 
@@ -20,7 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
-public class UserPollChoiceConverter {
+public class UserPollChoiceConverter extends AbstractConverter<Map<Integer, UserPollChoiceDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.USER_POLL_CHOICES;
+	}
+
 
 	@Autowired
 	private UserPollChoiceDboMapper userPollChoiceMapper;
@@ -31,7 +38,8 @@ public class UserPollChoiceConverter {
 	@Autowired
 	private SMFLogPollsDbMapper smfLogPollsMapper;
 	
-	public Map<Integer, UserPollChoiceDbo> convertToZfgbb(){
+	@Override
+	public Map<Integer, UserPollChoiceDbo> convertToZfgbb() {
 		Map<String, Integer> pollChoiceMap = pollQuestionMapper.selectByExample(new PollChoiceDboExample())
 																 .stream()
 																 .collect(Collectors.toMap(q -> q.getPollId() + "," + q.getSeqno(), PollChoiceDbo::getPollChoiceId));

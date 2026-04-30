@@ -11,11 +11,18 @@ import com.zfgc.zfgbb.dbo.PollChoiceDbo;
 import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
 import com.zfgc.zfgbb.dbo.PollDbo;
 import com.zfgc.zfgbb.mappers.PollChoiceDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFPollChoicesDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFPollChoicesDbMapper;
 
 @Component
-public class PollChoiceConverter {
+public class PollChoiceConverter extends AbstractConverter<Map<Integer, PollChoiceDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.POLL_CHOICES;
+	}
+
 
 	@Autowired
 	private PollChoiceDboMapper pollChoiceMapper;
@@ -23,7 +30,8 @@ public class PollChoiceConverter {
 	@Autowired
 	private SMFPollChoicesDbMapper smfPollChoiceMapper;
 	
-	public Map<Integer,PollChoiceDbo> convertToZfgbb() {
+	@Override
+	public Map<Integer, PollChoiceDbo> convertToZfgbb() {
 		
 		return smfPollChoiceMapper.selectByExample(new SMFPollChoicesDbExample()).stream()
 						   .map(smfChoice -> {

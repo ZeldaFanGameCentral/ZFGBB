@@ -27,11 +27,18 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDbExample;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageHistoryDbMapper;
 
 @Component
-public class MessageHistoryConverter {
+public class MessageHistoryConverter extends AbstractConverter<Map<Integer, MessageHistoryDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.MESSAGE_HISTORY;
+	}
+
 	
 	@Autowired
 	private SMFMessageHistoryDbMapper smfMsgHistoryMapper;
@@ -48,7 +55,8 @@ public class MessageHistoryConverter {
 	Logger logger = LoggerFactory.getLogger(MessageConverter.class);
 	
 	
-	public Map<Integer,MessageHistoryDbo> convertToZfgbb() {
+	@Override
+	public Map<Integer, MessageHistoryDbo> convertToZfgbb() {
 		Map<Integer, List<SMFMessageHistoryDb>> SMFMessageHistory = smfMsgHistoryMapper.selectByExampleWithBLOBs(new SMFMessageHistoryDbExample()).stream()
 																																			.collect(Collectors.groupingBy(SMFMessageHistoryDb::getIdMsg));
 		Map<String, IpAddressDbo> ipMap = ipMapper.selectByExample(new IpAddressDboExample()).stream()

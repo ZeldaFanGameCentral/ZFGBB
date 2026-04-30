@@ -11,19 +11,26 @@ import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.BoardDbo;
 import com.zfgc.zfgbb.mappers.BoardDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFBoardDbMapper;
 
 @Component
-public class BoardConverter {
+public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 	@Autowired
 	private SMFBoardDbMapper smfBoardMapper;
-	
+
 	@Autowired
 	private BoardDboMapper boardMapper;
-	
-	public Map<Integer,BoardDbo> convertToZfgbb() {
+
+	@Override
+	public JobType getType() {
+		return JobType.BOARDS;
+	}
+
+	@Override
+	public Map<Integer, BoardDbo> convertToZfgbb() {
 		List<SMFBoardDb> SMFBoards = smfBoardMapper.selectByExample(new SMFBoardDbExample());
 		Map<Integer, SMFBoardDb> smf = SMFBoards.stream().collect(Collectors.toMap(SMFBoardDb::getIdBoard, Function.identity()));
 		Map<Integer,BoardDbo> result = new HashMap<>();

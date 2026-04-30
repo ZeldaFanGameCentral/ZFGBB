@@ -15,13 +15,20 @@ import org.springframework.stereotype.Component;
 import com.zfgc.zfgbb.dbo.KarmaDbo;
 import com.zfgc.zfgbb.dbo.KarmaDboExample;
 import com.zfgc.zfgbb.mappers.KarmaDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogKarmaDbMapper;
 
 @Component
-public class KarmaConverter {
+public class KarmaConverter extends AbstractConverter<Map<Integer, KarmaDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.KARMA;
+	}
+
 	
 	@Autowired
 	private KarmaDboMapper karmaMapper;
@@ -31,7 +38,8 @@ public class KarmaConverter {
 	
 	private final String MSG_REGEX = "[0-9]+$";
 	
-	public Map<Integer, KarmaDbo> convertToZfgbb(){
+	@Override
+	public Map<Integer, KarmaDbo> convertToZfgbb() {
 		List<SMFLogKarmaDbWithBLOBs> karmaSMF = SMFKarmaMapper.selectByExampleWithBLOBs(new SMFLogKarmaDbExample());
 		Pattern pattern = Pattern.compile(MSG_REGEX);
 		

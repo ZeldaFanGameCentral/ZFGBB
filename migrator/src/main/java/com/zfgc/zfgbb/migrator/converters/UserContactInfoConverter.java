@@ -16,11 +16,18 @@ import com.zfgc.zfgbb.dbo.EmailAddressDbo;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.mappers.EmailAddressDboMapper;
 import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
 
 @Component
-public class UserContactInfoConverter extends AbstractConverter {
+public class UserContactInfoConverter extends AbstractConverter<Map<Integer, UserContactInfoDbo>> {
+
+	@Override
+	public JobType getType() {
+		return JobType.USER_CONTACT_INFO;
+	}
+
 	Logger logger = LoggerFactory.getLogger(UserContactInfoConverter.class);
 	
 	@Autowired
@@ -32,8 +39,9 @@ public class UserContactInfoConverter extends AbstractConverter {
 	@Autowired
 	private EmailAddressDboMapper emailMapper;
 	
+	@Override
 	@Transactional
-	public Map<Integer,UserContactInfoDbo> convertToZfgbb() {
+	public Map<Integer, UserContactInfoDbo> convertToZfgbb() {
 		AtomicInteger emailId = new AtomicInteger(1);
 		return membersMapper.selectByExample(new SMFMembersDbExample())
 					 .stream()

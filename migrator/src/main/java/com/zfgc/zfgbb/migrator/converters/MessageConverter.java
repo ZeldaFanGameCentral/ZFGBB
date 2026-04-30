@@ -16,23 +16,30 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 
 @Component
-public class MessageConverter {
+public class MessageConverter extends AbstractConverter<Map<Integer, MessageDbo>> {
 
 	@Autowired
 	private MessageDboMapper messageMapper;
-	
+
 	@Autowired
 	private SMFMessageDbMapper smfMessageMapper;
-	
+
 	Logger logger = LoggerFactory.getLogger(MessageConverter.class);
-	
+
+	@Override
+	public JobType getType() {
+		return JobType.MESSAGES;
+	}
+
+	@Override
 	@Transactional
-	public Map<Integer,MessageDbo> convertToZfgbb() {
+	public Map<Integer, MessageDbo> convertToZfgbb() {
 		SMFMessageDbExample smfEx = new SMFMessageDbExample();
 		smfEx.setOrderByClause("poster_time asc");
 		List<SMFMessageDbWithBLOBs> SMFMembers = smfMessageMapper.selectByExampleWithBLOBs(smfEx);

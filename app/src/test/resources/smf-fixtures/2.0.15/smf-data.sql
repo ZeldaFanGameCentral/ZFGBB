@@ -45,13 +45,13 @@ values
      'Thanks alice!', 'xx', 1, 0, ''),
     (3, 1, 1, 1700100400, 1, 0, 'Re: Welcome',
      'alice', 'alice@example.com', '10.0.0.1',
-     'Posting an attachment.', 'xx', 1, 0, ''),
+     'Posting an attachment. [attach=1]', 'xx', 1, 0, ''),
     (4, 2, 3, 1700200000, 2, 1700200600, 'Random thought',
      'bob', 'bob@example.com', '10.0.0.2',
      'Something on my mind.', 'xx', 1, 1700200600, 'bob'),
     (5, 2, 3, 1700200300, 1, 0, 'Re: Random thought',
      'alice', 'alice@example.com', '10.0.0.1',
-     'Image attached.', 'xx', 1, 0, '');
+     'Image attached. [attach=2] - take a look!', 'xx', 1, 0, '');
 
 insert into smf_1messages_history
     (id_edit, id_msg, modified_name, modified_time, body)
