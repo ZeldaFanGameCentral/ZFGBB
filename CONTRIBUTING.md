@@ -333,6 +333,27 @@ ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/path/to/zfgbb/content/attachments
 
 When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. They require the `ZFGC_SITE_ADMIN` role — log in as the site admin created during `/system/install` to obtain a token.
 
+##### Bringing up a local SMF fixture
+
+For development, the repo ships a canned SMF 2.0.15 dataset (one alice + one bob, a couple of categories/boards/topics/messages, a poll, two attachments) under [`app/src/test/resources/smf-fixtures/2.0.15/`](./app/src/test/resources/smf-fixtures/2.0.15/). [docker-compose.service.smf-fixture.yml](./docker-compose.service.smf-fixture.yml) spins up a MySQL container preloaded with this dataset so you can point the migrator at it without a real SMF install:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.service.smf-fixture.yml up -d smf_fixture_mysql
+```
+
+Then point the migrator at it:
+
+```bash
+ZFGBB_MIGRATOR_ENABLED=true
+ZFGBB_MIGRATOR_SMF_JDBC_URL=jdbc:mysql://localhost:3307/smf
+ZFGBB_MIGRATOR_SMF_USERNAME=smf
+ZFGBB_MIGRATOR_SMF_PASSWORD=smfpw
+ZFGBB_MIGRATOR_ATTACHMENTS_SOURCE_PATH=./app/src/test/resources/smf-fixtures/2.0.15/smf-attachments
+ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/tmp/zfgbb-attachments
+```
+
+The fixture's port (default `3307`), credentials, and database name are configurable via `SMF_FIXTURE_PORT`, `SMF_FIXTURE_USER`, `SMF_FIXTURE_PASSWORD`, `SMF_FIXTURE_DATABASE` env vars before `docker compose up`. The SMF schema is the upstream `install_2-0_mysql.sql` (see [SOURCE.md](./app/src/test/resources/smf-fixtures/2.0.15/SOURCE.md) for provenance and how to regenerate it).
+
 #### Submitting and tracking jobs
 
 Jobs run one at a time on a single-threaded executor, in submit order. The submit endpoint returns immediately with a list of job ids you poll for status.

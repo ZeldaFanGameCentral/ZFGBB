@@ -1,0 +1,33 @@
+services:
+  smf_fixture_mysql:
+    container_name: zfgbb_smf_fixture_mysql
+    image: mysql:8
+    command:
+      - --character-set-server=utf8mb3
+      - --collation-server=utf8mb3_general_ci
+      - --sql-mode=NO_ENGINE_SUBSTITUTION
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SMF_FIXTURE_ROOT_PASSWORD:-rootpw}
+      MYSQL_DATABASE: ${SMF_FIXTURE_DATABASE:-smf}
+      MYSQL_USER: ${SMF_FIXTURE_USER:-smf}
+      MYSQL_PASSWORD: ${SMF_FIXTURE_PASSWORD:-smfpw}
+    ports:
+      - "${SMF_FIXTURE_PORT:-3307}:3306"
+    networks:
+      - zfgbb
+    volumes:
+      - smf_fixture_data:/var/lib/mysql
+      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-schema.sql:/docker-entrypoint-initdb.d/01-smf-schema.sql:ro
+      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-zfgc-deltas.sql:/docker-entrypoint-initdb.d/02-zfgc-deltas.sql:ro
+      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-data.sql:/docker-entrypoint-initdb.d/03-data.sql:ro
+      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-attachments:/smf-attachments:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${SMF_FIXTURE_ROOT_PASSWORD:-rootpw}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  smf_fixture_data:

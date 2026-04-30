@@ -37,7 +37,8 @@ public class UsersConverter {
 			user.setSsoKey(smfMember.getMemberName());
 			user.setUserName(smfMember.getMemberName());
 			user.setActiveFlag(smfMember.getIsActivated().intValue() > 0);
-			
+			user.setFailedLoginCount(0);
+
 			user.setMigrationHash(MigrationHasher.hash(user.getUserId()
 					+ user.getSsoKey()
 					+ user.getActiveFlag().toString()
