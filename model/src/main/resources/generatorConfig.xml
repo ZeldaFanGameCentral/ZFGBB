@@ -6,6 +6,8 @@
 
     <!-- Auto-emits AbstractDbo overrides (getPkId, getCreatedTime, getUpdatedTime) on every DBO. -->
     <plugin type="com.zfgc.zfgbb.mbg.DboOverridesPlugin"/>
+    <!-- Emits selectByExampleWithRange(Example) on every mapper. -->
+    <plugin type="com.zfgc.zfgbb.mbg.PaginatedSelectPlugin"/>
 
     <jdbcConnection connectionURL="${SPRING_DATASOURCE_URL}?currentSchema=zfgbb"
                     driverClass="org.postgresql.Driver"

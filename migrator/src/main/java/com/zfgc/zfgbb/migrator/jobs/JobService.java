@@ -40,6 +40,19 @@ public class JobService {
 	public JobService(List<AbstractConverter<?>> converters) {
 		this.convertersByType = converters.stream()
 				.collect(Collectors.toMap(AbstractConverter::getType, Function.identity()));
+		List<JobType> missing = new ArrayList<>();
+		for (JobType type : JobType.values()) {
+			if (type == JobType.MIGRATE_SMF_INSTALLATION) {
+				continue;
+			}
+			if (!convertersByType.containsKey(type)) {
+				missing.add(type);
+			}
+		}
+		if (!missing.isEmpty()) {
+			throw new IllegalStateException(
+					"No AbstractConverter registered for JobType(s): " + missing);
+		}
 	}
 
 	public List<Job> submit(JobType type) {
