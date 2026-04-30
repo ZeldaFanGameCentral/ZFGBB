@@ -48,10 +48,10 @@ values
      'Posting an attachment. [attach=1]', 'xx', 1, 0, ''),
     (4, 2, 3, 1700200000, 2, 1700200600, 'Random thought',
      'bob', 'bob@example.com', '10.0.0.2',
-     'Something on my mind.', 'xx', 1, 1700200600, 'bob'),
+     '[quote author=alice link=topic=1.msg1#msg1 date=1700100000]Welcome to the forum![/quote]Something on my mind. See also http://www.zfgc.com/index.php?topic=1.0 for context.', 'xx', 1, 1700200600, 'bob'),
     (5, 2, 3, 1700200300, 1, 0, 'Re: Random thought',
      'alice', 'alice@example.com', '10.0.0.1',
-     'Image attached. [attach=2] - take a look!', 'xx', 1, 0, '');
+     'Image attached. [attach=2] - take a look! Also see [url=http://www.zfgc.com/index.php?topic=1.msg2#msg2]welcome thread[/url] and [url=http://zfgc.com/forum/index.php?board=1]Announcements board[/url] and [url=http://www.zfgc.com/index.php?action=profile;u=2]bob[/url] - [iurl=http://www.zfgc.com/index.php?topic=1.0]inline[/iurl]', 'xx', 1, 0, '');
 
 insert into smf_1messages_history
     (id_edit, id_msg, modified_name, modified_time, body)

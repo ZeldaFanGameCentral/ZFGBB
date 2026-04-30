@@ -131,3 +131,82 @@ select zfgbb.create_bbcode_attr_mode(23, 'li','<li>','</li>', false, false);
 
 select zfgbb.create_bbcode_attr_mode(24, 'size','<span style=''font-size:{{0}};''>','</span>', false, false);
 select zfgbb.create_bbcode_attr(8, 0, 24, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(30, 'thread', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(30, 'thread', '<a class="bb-resource-link" data-resource="thread" data-thread-id="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(10, 0, 30, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_attr_mode(31, 'thread', '<a class="bb-resource-link" data-resource="thread" data-thread-id="{{0}}" data-msg-id="{{1}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(11, 0, 31, 'NAMELESS', 1);
+select zfgbb.create_bbcode_attr(12, 1, 31, 'msg', 1);
+
+select zfgbb.create_bbcode_config(31, 'board', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(32, 'board', '<a class="bb-resource-link" data-resource="board" data-board-id="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(13, 0, 32, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(32, 'member', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(33, 'member', '<a class="bb-resource-link" data-resource="member" data-user-id="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(14, 0, 33, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_attr_mode(40, 'quote', '<div class="bb-code-quote"><div class="bb-code-quote-header">Quote (<a class="bb-resource-link" data-resource="thread" data-msg-id="{{0}}">jump to message</a>)</div><div class="bb-code-quote-body">', '</div></div>', false, false);
+select zfgbb.create_bbcode_attr(17, 0, 40, 'msg', 1);
+
+select zfgbb.create_bbcode_attr_mode(41, 'quote', '<div class="bb-code-quote"><div class="bb-code-quote-header">Quote (<a class="bb-resource-link" data-resource="thread" data-thread-id="{{0}}" data-msg-id="{{1}}">jump to message</a>)</div><div class="bb-code-quote-body">', '</div></div>', false, false);
+select zfgbb.create_bbcode_attr(18, 0, 41, 'thread', 1);
+select zfgbb.create_bbcode_attr(19, 1, 41, 'msg', 1);
+
+select zfgbb.create_bbcode_attr_mode(42, 'quote', '<div class="bb-code-quote"><div class="bb-code-quote-header">Quote from {{0}} (<a class="bb-resource-link" data-resource="thread" data-thread-id="{{1}}" data-msg-id="{{2}}">jump to message</a>)</div><div class="bb-code-quote-body">', '</div></div>', false, false);
+select zfgbb.create_bbcode_attr(20, 0, 42, 'author', 1);
+select zfgbb.create_bbcode_attr(21, 1, 42, 'thread', 1);
+select zfgbb.create_bbcode_attr(22, 2, 42, 'msg', 1);
+
+select zfgbb.create_bbcode_attr_mode(43, 'quote', '<div class="bb-code-quote"><div class="bb-code-quote-header">Quote from {{0}} on {{1}} (<a class="bb-resource-link" data-resource="thread" data-thread-id="{{2}}" data-msg-id="{{3}}">jump to message</a>)</div><div class="bb-code-quote-body">', '</div></div>', false, false);
+select zfgbb.create_bbcode_attr(23, 0, 43, 'author', 1);
+select zfgbb.create_bbcode_attr(24, 1, 43, 'date', 0);
+select zfgbb.create_bbcode_attr(25, 2, 43, 'thread', 1);
+select zfgbb.create_bbcode_attr(26, 3, 43, 'msg', 1);
+
+select zfgbb.create_bbcode_config(33, 'me', '</span>', true);
+select zfgbb.create_bbcode_attr_mode(50, 'me', '<span class="bb-code-me">* {{0}} ', '</span>', false, true);
+select zfgbb.create_bbcode_attr(27, 0, 50, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(34, 'iurl', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(51, 'iurl', '<a class="bb-code-iurl" href="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(28, 0, 51, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(35, 'hr', '<hr/>', false);
+select zfgbb.create_bbcode_attr_mode(52, 'hr', '', '<hr/>', false, false);
+
+select zfgbb.create_bbcode_config(36, 'table', '</table>', true);
+select zfgbb.create_bbcode_attr_mode(53, 'table', '<table class="bb-code-table">', '</table>', false, false);
+
+select zfgbb.create_bbcode_config(37, 'tr', '</tr>', true);
+select zfgbb.create_bbcode_attr_mode(54, 'tr', '<tr>', '</tr>', false, false);
+
+select zfgbb.create_bbcode_config(38, 'td', '</td>', true);
+select zfgbb.create_bbcode_attr_mode(55, 'td', '<td>', '</td>', false, false);
+
+select zfgbb.create_bbcode_config(39, 'sup', '</sup>', true);
+select zfgbb.create_bbcode_attr_mode(56, 'sup', '<sup>', '</sup>', false, false);
+
+select zfgbb.create_bbcode_config(40, 'glow', '</span>', true);
+select zfgbb.create_bbcode_attr_mode(57, 'glow', '<span class="bb-code-glow" data-glow="{{0}}">', '</span>', false, true);
+select zfgbb.create_bbcode_attr(29, 0, 57, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(41, 'font', '</span>', true);
+select zfgbb.create_bbcode_attr_mode(58, 'font', '<span class="bb-code-font" data-font-face="{{0}}">', '</span>', false, true);
+select zfgbb.create_bbcode_attr(30, 0, 58, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(42, 'you', '</span>', false);
+select zfgbb.create_bbcode_attr_mode(59, 'you', '<span class="bb-you-placeholder">', '</span>', false, false);
+
+select zfgbb.create_bbcode_config(43, 'request', '', true);
+select zfgbb.create_bbcode_attr_mode(60, 'request', '', '', false, false);
+
+select zfgbb.create_bbcode_config(44, 'resource', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(61, 'resource', '<a class="bb-resource-link" data-resource="resource" data-resource-id="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(31, 0, 61, 'NAMELESS', 1);
+
+select zfgbb.create_bbcode_config(45, 'game', '</a>', true);
+select zfgbb.create_bbcode_attr_mode(62, 'game', '<a class="bb-resource-link" data-resource="game" data-game-id="{{0}}">', '</a>', false, true);
+select zfgbb.create_bbcode_attr(32, 0, 62, 'NAMELESS', 1);

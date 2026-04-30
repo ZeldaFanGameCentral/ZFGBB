@@ -143,6 +143,29 @@ class MigrateSmfInstallationE2ETest {
 
 		assertNoOrphanAttachmentRefs();
 		assertAllMigratedFilesPresentInTarget();
+		assertSemanticBbcodesInRewrittenBodies();
+	}
+
+	private void assertSemanticBbcodesInRewrittenBodies() {
+		String msg5 = jdbcTemplate.queryForObject(
+				"select message_text from zfgbb.message_history where message_id = 5 and current_flag = true",
+				String.class);
+		assertTrue(msg5.contains("[thread=1 msg=2]welcome thread[/thread]"),
+				"msg 5 should have rewritten [url=...?topic=1.msg2] to [thread=1 msg=2]; got: " + msg5);
+		assertTrue(msg5.contains("[board=1]Announcements board[/board]"),
+				"msg 5 should have rewritten [url=...?board=1] to [board=1]; got: " + msg5);
+		assertTrue(msg5.contains("[member=2]bob[/member]"),
+				"msg 5 should have rewritten [url=...?action=profile;u=2] to [member=2]; got: " + msg5);
+		assertTrue(msg5.contains("[thread=1]inline[/thread]"),
+				"msg 5 should have rewritten [iurl=...?topic=1.0] to [thread=1]; got: " + msg5);
+
+		String msg4 = jdbcTemplate.queryForObject(
+				"select message_text from zfgbb.message_history where message_id = 4 and current_flag = true",
+				String.class);
+		assertTrue(msg4.contains("[quote author=alice thread=1 msg=1 date=1700100000]"),
+				"msg 4 should have rewritten quote link= to thread=/msg= attrs; got: " + msg4);
+		assertTrue(msg4.contains("[thread=1]http://www.zfgc.com/index.php?topic=1.0[/thread]"),
+				"msg 4 should have rewritten the bare zfgc.com URL to [thread=1]; got: " + msg4);
 	}
 
 	@Test
