@@ -324,6 +324,13 @@ ZFGBB_MIGRATOR_SMF_USERNAME=smf_reader
 ZFGBB_MIGRATOR_SMF_PASSWORD=...
 ```
 
+If you plan to run the `ATTACHMENT_FILES` job (which copies SMF's hash-named attachment files back to their original filenames), also set:
+
+```bash
+ZFGBB_MIGRATOR_ATTACHMENTS_SOURCE_PATH=/path/to/smf/attachments
+ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/path/to/zfgbb/content/attachments
+```
+
 When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. They require the `ZFGC_SITE_ADMIN` role — log in as the site admin created during `/system/install` to obtain a token.
 
 #### Submitting and tracking jobs
@@ -362,6 +369,8 @@ curl -sX DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
   http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
 # 204 No Content
 ```
+
+Available job types: `USERS`, `CATEGORIES`, `BOARDS`, `THREADS`, `MESSAGES`, `IPS`, `MESSAGE_HISTORY`, `USER_BIO_INFO`, `ATTACHMENTS`, `ATTACHMENT_FILES`, `USER_CONTACT_INFO`, `POLLS`, `POLL_CHOICES`, `USER_POLL_CHOICES`, `KARMA`. `ATTACHMENTS` migrates the file-attachment metadata rows; `ATTACHMENT_FILES` is a separate step that copies SMF's hash-named files on disk back to their original filenames (run it after `ATTACHMENTS`).
 
 #### Production note
 

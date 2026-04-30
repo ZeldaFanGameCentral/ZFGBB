@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.zfgc.zfgbb.migrator.converters.AttachmentFilesConverter;
 import com.zfgc.zfgbb.migrator.converters.AttachmentsConverter;
 import com.zfgc.zfgbb.migrator.converters.BoardConverter;
 import com.zfgc.zfgbb.migrator.converters.CategoryConverter;
@@ -53,6 +54,7 @@ public class JobService {
 	@Autowired private MessageHistoryConverter messageHistoryConverter;
 	@Autowired private UserBioInfoConverter userBioInfoConverter;
 	@Autowired private AttachmentsConverter attachmentsConverter;
+	@Autowired private AttachmentFilesConverter attachmentFilesConverter;
 	@Autowired private UserContactInfoConverter userContactInfoConverter;
 	@Autowired private PollConverter pollConverter;
 	@Autowired private PollChoiceConverter pollChoiceConverter;
@@ -81,7 +83,7 @@ public class JobService {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			job.setState(JobState.CANCELLED);
-		} catch (RuntimeException e) {
+		} catch (Exception e) {
 			if (Thread.currentThread().isInterrupted() || e.getCause() instanceof InterruptedException) {
 				job.setState(JobState.CANCELLED);
 			} else {
@@ -95,7 +97,7 @@ public class JobService {
 		}
 	}
 
-	private void dispatch(JobType type) throws InterruptedException {
+	private void dispatch(JobType type) throws Exception {
 		switch (type) {
 			case USERS -> usersConverter.convertToZfgbb();
 			case CATEGORIES -> categoryConverter.convertToZfgbb();
@@ -106,6 +108,7 @@ public class JobService {
 			case MESSAGE_HISTORY -> messageHistoryConverter.convertToZfgbb();
 			case USER_BIO_INFO -> userBioInfoConverter.convertToZfgbb();
 			case ATTACHMENTS -> attachmentsConverter.convertToZfgbb();
+			case ATTACHMENT_FILES -> attachmentFilesConverter.convertToZfgbb();
 			case USER_CONTACT_INFO -> userContactInfoConverter.convertToZfgbb();
 			case POLLS -> pollConverter.convertToZfgbb();
 			case POLL_CHOICES -> pollChoiceConverter.convertToZfgbb();
