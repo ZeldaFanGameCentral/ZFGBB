@@ -14,12 +14,19 @@
   </parent>
 
   <groupId>com.zfgc</groupId>
-  <artifactId>zfgbb</artifactId>
+  <artifactId>zfgbb-parent</artifactId>
   <version>2025.9.1</version>
-  <packaging>war</packaging>
+  <packaging>pom</packaging>
 
-  <name>zfgbb</name>
-  <description>ZFGBB backend REST API</description>
+  <name>zfgbb-parent</name>
+  <description>ZFGBB backend parent POM</description>
+
+  <modules>
+    <module>mbg-plugin</module>
+    <module>model</module>
+    <module>migrator</module>
+    <module>app</module>
+  </modules>
 
   <properties>
     <java.version>21</java.version>
@@ -29,14 +36,15 @@
     <modelmapper.version>3.2.6</modelmapper.version>
     <commons-lang3.version>3.20.0</commons-lang3.version>
     <guava.version>33.6.0-jre</guava.version>
+    <mybatis-spring-boot.version>4.0.1</mybatis-spring-boot.version>
+    <mybatis-generator.version>2.0.0</mybatis-generator.version>
+    <mybatis-spring.version>3.0.4</mybatis-spring.version>
+    <mybatis.version>3.5.16</mybatis.version>
+    <mysql-connector.version>9.1.0</mysql-connector.version>
+    <postgresql.version>42.7.10</postgresql.version>
+    <flyway.version>11.14.1</flyway.version>
 
     <testcontainers.version>2.0.5</testcontainers.version>
-    <SPRING_PROFILES_ACTIVE>local</SPRING_PROFILES_ACTIVE>
-    <SPRING_DATASOURCE_URL>jdbc:postgresql://localhost:5432/zfgc_dev</SPRING_DATASOURCE_URL>
-    <SPRING_DATASOURCE_USERNAME>zfgbb_user</SPRING_DATASOURCE_USERNAME>
-    <SPRING_DATASOURCE_PASSWORD>123456</SPRING_DATASOURCE_PASSWORD>
-    <ZFGBB_CONTENT_PATH>./backend-assets</ZFGBB_CONTENT_PATH>
-    <ZFGBB_CONTENT_IMAGES>images</ZFGBB_CONTENT_IMAGES>
   </properties>
 
   <dependencyManagement>
@@ -48,309 +56,133 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <dependency>
+        <groupId>com.zfgc</groupId>
+        <artifactId>zfgbb-mbg-plugin</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.zfgc</groupId>
+        <artifactId>zfgbb-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.zfgc</groupId>
+        <artifactId>zfgbb-migrator</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>${mybatis-spring-boot.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mybatis.generator</groupId>
+        <artifactId>mybatis-generator-core</artifactId>
+        <version>${mybatis-generator.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mybatis</groupId>
+        <artifactId>mybatis</artifactId>
+        <version>${mybatis.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mybatis</groupId>
+        <artifactId>mybatis-spring</artifactId>
+        <version>${mybatis-spring.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.modelmapper</groupId>
+        <artifactId>modelmapper</artifactId>
+        <version>${modelmapper.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>${mapstruct.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-database-postgresql</artifactId>
+        <version>${flyway.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${postgresql.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>${mysql-connector.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-mail</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-websocket</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-batch</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mybatis.spring.boot</groupId>
-      <artifactId>mybatis-spring-boot-starter</artifactId>
-      <version>4.0.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-flyway</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-postgresql</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.modelmapper</groupId>
-      <artifactId>modelmapper</artifactId>
-      <version>${modelmapper.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mapstruct</groupId>
-      <artifactId>mapstruct</artifactId>
-      <version>${mapstruct.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${guava.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-tomcat</artifactId>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mybatis.generator</groupId>
-      <artifactId>mybatis-generator-core</artifactId>
-      <version>2.0.0</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webmvc-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.batch</groupId>
-      <artifactId>spring-batch-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers-postgresql</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>properties-maven-plugin</artifactId>
-        <version>1.2.1</version>
-        <executions>
-          <execution>
-            <phase>initialize</phase>
-            <goals>
-              <goal>read-project-properties</goal>
-            </goals>
-            <configuration>
-              <quiet>true</quiet>
-              <files>
-                <file>${project.basedir}/.env.local</file>
-              </files>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>properties-maven-plugin</artifactId>
+          <version>1.2.1</version>
+        </plugin>
 
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <configuration>
-          <systemPropertyVariables>
-            <spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
-            <spring.datasource.url>${SPRING_DATASOURCE_URL}</spring.datasource.url>
-            <spring.datasource.username>${SPRING_DATASOURCE_USERNAME}</spring.datasource.username>
-            <spring.datasource.password>${SPRING_DATASOURCE_PASSWORD}</spring.datasource.password>
-            <zfgbb.content.path>${ZFGBB_CONTENT_PATH}</zfgbb.content.path>
-            <zfgbb.content.images>${ZFGBB_CONTENT_IMAGES}</zfgbb.content.images>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
+        <plugin>
+          <groupId>org.flywaydb</groupId>
+          <artifactId>flyway-maven-plugin</artifactId>
+          <version>${flyway.version}</version>
+        </plugin>
 
-      <plugin>
-        <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-maven-plugin</artifactId>
-        <version>11.14.1</version>
-        <configuration>
-          <url>${SPRING_DATASOURCE_URL}</url>
-          <user>${SPRING_DATASOURCE_USERNAME}</user>
-          <password>${SPRING_DATASOURCE_PASSWORD}</password>
-          <schemas>
-            <schema>zfgbb</schema>
-          </schemas>
-          <defaultSchema>zfgbb</defaultSchema>
-          <createSchemas>true</createSchemas>
-          <baselineOnMigrate>true</baselineOnMigrate>
-          <locations>
-            <location>classpath:db/setup</location>
-            <location>classpath:db/migration</location>
-          </locations>
-          <outOfOrder>true</outOfOrder>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <version>11.14.1</version>
-          </dependency>
-          <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.7.10</version>
-          </dependency>
-        </dependencies>
-      </plugin>
+        <plugin>
+          <groupId>org.mybatis.generator</groupId>
+          <artifactId>mybatis-generator-maven-plugin</artifactId>
+          <version>${mybatis-generator.version}</version>
+        </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.mapstruct</groupId>
-              <artifactId>mapstruct-processor</artifactId>
-              <version>${mapstruct.version}</version>
-            </path>
-            <path>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok</artifactId>
-              <version>${lombok.version}</version>
-            </path>
-            <path>
-              <groupId>org.projectlombok</groupId>
-              <artifactId>lombok-mapstruct-binding</artifactId>
-              <version>0.2.0</version>
-            </path>
-          </annotationProcessorPaths>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>jar-mbg-plugin</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <jar destfile="${project.build.directory}/mbg-plugin.jar"
-                     basedir="${project.build.outputDirectory}"
-                     includes="com/zfgc/zfgbb/mbg/**"/>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.mybatis.generator</groupId>
-        <artifactId>mybatis-generator-maven-plugin</artifactId>
-        <version>2.0.0</version>
-        <configuration>
-          <configurationFile>
-            src/main/resources/generatorConfig.xml
-          </configurationFile>
-          <overwrite>true</overwrite>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.7.10</version>
-          </dependency>
-          <dependency>
-            <groupId>com.zfgc</groupId>
-            <artifactId>zfgbb-mbg-plugin</artifactId>
-            <version>local</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/target/mbg-plugin.jar</systemPath>
-          </dependency>
-        </dependencies>
-      </plugin>
-    </plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+              </path>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok-mapstruct-binding</artifactId>
+                <version>0.2.0</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
-
-  <profiles>
-    <profile>
-      <id>seed</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-maven-plugin</artifactId>
-            <configuration>
-              <locations>
-                <location>classpath:db/seed</location>
-              </locations>
-              <table>flyway_seed_history</table>
-              <baselineVersion>0</baselineVersion>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
