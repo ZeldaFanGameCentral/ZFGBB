@@ -1,9 +1,11 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -97,7 +99,16 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 			}
 		});
 
-		result.values().forEach(board -> permissions.grantDefaultBoardPermissions(board.getBoardId()));
+		SMFBoards.forEach(smfBoard -> {
+			BoardDbo board = result.get(smfBoard.getIdBoard());
+			if (board == null) {
+				return;
+			}
+			Set<String> codes = new LinkedHashSet<>(
+					permissions.mapSmfGroupCsvToCodes(smfBoard.getMemberGroups()));
+			codes.add(MigratorPermissionService.CODE_SITE_ADMIN);
+			permissions.replaceBoardPermissions(board.getBoardId(), codes);
+		});
 
 		return result;
 	}

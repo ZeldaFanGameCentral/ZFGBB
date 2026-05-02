@@ -1,9 +1,11 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -82,7 +84,17 @@ public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
 			result.put(smfMember.getIdMember(), user);
 		});
 
-		result.values().forEach(user -> permissions.grantDefaultUserPermissions(user.getUserId()));
+		SMFMembers.forEach(smfMember -> {
+			UserDbo user = result.get(smfMember.getIdMember());
+			if (user == null) {
+				return;
+			}
+			Set<String> codes = new LinkedHashSet<>(
+					permissions.mapSmfGroupToCodes(smfMember.getIdGroup()));
+			codes.addAll(permissions.mapSmfGroupCsvToCodes(smfMember.getAdditionalGroups()));
+			codes.add(MigratorPermissionService.CODE_USER);
+			permissions.replaceUserPermissions(user.getUserId(), codes);
+		});
 
 		return result;
 	}
