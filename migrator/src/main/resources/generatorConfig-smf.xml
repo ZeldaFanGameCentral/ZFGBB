@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN" "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+
+  <context id="zfgc3_context" targetRuntime="MyBatis3">
+
+    <!--
+      Rewrites the introspected table prefix (e.g. smf_1) into a ${smfTablePrefix} placeholder
+      and injects a <bind> at the top of every statement so the prefix is resolved per-job
+      from JobContextHolder.getTablePrefix() at SQL execution time.
+    -->
+    <plugin type="com.zfgc.zfgbb.mbg.SmfTablePrefixPlugin">
+      <property name="introspectedPrefix" value="smf_1"/>
+    </plugin>
+
+    <jdbcConnection connectionURL="${ZFGBB_MIGRATOR_SMF_GENERATOR_URL}"
+                    driverClass="com.mysql.cj.jdbc.Driver"
+                    password="${ZFGBB_MIGRATOR_SMF_GENERATOR_PASSWORD}"
+                    userId="${ZFGBB_MIGRATOR_SMF_GENERATOR_USERNAME}"/>
+
+    <javaModelGenerator targetPackage="com.zfgc.zfgbb.migrator.smf.dbo" targetProject="src/main/java"/>
+    <sqlMapGenerator targetPackage="com.zfgc.zfgbb.migrator.smf.mappers" targetProject="src/main/resources"/>
+    <javaClientGenerator targetPackage="com.zfgc.zfgbb.migrator.smf.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
+
+    <!--
+      Convention: every SMF table the migrator reads is listed here.
+      (BTW see CONTRIBUTING.md) you can run this command to regenerate this
+      mvn -pl migrator -am initialize mybatis-generator:generate
+    -->
+    <table tableName="smf_1log_karma" domainObjectName="SMFLogKarmaDb">
+      <columnOverride column="action" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1polls" domainObjectName="SMFPollsDb">
+      <columnOverride column="max_votes" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="hide_results" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+      <columnOverride column="change_vote" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+      <columnOverride column="guest_vote" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table tableName="smf_1poll_choices" domainObjectName="SMFPollChoicesDb">
+      <columnOverride column="id_choice" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1log_polls" domainObjectName="SMFLogPollsDb">
+      <columnOverride column="id_choice" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1members" domainObjectName="SMFMembersDb">
+      <columnOverride column="id_group" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="instant_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="unread_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="karma_bad" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="karma_good" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="id_post_group" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="birthdate" jdbcType="DATE" javaType="java.time.LocalDate"/>
+      <columnOverride column="hide_email" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+      <columnOverride column="show_online" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table tableName="smf_1attachments" domainObjectName="SMFAttachmentsDb"/>
+
+    <table tableName="smf_1messages_history" domainObjectName="SMFMessageHistoryDb"/>
+
+    <table tableName="smf_1messages" domainObjectName="SMFMessageDb"/>
+
+    <table tableName="smf_1topics" domainObjectName="SMFTopicDb"/>
+
+    <table tableName="smf_1boards" domainObjectName="SMFBoardDb">
+      <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="id_cat" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="id_parent" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1categories" domainObjectName="SMFCategoryDb">
+      <columnOverride column="id_cat" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+    </table>
+
+  </context>
+</generatorConfiguration>

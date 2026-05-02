@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.zfgc</groupId>
+    <artifactId>zfgbb-parent</artifactId>
+    <version>2025.9.1</version>
+  </parent>
+
+  <artifactId>zfgbb-mbg-plugin</artifactId>
+  <packaging>jar</packaging>
+
+  <name>zfgbb-mbg-plugin</name>
+  <description>MyBatis Generator plugins for ZFGBB DBOs</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.mybatis.generator</groupId>
+      <artifactId>mybatis-generator-core</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>

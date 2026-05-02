@@ -26,6 +26,10 @@ TBD. We could use some help writing this out.
       - [Utilizing pgadmin](#utilizing-pgadmin)
       - [Viewing Logs for Docker](#viewing-logs-for-docker)
     - [Tearing down Docker](#tearing-down-docker)
+    - [Migrating from SMF2](#migrating-from-smf2)
+      - [Enabling the migrator](#enabling-the-migrator)
+      - [Submitting and tracking jobs](#submitting-and-tracking-jobs)
+      - [Production note](#production-note)
     - [Workflow - Typical Development Workflow](#workflow---typical-development-workflow)
 
 ## Development
@@ -152,7 +156,7 @@ docker compose up -d postgresql pgadmin
 
 You can access the pgadmin at `http://0.0.0.0:5050`.
 
-When the container starts for the first time, the postgres image creates the database and the `zfgbb_user` connection role from `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` in [.env.docker](./.env.docker). Subsequent app boots run Flyway, which applies [V0__zfgbb-setup.sql](./src/main/resources/db/setup/V0__zfgbb-setup.sql) (creates the `zfgcadmin` table-owner role and the `zfgbb` schema) and then the rest of the schema migrations. If you want more information about docker, you can read the [Docker](#docker) section for more info!
+When the container starts for the first time, the postgres image creates the database and the `zfgbb_user` connection role from `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` in [.env.docker](./.env.docker). Subsequent app boots run Flyway, which applies [V0__zfgbb-setup.sql](./app/src/main/resources/db/setup/V0__zfgbb-setup.sql) (creates the `zfgcadmin` table-owner role and the `zfgbb` schema) and then the rest of the schema migrations. If you want more information about docker, you can read the [Docker](#docker) section for more info!
 
 ##### First-run installation: `/system/install`
 
@@ -188,7 +192,7 @@ curl -sX POST http://localhost:8080/zfgbb/system/install \
 # {"installed":true,"adminUserId":1,"siteName":"ZFGBB Dev","sampleDataApplied":true}
 ```
 
-After install, the endpoint returns 404 to subsequent calls and the `installed: true` flag stays in `system_config`. To re-test the install flow, use the **Reset DB** VS Code task (or `docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn flyway:migrate`) to wipe + re-migrate, then re-run the install.
+After install, the endpoint returns 404 to subsequent calls and the `installed: true` flag stays in `system_config`. To re-test the install flow, use the **Reset DB** VS Code task (or `docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate`) to wipe + re-migrate, then re-run the install.
 
 `applySampleData: true` runs `db/seed/V1__core_dev_data.sql` — categories, boards, the alice/bob/carol sample users (password `password123`), a starter thread or two. Skip it for a minimal install.
 
@@ -214,6 +218,22 @@ The following build actions are available:
 
 Eclipse will respect the applications.properties file, so you can use that to configure the application.
 
+This project uses [Lombok](https://projectlombok.org/) for generated getters, setters, builders, and logging. Out of the box, Eclipse's compiler doesn't understand `@Data`, `@Getter`, `@Builder`, etc., so the project will look like it's full of "method not found" errors until the Lombok agent is installed:
+
+1. Download the Lombok JAR matching the version pinned in the [parent pom](./pom.xml) (`lombok.version`):
+
+   ```bash
+   mvn dependency:get -Dartifact=org.projectlombok:lombok:$(mvn -q -Dexec.executable=echo -Dexec.args='${lombok.version}' --non-recursive exec:exec)
+   ```
+
+   Or grab it from <https://projectlombok.org/download>.
+
+2. Run the JAR with `java -jar lombok-<version>.jar`. The installer GUI auto-detects Eclipse installs on your machine — point it at the one you use, hit **Install/Update**, and quit.
+
+3. Restart Eclipse. The Lombok agent line should now appear at the bottom of the Eclipse splash screen ("Lombok vX.Y.Z by ...") confirming the agent is loaded.
+
+4. If errors persist after install, do **Project → Clean → Clean all projects** to force a full rebuild against the Lombok-aware compiler.
+
 ### Developing Standalone
 
 To run the application in development mode, run the following command:
@@ -236,20 +256,36 @@ This will create a `.war` file in the `target` directory.
 
 ### Running Tests
 
-To run the tests, run the following command:
+To run the tests for the backend application, run the following command:
 
 ```bash
-mvn test
+mvn -pl app -am test
 ```
 
-This will run all the tests in the [src/test](src/test) directory.
+This will run all the tests in [app/src/test](app/src/test).
+
+To run the full reactor (all modules), use `mvn test` from the repo root.
 
 ### Running MyBatis Generator
 
-To run the MyBatis generator, run the following command:
+The MyBatis Generator config and the generated DBOs/mappers live in the [model](./model) module. To regenerate, run from the repo root:
 
 ```bash
-mvn mybatis-generator:generate
+mvn -pl model -am mybatis-generator:generate
+```
+
+The custom plugin that emits the `AbstractDbo` overrides lives in the [mbg-plugin](./mbg-plugin) module — `-am` makes sure it gets compiled before the generator runs.
+
+The [migrator](./migrator) module has its own MBG config ([generatorConfig-smf.xml](./migrator/src/main/resources/generatorConfig-smf.xml)) for the SMF source-side DBOs and mappers. The generator introspects against a live MySQL with the SMF schema, so bring up the fixture first and then run MBG against it. The `SmfTablePrefixPlugin` in [mbg-plugin](./mbg-plugin) rewrites the introspected `smf_1` prefix into a `${smfTablePrefix}` placeholder bound from `JobContextHolder.getTablePrefix()` at SQL execution time, so the resulting mappers work against any SMF table prefix.
+
+```bash
+docker compose -f docker-compose.service.smf.yml --profile fixture up -d --wait
+mvn -pl mbg-plugin install -DskipTests
+(cd migrator && mvn initialize mybatis-generator:generate \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_URL="jdbc:mysql://localhost:3307/smf?nullDatabaseMeansCurrent=true&allowPublicKeyRetrieval=true&useSSL=false" \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_USERNAME=smf \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_PASSWORD=smfpw)
+docker compose -f docker-compose.service.smf.yml --profile fixture down -v
 ```
 
 ### Docker
@@ -300,6 +336,109 @@ docker compose -f ./docker-compose.yml -f ./docker-compose.service.pgadmin.yml d
 ```
 
 We pass the `-vvv` flag to the `down` command to remove the volumes.
+
+### Migrating from SMF2
+
+ZFGBB ships with an opt-in migrator that pulls forum data out of an SMF2 (Simple Machines Forum) MySQL database into the live ZFGBB Postgres database. The migrator is a separate library module ([migrator](./migrator)) that auto-configures into the running ZFGBB app when enabled.
+
+#### Enabling the migrator
+
+Off by default. To turn it on, set the following environment variables (or properties) before booting the app:
+
+```bash
+ZFGBB_MIGRATOR_ENABLED=true
+ZFGBB_MIGRATOR_SMF_JDBC_URL=jdbc:mysql://your-smf-host:3306/your_smf_db
+ZFGBB_MIGRATOR_SMF_USERNAME=smf_reader
+ZFGBB_MIGRATOR_SMF_PASSWORD=...
+```
+
+If you plan to run the `ATTACHMENT_FILES` job (which copies SMF's hash-named attachment files back to their original filenames), also set:
+
+```bash
+ZFGBB_MIGRATOR_ATTACHMENTS_SOURCE_PATH=/path/to/smf/attachments
+ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/path/to/zfgbb/content/attachments
+```
+
+When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. They require the `ZFGC_SITE_ADMIN` role — log in as the site admin created during `/system/install` to obtain a token.
+
+##### Bringing up a local SMF fixture
+
+For development, the repo ships a canned SMF 2.0.15 dataset (one alice + one bob, a couple of categories/boards/topics/messages, a poll, two attachments) under [`app/src/test/resources/smf-fixtures/2.0.15/`](./app/src/test/resources/smf-fixtures/2.0.15/). [docker-compose.service.smf.yml](./docker-compose.service.smf.yml) ships two Compose profiles — `fixture` brings up a MySQL preloaded with this dataset, `live` brings up an empty MySQL plus the SMF web installer for generating new fixtures. The same compose file is used by `MigrateSmfInstallationE2ETest`.
+
+Stand the fixture up so you can point the migrator at it without a real SMF install:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.service.smf.yml --profile fixture up -d
+```
+
+Then point the migrator at it:
+
+```bash
+ZFGBB_MIGRATOR_ENABLED=true
+ZFGBB_MIGRATOR_SMF_JDBC_URL=jdbc:mysql://localhost:3307/smf
+ZFGBB_MIGRATOR_SMF_USERNAME=smf
+ZFGBB_MIGRATOR_SMF_PASSWORD=smfpw
+ZFGBB_MIGRATOR_ATTACHMENTS_SOURCE_PATH=./app/src/test/resources/smf-fixtures/2.0.15/smf-attachments
+ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/tmp/zfgbb-attachments
+```
+
+The fixture's port (default `3307`), credentials, and database name are configurable via `SMF_FIXTURE_MYSQL_PORT`, `SMF_USER`, `SMF_PASSWORD`, `SMF_DATABASE` env vars before `docker compose up`. The SMF schema is the upstream `install_2-0_mysql.sql` (see [SOURCE.md](./app/src/test/resources/smf-fixtures/2.0.15/SOURCE.md) for provenance and how to regenerate it).
+
+#### Submitting and tracking jobs
+
+Jobs run one at a time on a single-threaded executor, in submit order. The submit endpoint returns immediately with a list of job ids you poll for status.
+
+The simplest path — run the whole SMF migration in the canonical order:
+
+```bash
+curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{"type": "MIGRATE_SMF_INSTALLATION"}'
+# 202 Accepted
+# [{"id":"...","type":"USERS","state":"QUEUED",...},
+#  {"id":"...","type":"CATEGORIES","state":"QUEUED",...},
+#  ... 13 more ...]
+```
+
+Or submit a single converter when you need to re-run one step:
+
+```bash
+curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{"type": "USERS"}'
+# 202 Accepted
+# [{"id":"e2c1...","type":"USERS","state":"QUEUED",...}]
+```
+
+List all jobs (handy for watching pipeline progress):
+
+```bash
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs
+```
+
+Poll one job:
+
+```bash
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
+```
+
+Cancel a running or queued job:
+
+```bash
+curl -sX DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
+  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
+# 204 No Content
+```
+
+Available individual job types: `USERS`, `CATEGORIES`, `BOARDS`, `THREADS`, `MESSAGES`, `IPS`, `MESSAGE_HISTORY`, `USER_BIO_INFO`, `ATTACHMENTS`, `ATTACHMENT_FILES`, `USER_CONTACT_INFO`, `POLLS`, `POLL_CHOICES`, `USER_POLL_CHOICES`, `KARMA`. `ATTACHMENTS` migrates the file-attachment metadata rows; `ATTACHMENT_FILES` is a separate step that copies SMF's hash-named files on disk back to their original filenames. Failures don't halt the pipeline — subsequent jobs keep running, so a failed step shows up as one `FAILED` entry in the list while the rest complete.
+
+#### Production note
+
+Leave `ZFGBB_MIGRATOR_ENABLED=false` for normal production deployments. Only flip it on for the duration of a one-shot migration, then disable and restart.
 
 ### Workflow - Typical Development Workflow
 
