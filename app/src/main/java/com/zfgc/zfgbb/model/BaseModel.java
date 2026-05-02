@@ -42,7 +42,7 @@ public abstract class BaseModel {
 	
 	public String getCreatedTsAsString() {
 		if(createdTs != null) {
-			return createdTs.format(DateTimeFormatter.ofPattern("MM/dd/YYYY HH:mm:SS"));
+			return createdTs.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		}
 		return "";
 	}

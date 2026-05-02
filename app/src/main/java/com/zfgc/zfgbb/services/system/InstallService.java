@@ -18,6 +18,7 @@ import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.system.InstallRequest;
 import com.zfgc.zfgbb.model.system.InstallResponse;
+import com.zfgc.zfgbb.model.system.InstallResult;
 import com.zfgc.zfgbb.model.users.RegistrationRequest;
 import com.zfgc.zfgbb.services.core.UserService;
 
@@ -42,7 +43,7 @@ public class InstallService {
 		this.dataSource = dataSource;
 	}
 
-	public InstallResponse install(InstallRequest req) {
+	public InstallResult install(InstallRequest req) {
 		if (req == null) {
 			throw new ZfgcInvalidRequestException("Install request is required.");
 		}
@@ -59,7 +60,8 @@ public class InstallService {
 		}
 
 		String siteName = StringUtils.defaultIfBlank(req.siteName(), "ZFGBB");
-		return new InstallResponse(true, admin.getUserId(), siteName, sampleApplied);
+		InstallResponse response = new InstallResponse(true, admin.getUserId(), siteName, sampleApplied, null, null);
+		return new InstallResult(response, admin);
 	}
 
 	@Transactional(propagation = Propagation.REQUIRES_NEW)

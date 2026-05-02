@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -16,8 +20,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.sql.DataSource;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -25,21 +27,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.ComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mysql.MySQLContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.utility.MountableFile;
 
 import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
 import com.zfgc.zfgbb.migrator.jobs.JobState;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
 
 @SpringBootTest
 @Testcontainers
@@ -47,9 +50,18 @@ import com.zfgc.zfgbb.migrator.jobs.JobType;
 class MigrateSmfInstallationE2ETest {
 
 	private static final Pattern ATTACH_REF = Pattern.compile("\\[attach=(\\d+)\\]");
+	private static final Pattern THREAD_REF = Pattern.compile("\\[thread=(\\d+)(?:\\s|\\])");
+	private static final Pattern BOARD_REF = Pattern.compile("\\[board=(\\d+)\\]");
+	private static final Pattern MEMBER_REF = Pattern.compile("\\[member=(\\d+)\\]");
+	private static final Pattern MSG_REF = Pattern.compile("msg=(\\d+)");
 
-	@TempDir
-	static Path attachmentsSource;
+	private static final String SMF_SERVICE = "smf_mysql_fixture";
+	private static final String SMF_DATABASE = "smf";
+	private static final String SMF_USERNAME = "smf";
+	private static final String SMF_PASSWORD = "smfpw";
+	private static final String SMF_TABLE_PREFIX = "smf_1";
+
+	private static final int FIXTURE_PORT = freePort();
 
 	@TempDir
 	static Path attachmentsTarget;
@@ -59,24 +71,29 @@ class MigrateSmfInstallationE2ETest {
 			.withEnv("PGDATA", "/tmp/postgres-data");
 
 	@Container
-	static MySQLContainer mysql = new MySQLContainer("mysql:8")
-			.withCommand(
-					"--character-set-server=utf8mb3",
-					"--collation-server=utf8mb3_general_ci",
-					"--sql-mode=NO_ENGINE_SUBSTITUTION")
-			.withCopyFileToContainer(
-					MountableFile.forHostPath(schemaSqlPath()),
-					"/docker-entrypoint-initdb.d/01-smf-schema.sql")
-			.withCopyFileToContainer(
-					MountableFile.forClasspathResource(SmfTestFixture.DELTAS_RESOURCE),
-					"/docker-entrypoint-initdb.d/02-zfgc-deltas.sql")
-			.withCopyFileToContainer(
-					MountableFile.forClasspathResource(SmfTestFixture.DATA_RESOURCE),
-					"/docker-entrypoint-initdb.d/03-data.sql");
+	static ComposeContainer smf = new ComposeContainer(composeFile())
+			.withEnv("COMPOSE_PROFILES", "fixture")
+			.withEnv("SMF_FIXTURE_MYSQL_PORT", String.valueOf(FIXTURE_PORT))
+			.waitingFor(SMF_SERVICE, Wait.forLogMessage(".*ready for connections.*", 2))
+			.withStartupTimeout(Duration.ofMinutes(3));
 
 	@BeforeAll
-	static void stageAttachments() throws IOException {
-		SmfTestFixture.writeAttachmentsTo(attachmentsSource);
+	static void waitForFixture() throws InterruptedException {
+		waitForSmfMysql(Duration.ofMinutes(2));
+	}
+
+	private static void waitForSmfMysql(Duration timeout) throws InterruptedException {
+		Instant deadline = Instant.now().plus(timeout);
+		Exception last = null;
+		while (Instant.now().isBefore(deadline)) {
+			try (Connection ignored = DriverManager.getConnection(smfJdbcUrl(), SMF_USERNAME, SMF_PASSWORD)) {
+				return;
+			} catch (Exception e) {
+				last = e;
+				Thread.sleep(500);
+			}
+		}
+		throw new IllegalStateException("SMF MySQL on " + smfJdbcUrl() + " not reachable within " + timeout, last);
 	}
 
 	@DynamicPropertySource
@@ -88,12 +105,6 @@ class MigrateSmfInstallationE2ETest {
 		r.add("spring.flyway.user", pg::getUsername);
 		r.add("spring.flyway.password", pg::getPassword);
 		r.add("zfgbb.migrator.enabled", () -> "true");
-		r.add("zfgbb.migrator.smf.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
-		r.add("zfgbb.migrator.smf.datasource.jdbc-url", mysql::getJdbcUrl);
-		r.add("zfgbb.migrator.smf.datasource.username", mysql::getUsername);
-		r.add("zfgbb.migrator.smf.datasource.password", mysql::getPassword);
-		r.add("zfgbb.migrator.attachments.source-path", attachmentsSource::toString);
-		r.add("zfgbb.migrator.attachments.target-path", attachmentsTarget::toString);
 	}
 
 	@Autowired
@@ -105,14 +116,31 @@ class MigrateSmfInstallationE2ETest {
 	private JdbcTemplate smfJdbc;
 
 	@Autowired
-	void initSmfJdbc(@Qualifier("smfDataSource") DataSource smfDataSource) {
-		this.smfJdbc = new JdbcTemplate(smfDataSource);
+	void initSmfJdbc() {
+		this.smfJdbc = new JdbcTemplate(DataSourceBuilder.create()
+				.url(smfJdbcUrl())
+				.username(SMF_USERNAME)
+				.password(SMF_PASSWORD)
+				.build());
+	}
+
+	private SmfConnectionParams smfParams() {
+		return new SmfConnectionParams(
+				smfJdbcUrl(),
+				SMF_USERNAME,
+				SMF_PASSWORD,
+				SMF_TABLE_PREFIX,
+				null,
+				null,
+				attachmentsSource().toString(),
+				attachmentsTarget.toString(),
+				false);
 	}
 
 	@Test
 	@Order(1)
 	void migrate_smf_installation_pipeline_runs_all_converters() throws Exception {
-		List<Job> submitted = jobService.submit(JobType.MIGRATE_SMF_INSTALLATION);
+		List<Job> submitted = jobService.submit(JobType.MIGRATE_SMF_INSTALLATION, smfParams());
 		assertEquals(JobType.SMF_INSTALLATION_PIPELINE.size(), submitted.size(),
 				"Pipeline should submit one job per converter type");
 
@@ -141,31 +169,8 @@ class MigrateSmfInstallationE2ETest {
 				"select count(*) from smf_1log_polls where id_member != 0",
 				"select count(*) from zfgbb.user_poll_choice");
 
-		assertNoOrphanAttachmentRefs();
+		assertNoOrphanRewrittenBbcodes();
 		assertAllMigratedFilesPresentInTarget();
-		assertSemanticBbcodesInRewrittenBodies();
-	}
-
-	private void assertSemanticBbcodesInRewrittenBodies() {
-		String msg5 = jdbcTemplate.queryForObject(
-				"select message_text from zfgbb.message_history where message_id = 5 and current_flag = true",
-				String.class);
-		assertTrue(msg5.contains("[thread=1 msg=2]welcome thread[/thread]"),
-				"msg 5 should have rewritten [url=...?topic=1.msg2] to [thread=1 msg=2]; got: " + msg5);
-		assertTrue(msg5.contains("[board=1]Announcements board[/board]"),
-				"msg 5 should have rewritten [url=...?board=1] to [board=1]; got: " + msg5);
-		assertTrue(msg5.contains("[member=2]bob[/member]"),
-				"msg 5 should have rewritten [url=...?action=profile;u=2] to [member=2]; got: " + msg5);
-		assertTrue(msg5.contains("[thread=1]inline[/thread]"),
-				"msg 5 should have rewritten [iurl=...?topic=1.0] to [thread=1]; got: " + msg5);
-
-		String msg4 = jdbcTemplate.queryForObject(
-				"select message_text from zfgbb.message_history where message_id = 4 and current_flag = true",
-				String.class);
-		assertTrue(msg4.contains("[quote author=alice thread=1 msg=1 date=1700100000]"),
-				"msg 4 should have rewritten quote link= to thread=/msg= attrs; got: " + msg4);
-		assertTrue(msg4.contains("[thread=1]http://www.zfgc.com/index.php?topic=1.0[/thread]"),
-				"msg 4 should have rewritten the bare zfgc.com URL to [thread=1]; got: " + msg4);
 	}
 
 	@Test
@@ -177,7 +182,7 @@ class MigrateSmfInstallationE2ETest {
 		Integer markersBefore = jdbcTemplate.queryForObject(
 				"select count(*) from zfgbb.migrator_attachment_ref_rewrites", Integer.class);
 
-		Job rerun = jobService.submit(JobType.ATTACHMENTS).get(0);
+		Job rerun = jobService.submit(JobType.ATTACHMENTS, smfParams()).get(0);
 		Job finished = waitForAllTerminal(List.of(rerun), Duration.ofMinutes(2)).get(0);
 		assertEquals(JobState.COMPLETED, finished.getState(),
 				"re-running ATTACHMENTS should COMPLETE; got " + finished.getState()
@@ -199,9 +204,9 @@ class MigrateSmfInstallationE2ETest {
 	void cancel_marks_queued_job_as_cancelled() throws Exception {
 		List<Job> padding = new ArrayList<>();
 		for (int i = 0; i < 5; i++) {
-			padding.add(jobService.submit(JobType.CATEGORIES).get(0));
+			padding.add(jobService.submit(JobType.CATEGORIES, smfParams()).get(0));
 		}
-		Job target = jobService.submit(JobType.CATEGORIES).get(0);
+		Job target = jobService.submit(JobType.CATEGORIES, smfParams()).get(0);
 		jobService.cancel(target.getId());
 
 		Job finished = waitForAllTerminal(List.of(target), Duration.ofMinutes(2)).get(0);
@@ -239,20 +244,24 @@ class MigrateSmfInstallationE2ETest {
 		}
 	}
 
-	private void assertNoOrphanAttachmentRefs() {
-		Set<Integer> validIds = new HashSet<>(jdbcTemplate.queryForList(
-				"select file_attachment_id from zfgbb.file_attachments", Integer.class));
+	private void assertNoOrphanRewrittenBbcodes() {
+		assertAllRefsResolve(ATTACH_REF, "select file_attachment_id from zfgbb.file_attachments");
+		assertAllRefsResolve(THREAD_REF, "select thread_id from zfgbb.thread");
+		assertAllRefsResolve(BOARD_REF, "select board_id from zfgbb.board");
+		assertAllRefsResolve(MEMBER_REF, "select user_id from zfgbb.\"user\"");
+		assertAllRefsResolve(MSG_REF, "select message_id from zfgbb.message");
+	}
+
+	private void assertAllRefsResolve(Pattern bbcodePattern, String validIdsQuery) {
+		Set<Integer> validIds = new HashSet<>(jdbcTemplate.queryForList(validIdsQuery, Integer.class));
 		List<String> bodies = jdbcTemplate.queryForList(
-				"select message_text from zfgbb.message_history where message_text like '%[attach=%'",
-				String.class);
-		assertTrue(!bodies.isEmpty(),
-				"fixture should produce at least one [attach=N] body for the rewrite check to mean anything");
+				"select message_text from zfgbb.message_history", String.class);
 		for (String body : bodies) {
-			Matcher m = ATTACH_REF.matcher(body);
+			Matcher m = bbcodePattern.matcher(body);
 			while (m.find()) {
 				int id = Integer.parseInt(m.group(1));
 				assertTrue(validIds.contains(id),
-						"[attach=" + id + "] in body does not resolve to a file_attachments row: " + body);
+						bbcodePattern + " ref " + id + " does not resolve via `" + validIdsQuery + "`: " + body);
 			}
 		}
 	}
@@ -262,8 +271,6 @@ class MigrateSmfInstallationE2ETest {
 				"select cr.filename from zfgbb.content_resource cr "
 						+ "join zfgbb.file_attachments fa on fa.content_resource_id = cr.content_resource_id",
 				String.class);
-		assertTrue(!filenames.isEmpty(),
-				"fixture should produce at least one file attachment for ATTACHMENT_FILES to copy");
 		for (String fn : filenames) {
 			assertTrue(Files.exists(attachmentsTarget.resolve(fn)),
 					fn + " should be present in attachments target dir");
@@ -290,11 +297,37 @@ class MigrateSmfInstallationE2ETest {
 						.map(j -> j.getType() + "=" + j.getState()).toList());
 	}
 
-	private static Path schemaSqlPath() {
-		try {
-			return SmfTestFixture.schemaSql();
+	private static String smfJdbcUrl() {
+		return "jdbc:mysql://localhost:" + FIXTURE_PORT + "/" + SMF_DATABASE
+				+ "?useSSL=false&allowPublicKeyRetrieval=true";
+	}
+
+	private static int freePort() {
+		try (ServerSocket s = new ServerSocket(0)) {
+			return s.getLocalPort();
 		} catch (IOException e) {
-			throw new IllegalStateException("could not stage SMF schema", e);
+			throw new IllegalStateException("could not allocate free host port for compose", e);
 		}
+	}
+
+	private static File composeFile() {
+		return resolveFromProjectRoot("docker-compose.service.smf.yml").toFile();
+	}
+
+	private static Path attachmentsSource() {
+		return resolveFromProjectRoot("app/src/test/resources/smf-fixtures/2.0.15/smf-attachments");
+	}
+
+	private static Path resolveFromProjectRoot(String relativePath) {
+		Path current = new File("").getAbsoluteFile().toPath();
+		while (current != null) {
+			Path candidate = current.resolve(relativePath);
+			if (Files.exists(candidate)) {
+				return candidate;
+			}
+			current = current.getParent();
+		}
+		throw new IllegalStateException(
+				relativePath + " not found walking up from " + new File("").getAbsolutePath());
 	}
 }

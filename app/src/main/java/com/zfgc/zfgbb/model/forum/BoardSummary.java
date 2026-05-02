@@ -94,15 +94,15 @@ public class BoardSummary {
 	}
 	public String getLatestMessageCreatedTsAsString() {
 		if(latestMessageCreatedTs != null) {
-			return DateTimeFormatter.ofPattern("MM/dd/YYYY hh:mm a").format(latestMessageCreatedTs);
+			return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(latestMessageCreatedTs);
 		}
-		
+
 		return null;
 	}
-	
+
 	public void setLatestMessageCreatedTsAsString(String latestMessageCreatedTsAsString) {
 		if(!StringUtils.isEmpty(latestMessageCreatedTsAsString)) {
-			latestMessageCreatedTs = (LocalDateTime) DateTimeFormatter.ofPattern("MM/dd/YYYY hh:mm a").parse(latestMessageCreatedTsAsString);
+			latestMessageCreatedTs = LocalDateTime.parse(latestMessageCreatedTsAsString, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		}
 	}
 	public Integer getParentBoardId() {

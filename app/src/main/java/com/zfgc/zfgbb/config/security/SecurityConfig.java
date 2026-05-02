@@ -17,6 +17,9 @@ public class SecurityConfig {
 	@Autowired
 	private JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
 
+	@Autowired
+	private CookieOrHeaderBearerTokenResolver bearerTokenResolver;
+
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
@@ -40,7 +43,9 @@ public class SecurityConfig {
 					"/content/**", "/resources/**", "/user-profile/**",
 					"/users/loggedInUser").permitAll()
 				.anyRequest().authenticated())
-			.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
+			.oauth2ResourceServer(oauth -> oauth
+				.bearerTokenResolver(bearerTokenResolver)
+				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
 
 		return http.build();
 	}

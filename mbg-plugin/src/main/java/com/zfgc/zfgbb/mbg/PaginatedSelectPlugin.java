@@ -5,10 +5,13 @@ import java.util.List;
 import org.jspecify.annotations.NonNull;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.PluginAdapter;
+import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Interface;
+import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
+import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.api.dom.xml.Attribute;
 import org.mybatis.generator.api.dom.xml.Document;
 import org.mybatis.generator.api.dom.xml.TextElement;
@@ -16,7 +19,8 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
 
 public class PaginatedSelectPlugin extends PluginAdapter {
 
-	private static final String METHOD_NAME = "selectByExampleWithRange";
+	private static final String METHOD_NAME = "selectByExampleWithLimits";
+	private static final FullyQualifiedJavaType INTEGER_TYPE = new FullyQualifiedJavaType("java.lang.Integer");
 
 	@Override
 	public boolean validate(List<String> warnings) {
@@ -43,11 +47,42 @@ public class PaginatedSelectPlugin extends PluginAdapter {
 	}
 
 	@Override
+	public boolean modelExampleClassGenerated(@NonNull TopLevelClass topLevelClass,
+			@NonNull IntrospectedTable introspectedTable) {
+		topLevelClass.addImportedType(INTEGER_TYPE);
+		addPaginationField(topLevelClass, "limit");
+		addPaginationField(topLevelClass, "offset");
+		return true;
+	}
+
+	private static void addPaginationField(TopLevelClass clazz, String name) {
+		Field field = new Field(name, INTEGER_TYPE);
+		field.setVisibility(JavaVisibility.PROTECTED);
+		clazz.addField(field);
+
+		String suffix = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+
+		Method getter = new Method("get" + suffix);
+		getter.setVisibility(JavaVisibility.PUBLIC);
+		getter.setReturnType(INTEGER_TYPE);
+		getter.addBodyLine("return " + name + ";");
+		clazz.addMethod(getter);
+
+		Method setter = new Method("set" + suffix);
+		setter.setVisibility(JavaVisibility.PUBLIC);
+		setter.addParameter(new Parameter(INTEGER_TYPE, name));
+		setter.addBodyLine("this." + name + " = " + name + ";");
+		clazz.addMethod(setter);
+	}
+
+	@Override
 	public boolean sqlMapDocumentGenerated(@NonNull Document document, @NonNull IntrospectedTable introspectedTable) {
 		XmlElement select = new XmlElement("select");
 		select.addAttribute(new Attribute("id", METHOD_NAME));
 		select.addAttribute(new Attribute("parameterType", introspectedTable.getExampleType()));
 		select.addAttribute(new Attribute("resultMap", introspectedTable.getBaseResultMapId()));
+
+		commentGenerator.addComment(select);
 
 		select.addElement(new TextElement("select"));
 

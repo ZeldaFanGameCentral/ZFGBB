@@ -87,7 +87,7 @@ class LoginRegisterPostFlowTest {
 				.andExpect(status().isOk());
 
 		String loginBody = """
-				{"username": "%s", "password": "password123"}
+				{"username": "%s", "password": "password123", "useTokens": true}
 				""".formatted(userName);
 		MvcResult loginResult = mockMvc.perform(post("/users/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)

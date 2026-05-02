@@ -46,6 +46,81 @@
                 "panel": "dedicated"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Maven: install upstream modules",
+            "detail": "Cleans and installs mbg-plugin/model/migrator JARs into the local Maven repo so cross-module changes are picked up on launch. Skips `app` so VS Code's JDT owns the MapStruct/Lombok annotation processing for the backend (avoids FilerException from duplicate APT runs).",
+            "type": "shell",
+            "command": "mvn clean install -pl mbg-plugin,model,migrator -am -DskipTests",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Prepare Backend (Docker)",
+            "detail": "Starts the docker postgres service then installs upstream module JARs. Used as the preLaunchTask for the Docker launch config.",
+            "dependsOn": [
+                "Start Postgres (docker compose)",
+                "Maven: install upstream modules"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Start SMF Live (docker compose)",
+            "detail": "Brings up the empty MySQL + SMF 2.0.15 PHP/Apache web installer from the `live` profile. Reach the installer at http://localhost:${SMF_WEB_PORT:-8090}/install.php — pick whatever table prefix you like; the migrator picks it up via SmfConnectionParams.smfTablePrefix at job submit time.",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.service.smf.yml --profile live up -d --wait",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Kill ZFGBB backend",
+            "detail": "Kills any process holding the ZFGBB backend port. Wired as postDebugTask on the Debug Backend launch configs to clean up orphaned JVMs that VS Code's Java debugger fails to terminate cleanly when you hit Stop. Cross-platform via OS-specific overrides.",
+            "type": "shell",
+            "command": "echo 'Kill ZFGBB backend: no platform-specific command resolved'",
+            "linux": {
+                "command": "fuser -k -TERM ${ZFGBB_BACKEND_PORT:-8080}/tcp 2>/dev/null || true"
+            },
+            "osx": {
+                "command": "PIDS=$(lsof -ti tcp:${ZFGBB_BACKEND_PORT:-8080} 2>/dev/null); [ -n \"$PIDS\" ] && kill $PIDS 2>/dev/null; true"
+            },
+            "windows": {
+                "command": "powershell -NoProfile -Command \"$port = if ($env:ZFGBB_BACKEND_PORT) { $env:ZFGBB_BACKEND_PORT } else { 8080 }; Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }\""
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Stop SMF Live (docker compose)",
+            "detail": "Tears down the SMF live MySQL + web containers and their volume.",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.service.smf.yml --profile live down -v",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "close": true
+            },
+            "problemMatcher": []
         }
     ]
 }

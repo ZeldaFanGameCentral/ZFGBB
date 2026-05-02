@@ -17,6 +17,8 @@ import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
 import com.zfgc.zfgbb.mappers.FileAttachmentDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFAttachmentsDbMapper;
 
@@ -40,6 +42,9 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 	@Autowired
 	private FileAttachmentDboMapper attachmentMapper;
 
+	@Autowired
+	private MigratorIdMapService idMap;
+
 	@Override
 	@Transactional
 	public Map<Integer, ContentResourceDbo> convertToZfgbb() {
@@ -49,7 +54,11 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 		return smfAttachmentsDbMapper.selectByExample(attachEx).stream()
 				.map(attachment -> {
 					Cancellable.check();
-					MessageDbo msg = messageMapper.selectByPrimaryKey(attachment.getIdMsg());
+					Integer zfgbbMessageId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, attachment.getIdMsg());
+					if (zfgbbMessageId == null) {
+						return null;
+					}
+					MessageDbo msg = messageMapper.selectByPrimaryKey(zfgbbMessageId);
 					if (msg == null) {
 						return null;
 					}
@@ -82,7 +91,8 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 					fileAttachment.setContentResourceId(resource.getContentResourceId());
 					fileAttachment.setMessageId(msg.getMessageId());
 					fileAttachment.setDownloads(attachment.getDownloads());
-					fileAttachment.setMigrationHash(MigrationHasher.hash(fileAttachment.getMessageId().toString()
+					fileAttachment.setMigrationHash(MigrationHasher.hash(attachment.getIdAttach().toString()
+							+ fileAttachment.getMessageId().toString()
 							+ fileAttachment.getActiveFlag().toString()
 							+ fileAttachment.getContentResourceId().toString()
 							+ fileAttachment.getDownloads().toString()));
@@ -93,6 +103,9 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 							.ifPresentOrElse(
 									existing -> fileAttachment.setFileAttachmentId(existing.getFileAttachmentId()),
 									() -> attachmentMapper.insert(fileAttachment));
+
+					idMap.record(LegacyEntityType.ATTACHMENT, attachment.getIdAttach(),
+							fileAttachment.getFileAttachmentId());
 
 					return resource;
 				})

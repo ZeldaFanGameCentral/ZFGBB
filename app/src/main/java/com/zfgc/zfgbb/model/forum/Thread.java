@@ -20,6 +20,7 @@ public class Thread extends BaseModel implements Securable {
     private Boolean lockedFlag = false;
     private Boolean pinnedFlag = false;
     private Integer boardId;
+    private String boardName;
     private Integer createdUserId;
 
     private User createdUser;

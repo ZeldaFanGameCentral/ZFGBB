@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
+import java.sql.Connection;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,8 +15,11 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.sql.DataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
@@ -55,31 +59,53 @@ public class JobService {
 		}
 	}
 
-	public List<Job> submit(JobType type) {
+	public List<Job> submit(JobType type, SmfConnectionParams params) {
+		validateConnection(params);
 		if (type == JobType.MIGRATE_SMF_INSTALLATION) {
 			List<Job> submitted = new ArrayList<>(JobType.SMF_INSTALLATION_PIPELINE.size());
 			for (JobType step : JobType.SMF_INSTALLATION_PIPELINE) {
-				submitted.add(submitOne(step));
+				submitted.add(submitOne(step, params));
 			}
 			return submitted;
 		}
-		return List.of(submitOne(type));
+		return List.of(submitOne(type, params));
 	}
 
-	private Job submitOne(JobType type) {
+	private void validateConnection(SmfConnectionParams params) {
+		DataSource ds = buildDataSource(params.jdbcUrl(), params.username(), params.password());
+		try (Connection conn = ds.getConnection()) {
+			// connection validated
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Cannot connect to SMF database: " + e.getMessage(), e);
+		} finally {
+			closeDataSource(ds);
+		}
+	}
+
+	private Job submitOne(JobType type, SmfConnectionParams params) {
 		Job job = new Job();
 		job.setId(UUID.randomUUID());
 		job.setType(type);
 		job.setState(JobState.QUEUED);
 		job.setSubmittedAt(Instant.now());
+		job.setSmfJdbcUrl(params.jdbcUrl());
+		job.setSmfUser(params.username());
+		job.setSmfPassword(params.password());
+		job.setSmfTablePrefix(params.smfTablePrefix());
+		job.setSmfLegacyHost(params.smfLegacyHost());
+		job.setAppBaseUrl(params.appBaseUrl());
+		job.setAttachmentsSourcePath(params.attachmentsSourcePath());
+		job.setAttachmentsTargetPath(params.attachmentsTargetPath());
+		job.setForce(params.force());
 		jobs.put(job.getId(), job);
-
-		Future<?> future = executor.submit(() -> run(job));
-		futures.put(job.getId(), future);
+		futures.put(job.getId(), executor.submit(() -> run(job)));
 		return job;
 	}
 
 	private void run(Job job) {
+		DataSource ds = buildDataSource(job.getSmfJdbcUrl(), job.getSmfUser(), job.getSmfPassword());
+		JobContextHolder.set(ds, job.getAttachmentsSourcePath(), job.getAttachmentsTargetPath(),
+				job.getSmfTablePrefix(), job.getSmfLegacyHost(), job.getAppBaseUrl(), job.isForce());
 		job.setState(JobState.RUNNING);
 		job.setStartedAt(Instant.now());
 		try {
@@ -99,6 +125,8 @@ public class JobService {
 		} finally {
 			job.setFinishedAt(Instant.now());
 			futures.remove(job.getId());
+			JobContextHolder.clear();
+			closeDataSource(ds);
 		}
 	}
 
@@ -110,6 +138,23 @@ public class JobService {
 		converter.convertToZfgbb();
 		if (Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException();
+		}
+	}
+
+	private DataSource buildDataSource(String jdbcUrl, String username, String password) {
+		return DataSourceBuilder.create()
+				.url(jdbcUrl)
+				.username(username)
+				.password(password)
+				.build();
+	}
+
+	private void closeDataSource(DataSource ds) {
+		if (ds instanceof AutoCloseable closeable) {
+			try {
+				closeable.close();
+			} catch (Exception ignored) {
+			}
 		}
 	}
 

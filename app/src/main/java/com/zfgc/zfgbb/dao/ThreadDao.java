@@ -27,7 +27,7 @@ public class ThreadDao extends AbstractDao<ThreadDboExample, ThreadDboMapper, Th
 
 	@Override
 	public List<ThreadDbo> get(ThreadDboExample ex) {
-		return mapper.selectByExampleWithRange(ex);
+		return mapper.selectByExampleWithLimits(ex);
 	}
 
 	@Override

@@ -131,44 +131,61 @@ public class ForumDataProvider extends AbstractDataProvider {
 	
 	public Forum getForum() {
 		Forum forum = new Forum();
-		
-		BoardDbo boardDbo = boardDao.get(0).orElseThrow(() -> new ZfgcNotFoundException());
-		forum.setBoardName(boardDbo.getBoardName());
 
-		List<Category> categories = getCategories(0);
-
+		List<Category> categories = getTopLevelCategories();
 		forum.setCategories(categories);
-		
-		//load up permissions for the board
-		forum.setBoardPermissions(getBoardPermissions(0));
-		
-		//ugly, clean this up
-		List<Integer> boardIds = new ArrayList<>(); 
+
+		List<Integer> boardIds = new ArrayList<>();
 		categories.stream().filter(c -> c.getBoards() != null).forEach(c -> {
 			boardIds.addAll(c.getBoards().stream().map(BoardSummary::getBoardId).toList());
 		});
-		
-		Map<Integer, List<Permission>> perms = getBoardPermissions(boardIds);
-		categories.stream().filter(c -> c.getBoards() != null).forEach(c -> {
-			c.getBoards().forEach(b -> {
-				b.setBoardPerms(perms.get(b.getBoardId()));
+
+		if (!boardIds.isEmpty()) {
+			Map<Integer, List<Permission>> perms = getBoardPermissions(boardIds);
+			categories.stream().filter(c -> c.getBoards() != null).forEach(c -> {
+				c.getBoards().forEach(b -> {
+					b.setBoardPerms(perms.get(b.getBoardId()));
+				});
 			});
-		});
+		}
 		return forum;
 	}
-	
-	public List<Category> getCategories(Integer parentBoardId){
+
+	private List<Category> getTopLevelCategories(){
 		CategoryDboExample exC = new CategoryDboExample();
-		exC.createCriteria().andParentBoardIdEqualTo(parentBoardId);
+		exC.createCriteria().andParentBoardIdIsNull();
+		exC.setOrderByClause("category_order asc, category_id asc");
 		List<Category> categories = super.convertDboListToModel(categoryDao.get(exC), Category.class);
-		
-		Map<Integer, List<BoardSummary>> summaries = getBoardSummaries(Arrays.asList(parentBoardId)).stream().filter(x -> x.getCategoryId() != null).collect(Collectors.groupingBy(BoardSummary::getCategoryId));
-		
-		categories.forEach(cat ->{
-			cat.setBoards(summaries.get(cat.getCategoryId()));
-		});
-		
+
+		Map<Integer, List<BoardSummary>> summaries = getTopLevelBoardSummaries().stream()
+				.filter(x -> x.getCategoryId() != null)
+				.collect(Collectors.groupingBy(BoardSummary::getCategoryId));
+
+		categories.forEach(cat -> cat.setBoards(summaries.get(cat.getCategoryId())));
+
 		return categories;
+	}
+
+	private List<BoardSummary> getTopLevelBoardSummaries(){
+		BoardSummaryViewDboExample bEx = new BoardSummaryViewDboExample();
+		bEx.createCriteria().andParentBoardIdIsNull();
+		List<BoardSummary> result = boardSummaryMapper.selectByExample(bEx).stream()
+				.map(b -> mapper.map(b, BoardSummary.class)).collect(Collectors.toList());
+
+		if (result.isEmpty()) {
+			return result;
+		}
+
+		ChildBoardViewDboExample cEx = new ChildBoardViewDboExample();
+		cEx.createCriteria().andParentBoardIdIn(result.stream().map(BoardSummary::getBoardId).toList());
+
+		Map<Integer, List<ChildBoard>> childBoards = childBoardMapper.selectByExample(cEx).stream()
+				.map(c -> mapper.map(c, ChildBoard.class))
+				.collect(Collectors.groupingBy(ChildBoard::getParentBoardId));
+
+		result.forEach(bs -> bs.setChildBoards(childBoards.get(bs.getBoardId())));
+
+		return result;
 	}
 	
 	public List<Permission> getBoardPermissions(Integer boardId){

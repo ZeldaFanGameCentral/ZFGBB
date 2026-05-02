@@ -45,14 +45,14 @@ public class UserKarmaView extends BaseModel {
 	
 	public String getKarmaGivenTsAsString() {
 		if(karmaGivenTs != null) {
-			return karmaGivenTs.format(DateTimeFormatter.ofPattern("MM/dd/YYYY HH:mm:SS"));
+			return karmaGivenTs.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		}
 		return "";
 	}
-	
+
 	public void setKarmaGivenTsAsString(String ts) {
 		if(!StringUtils.isEmpty(ts)) {
-			karmaGivenTs = LocalDateTime.parse(ts, DateTimeFormatter.ofPattern("MM/dd/YYYY HH:mm:SS"));
+			karmaGivenTs = LocalDateTime.parse(ts, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		}
 	}
 }

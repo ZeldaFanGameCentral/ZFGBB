@@ -1,9 +1,13 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -60,40 +64,46 @@ public class BBCodeDataProvider extends AbstractDataProvider {
 	
 	public Map<String,BBCodeConfig> getBbCodeConfig(){
 		Map<String,BBCodeConfig> result = new HashMap<>();
-		
+
 		List<BBCodeConfig> bbCodes = getValidBbCodes();
-		StringBuilder attString = null;
 		for(BBCodeConfig bbCode : bbCodes){
-			attString = new StringBuilder();
-			//LOGGER.info("Loading Config for " + config.getCode() + "...");
 			List<BBCodeAttributeMode> modesDb = getAttributeModesByBbCode(bbCode.getBbCodeConfigId());
-			List<BBCodeAttributeMode> modes = new ArrayList<>();
-			for(BBCodeAttributeMode mode : modesDb){
-				modes.add(mode);
-				StringBuilder modeString = new StringBuilder();
-				List<BBCodeAttribute> attributeDb = getAttributesByMode(mode.getBbCodeAttributeModeId());
-				List<BBCodeAttribute> attributes = new ArrayList<>();
-				
-				for(BBCodeAttribute attribute : attributeDb){
+
+			Map<Integer, List<BBCodeAttribute>> attrsByMode = new HashMap<>();
+			Set<String> orderedNames = new LinkedHashSet<>();
+			for (BBCodeAttributeMode mode : modesDb) {
+				List<BBCodeAttribute> attrs = getAttributesByMode(mode.getBbCodeAttributeModeId());
+				for (BBCodeAttribute attribute : attrs) {
 					attribute.setDataType(AttributeDataType.values()[attribute.getAttributeDataType()]);
 					attribute.setAttributeIndex("{{" + Integer.parseInt(attribute.getAttributeIndex()) + "}}");
 					attribute.setName(attribute.getName().equals("NAMELESS") ? "=" : attribute.getName() + "=");
-					attributes.add(attribute);
-					modeString.append(attribute.getName().equals("=") ? "=" : attribute.getName());
-					
-					if(attString.indexOf(attribute.getName()) == -1 || attString.length() == 0){
-						if(attString.length() > 0){
-							attString.append(",");
-						}
-						
-						attString.append(attribute.getName().equals("=") ? "=" : attribute.getName());
+					orderedNames.add(attribute.getName());
+				}
+				attrsByMode.put(mode.getBbCodeAttributeModeId(), attrs);
+			}
+
+			bbCode.setAllAttributeNamesAsString(String.join(",", orderedNames));
+
+			for (BBCodeAttributeMode mode : modesDb) {
+				List<BBCodeAttribute> attrs = attrsByMode.get(mode.getBbCodeAttributeModeId());
+				Set<String> namesInMode = attrs.stream()
+						.map(BBCodeAttribute::getName)
+						.collect(Collectors.toSet());
+
+				StringBuilder modeKey = new StringBuilder();
+				for (String name : orderedNames) {
+					if (namesInMode.contains(name)) {
+						modeKey.append(name);
 					}
 				}
-				
-				mode.setAttributes(attributes);
-				bbCode.getAttributeConfig().put(modeString.toString(), mode);
+
+				attrs.sort(Comparator.comparingInt(a ->
+						Integer.parseInt(a.getAttributeIndex().replaceAll("[^0-9]", ""))));
+
+				mode.setAttributes(attrs);
+				bbCode.getAttributeConfig().put(modeKey.toString(), mode);
 			}
-			bbCode.setAllAttributeNamesAsString(attString.toString());
+
 			result.put(bbCode.getCode().toUpperCase(), bbCode);
 		}
 

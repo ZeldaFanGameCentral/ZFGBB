@@ -1,8 +1,8 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -13,10 +13,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.EmailAddressDbo;
+import com.zfgc.zfgbb.dbo.EmailAddressDboExample;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.mappers.EmailAddressDboMapper;
 import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
 
@@ -29,64 +33,59 @@ public class UserContactInfoConverter extends AbstractConverter<Map<Integer, Use
 	}
 
 	Logger logger = LoggerFactory.getLogger(UserContactInfoConverter.class);
-	
+
 	@Autowired
 	private SMFMembersDbMapper membersMapper;
-	
+
 	@Autowired
 	private UserContactInfoDboMapper contactInfoMapper;
-	
+
 	@Autowired
 	private EmailAddressDboMapper emailMapper;
-	
+
+	@Autowired
+	private MigratorIdMapService idMap;
+
 	@Override
 	@Transactional
 	public Map<Integer, UserContactInfoDbo> convertToZfgbb() {
-		AtomicInteger emailId = new AtomicInteger(1);
 		return membersMapper.selectByExample(new SMFMembersDbExample())
 					 .stream()
 					 .map(member -> {
 						 Cancellable.check();
+						 Integer zfgbbUserId = idMap.lookup(LegacyEntityType.USER, member.getIdMember());
+
 						 EmailAddressDbo email = new EmailAddressDbo();
 						 email.setEmailAddress(member.getEmailAddress());
 						 email.setSpammerFlag(member.getIsSpammer() == 1);
-						 email.setEmailAddressId(emailId.getAndIncrement());
 						 email.setMigrationHash(MigrationHasher.hash(email.getEmailAddress()
 								+ email.getSpammerFlag().toString()));
-						 
-						 Optional.ofNullable(emailMapper.selectByPrimaryKey(email.getEmailAddressId()))
-						 		 .ifPresentOrElse(existing -> {
-						 			 if(!existing.getMigrationHash().equals(email.getMigrationHash())) {
-						 				 emailMapper.updateByPrimaryKey(email);
-						 			 }
-						 		 }, 
-						 		 () -> {
-						 			 emailMapper.insert(email);
-						 		 });
-						 
-						 
+
+						 EmailAddressDboExample emailEx = new EmailAddressDboExample();
+						 emailEx.createCriteria().andMigrationHashEqualTo(email.getMigrationHash());
+						 Optional<EmailAddressDbo> existingEmail = emailMapper.selectByExample(emailEx).stream().findFirst();
+						 existingEmail.ifPresentOrElse(
+								 existing -> email.setEmailAddressId(existing.getEmailAddressId()),
+								 () -> emailMapper.insert(email));
+
 						 UserContactInfoDbo dbo = new UserContactInfoDbo();
 						 dbo.setAllowEmailFlag(Boolean.FALSE.equals(member.getHideEmail()));
 						 dbo.setAllowPmFlag(true);
 						 dbo.setEmailAddressId(email.getEmailAddressId());
-						 dbo.setUserId(member.getIdMember());
-						 dbo.setMigrationHash(MigrationHasher.hash(dbo.getUserId().toString()
+						 dbo.setUserId(zfgbbUserId);
+						 dbo.setMigrationHash(MigrationHasher.hash(member.getIdMember().toString()
 								+ dbo.getEmailAddressId().toString()
 								+ dbo.getAllowEmailFlag().toString()
 								+ dbo.getAllowPmFlag().toString()));
-						 
-						 Optional.ofNullable(contactInfoMapper.selectByPrimaryKey(dbo.getUserId()))
-						 		 .ifPresentOrElse(existing -> {
-						 			 if(!existing.getMigrationHash().equals(dbo.getMigrationHash())) {
-						 				contactInfoMapper.updateByPrimaryKey(dbo);
-						 			 }
-						 		 },
-						 		 () -> {
-						 			 contactInfoMapper.insert(dbo);
-						 		 });
-						 
+
+						 UserContactInfoDbo existing = contactInfoMapper.selectByPrimaryKey(zfgbbUserId);
+						 if (existing == null) {
+							 contactInfoMapper.insert(dbo);
+						 } else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), dbo.getMigrationHash())) {
+							 contactInfoMapper.updateByPrimaryKey(dbo);
+						 }
+
 						 return dbo;
-						 
 					 })
 					 .collect(Collectors.toMap(UserContactInfoDbo::getUserId, Function.identity()));
 	}

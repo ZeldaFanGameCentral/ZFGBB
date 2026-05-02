@@ -11,7 +11,7 @@ import lombok.Data;
 public class BBLocalDate {
 
 	private LocalDate dateInternal;
-	private String format = "MM/dd/YYYY";
+	private String format = "yyyy-MM-dd";
 	
 	@JsonIgnore
 	public String getDateFormatted() {

@@ -6,58 +6,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileAttachmentDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363491453-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509945546-04:00", comments="Source Table: zfgbb.file_attachments")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363502923-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509961045-04:00", comments="Source Table: zfgbb.file_attachments")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363515812-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509985395-04:00", comments="Source Table: zfgbb.file_attachments")
     protected List<Criteria> oredCriteria;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363484303-04:00", comments="Source Table: zfgbb.file_attachments")
+    protected Integer limit;
+
+    protected Integer offset;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509937646-04:00", comments="Source Table: zfgbb.file_attachments")
     public FileAttachmentDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363496083-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509951796-04:00", comments="Source Table: zfgbb.file_attachments")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363499663-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509956656-04:00", comments="Source Table: zfgbb.file_attachments")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363506103-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509965335-04:00", comments="Source Table: zfgbb.file_attachments")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363509003-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509969465-04:00", comments="Source Table: zfgbb.file_attachments")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363519042-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509992444-04:00", comments="Source Table: zfgbb.file_attachments")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363522442-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.509997274-04:00", comments="Source Table: zfgbb.file_attachments")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363525492-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510001744-04:00", comments="Source Table: zfgbb.file_attachments")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363528422-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510005964-04:00", comments="Source Table: zfgbb.file_attachments")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -66,20 +70,36 @@ public class FileAttachmentDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363531272-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510010054-04:00", comments="Source Table: zfgbb.file_attachments")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363534102-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510014184-04:00", comments="Source Table: zfgbb.file_attachments")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363538412-04:00", comments="Source Table: zfgbb.file_attachments")
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Integer offset) {
+        this.offset = offset;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510021443-04:00", comments="Source Table: zfgbb.file_attachments")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -612,14 +632,14 @@ public class FileAttachmentDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363719796-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510336603-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.363727635-04:00", comments="Source Table: zfgbb.file_attachments")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.510355542-04:00", comments="Source Table: zfgbb.file_attachments")
     public static class Criterion {
         private String condition;
 

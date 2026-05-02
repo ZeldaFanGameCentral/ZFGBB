@@ -6,10 +6,9 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
+import org.mybatis.spring.annotation.MapperScans;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -23,12 +22,14 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 		"com.zfgc.zfgbb.migrator.converters",
 		"com.zfgc.zfgbb.migrator.jobs",
 		"com.zfgc.zfgbb.migrator.web"})
-@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate")
+@MapperScans({
+		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
+		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.mappers")
+})
 public class MigratorAutoConfiguration {
 
 	@Bean
 	@Primary
-	@ConfigurationProperties(prefix = "spring.datasource")
 	public DataSourceProperties dataSourceProperties() {
 		return new DataSourceProperties();
 	}
@@ -44,8 +45,13 @@ public class MigratorAutoConfiguration {
 	public SqlSessionFactory sqlSessionFactory(@Qualifier("dataSource") DataSource dataSource) throws Exception {
 		SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
 		factory.setDataSource(dataSource);
-		factory.setMapperLocations(new PathMatchingResourcePatternResolver()
-				.getResources("classpath:com/zfgc/zfgbb/mappers/*.xml"));
+		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+		var modelMappers = resolver.getResources("classpath:com/zfgc/zfgbb/mappers/*.xml");
+		var migratorMappers = resolver.getResources("classpath:com/zfgc/zfgbb/migrator/mappers/*.xml");
+		var combined = new org.springframework.core.io.Resource[modelMappers.length + migratorMappers.length];
+		System.arraycopy(modelMappers, 0, combined, 0, modelMappers.length);
+		System.arraycopy(migratorMappers, 0, combined, modelMappers.length, migratorMappers.length);
+		factory.setMapperLocations(combined);
 		return factory.getObject();
 	}
 
@@ -56,9 +62,8 @@ public class MigratorAutoConfiguration {
 	}
 
 	@Bean
-	@ConfigurationProperties(prefix = "zfgbb.migrator.smf.datasource")
 	public DataSource smfDataSource() {
-		return DataSourceBuilder.create().build();
+		return new SmfRoutingDataSource();
 	}
 
 	@Bean

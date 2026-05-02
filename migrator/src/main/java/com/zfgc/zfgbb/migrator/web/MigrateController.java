@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
+import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
 
 @RestController
 @RequestMapping("/system/migrate")
@@ -35,8 +36,33 @@ public class MigrateController {
 		if (request == null || request.getType() == null) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "type is required");
 		}
-		List<Job> submitted = jobService.submit(request.getType());
-		return ResponseEntity.accepted().body(submitted);
+		if (isBlank(request.getSmfHost()) || isBlank(request.getSmfDatabase())
+				|| isBlank(request.getSmfUser()) || isBlank(request.getSmfPassword())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"smfHost, smfDatabase, smfUser, and smfPassword are required");
+		}
+
+		int port = request.getSmfPort() != null ? request.getSmfPort() : 3306;
+		String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s",
+				request.getSmfHost(), port, request.getSmfDatabase());
+
+		SmfConnectionParams params = new SmfConnectionParams(
+				jdbcUrl,
+				request.getSmfUser(),
+				request.getSmfPassword(),
+				request.getSmfTablePrefix(),
+				request.getSmfLegacyHost(),
+				request.getAppBaseUrl(),
+				request.getAttachmentsSourcePath(),
+				request.getAttachmentsTargetPath(),
+				Boolean.TRUE.equals(request.getForce()));
+
+		try {
+			List<Job> submitted = jobService.submit(request.getType(), params);
+			return ResponseEntity.accepted().body(submitted);
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+		}
 	}
 
 	@GetMapping("/jobs")
@@ -57,5 +83,9 @@ public class MigrateController {
 		}
 		jobService.cancel(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	private boolean isBlank(String s) {
+		return s == null || s.isBlank();
 	}
 }

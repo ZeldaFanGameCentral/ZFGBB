@@ -6,58 +6,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AllMessagesInThreadViewDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378888037-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530218456-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378897927-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530233096-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378908757-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530253065-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     protected List<Criteria> oredCriteria;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378881888-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    protected Integer limit;
+
+    protected Integer offset;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530208876-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public AllMessagesInThreadViewDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378892167-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530224406-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378895007-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530229686-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378900727-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530237415-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378903357-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530244445-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378911587-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530257765-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378914347-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530262485-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378917097-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530268124-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378919756-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530272494-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -66,20 +70,36 @@ public class AllMessagesInThreadViewDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378922336-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530276594-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378924906-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530280694-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.378928826-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Integer offset) {
+        this.offset = offset;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530286414-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -982,14 +1002,14 @@ public class AllMessagesInThreadViewDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.379143629-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530725009-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.379152349-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.530736709-04:00", comments="Source Table: zfgbb.all_messages_in_thread_view")
     public static class Criterion {
         private String condition;
 

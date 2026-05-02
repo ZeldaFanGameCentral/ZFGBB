@@ -2,6 +2,7 @@ package com.zfgc.zfgbb;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -80,7 +81,7 @@ class SystemInstallTest {
 				.content(installBody))
 				.andExpect(status().isNotFound());
 
-		// Right token: 200, marker flipped
+		// Right token: 200, marker flipped, auth cookies set, no tokens in body
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", "test-install-token-xyz")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +90,11 @@ class SystemInstallTest {
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.adminUserId").isNumber())
 				.andExpect(jsonPath("$.siteName").value("Test ZFGBB"))
-				.andExpect(jsonPath("$.sampleDataApplied").value(false));
+				.andExpect(jsonPath("$.sampleDataApplied").value(false))
+				.andExpect(jsonPath("$.accessToken").doesNotExist())
+				.andExpect(jsonPath("$.refreshToken").doesNotExist())
+				.andExpect(cookie().exists("zfgbb_access_token"))
+				.andExpect(cookie().exists("zfgbb_refresh_token"));
 
 		// Status now reports installed=true with the chosen site name
 		mockMvc.perform(get("/system/install/status"))
@@ -115,7 +120,7 @@ class SystemInstallTest {
 
 		// Admin can log in
 		String loginBody = """
-				{"username": "%s", "password": "adminpass123"}
+				{"username": "%s", "password": "adminpass123", "useTokens": true}
 				""".formatted(adminUser);
 		mockMvc.perform(post("/users/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)

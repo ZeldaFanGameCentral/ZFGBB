@@ -6,58 +6,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserPollChoiceDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367526491-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514747747-04:00", comments="Source Table: zfgbb.user_poll_choice")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.36754165-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514763227-04:00", comments="Source Table: zfgbb.user_poll_choice")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367584559-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514780446-04:00", comments="Source Table: zfgbb.user_poll_choice")
     protected List<Criteria> oredCriteria;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367516951-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    protected Integer limit;
+
+    protected Integer offset;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514739557-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public UserPollChoiceDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367532311-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514753937-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.36753685-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514758547-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.36754642-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514767627-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367573559-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514771836-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367590319-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514785826-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367597638-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514790316-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367602968-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514793306-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367607658-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514797666-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -66,20 +70,36 @@ public class UserPollChoiceDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367612018-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514801835-04:00", comments="Source Table: zfgbb.user_poll_choice")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367617408-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514806835-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367623998-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Integer offset) {
+        this.offset = offset;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514812605-04:00", comments="Source Table: zfgbb.user_poll_choice")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -492,14 +512,14 @@ public class UserPollChoiceDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367797872-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514985469-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.367827271-04:00", comments="Source Table: zfgbb.user_poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.514998149-04:00", comments="Source Table: zfgbb.user_poll_choice")
     public static class Criterion {
         private String condition;
 

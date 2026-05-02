@@ -7,24 +7,26 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface UserPermissionViewDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.376950231-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527694419-04:00", comments="Source Table: zfgbb.user_permission_view")
     long countByExample(UserPermissionViewDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.37698528-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527711429-04:00", comments="Source Table: zfgbb.user_permission_view")
     int deleteByExample(UserPermissionViewDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.37699748-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527724358-04:00", comments="Source Table: zfgbb.user_permission_view")
     int insert(UserPermissionViewDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.377045588-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527736358-04:00", comments="Source Table: zfgbb.user_permission_view")
     int insertSelective(UserPermissionViewDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.377080187-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527749787-04:00", comments="Source Table: zfgbb.user_permission_view")
     List<UserPermissionViewDbo> selectByExample(UserPermissionViewDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.377107626-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527766367-04:00", comments="Source Table: zfgbb.user_permission_view")
     int updateByExampleSelective(@Param("row") UserPermissionViewDbo row, @Param("example") UserPermissionViewDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.377132025-04:00", comments="Source Table: zfgbb.user_permission_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527782246-04:00", comments="Source Table: zfgbb.user_permission_view")
     int updateByExample(@Param("row") UserPermissionViewDbo row, @Param("example") UserPermissionViewDboExample example);
+
+    List<UserPermissionViewDbo> selectByExampleWithLimits(UserPermissionViewDboExample example);
 }

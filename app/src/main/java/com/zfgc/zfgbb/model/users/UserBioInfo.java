@@ -38,6 +38,7 @@ public class UserBioInfo extends BaseModel {
 	private String dateRegistered;
 	private String dateFormat;
 	private String timeFormat;
+	private String preferredTimezone;
 	private Integer genderId;
 	private Integer karmaBad;
 	private Integer karmaGood;

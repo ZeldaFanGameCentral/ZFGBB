@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,11 +33,16 @@ import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
 import com.zfgc.zfgbb.migrator.jobs.JobState;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 class MigrateControllerHttpTest {
+
+	private static final String VALID_REQUEST =
+			"{\"type\":\"USERS\",\"smfHost\":\"db\",\"smfPort\":3306,"
+			+ "\"smfDatabase\":\"smf\",\"smfUser\":\"user\",\"smfPassword\":\"pass\"}";
 
 	@Container
 	static PostgreSQLContainer pg = new PostgreSQLContainer("postgres:16")
@@ -47,10 +54,6 @@ class MigrateControllerHttpTest {
 		r.add("spring.datasource.username", pg::getUsername);
 		r.add("spring.datasource.password", pg::getPassword);
 		r.add("zfgbb.migrator.enabled", () -> "true");
-		r.add("zfgbb.migrator.smf.datasource.driver-class-name", () -> "org.postgresql.Driver");
-		r.add("zfgbb.migrator.smf.datasource.jdbc-url", pg::getJdbcUrl);
-		r.add("zfgbb.migrator.smf.datasource.username", pg::getUsername);
-		r.add("zfgbb.migrator.smf.datasource.password", pg::getPassword);
 	}
 
 	@Autowired
@@ -63,7 +66,7 @@ class MigrateControllerHttpTest {
 	void post_jobs_without_auth_returns_401() throws Exception {
 		mockMvc.perform(post("/system/migrate/jobs")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"type\":\"USERS\"}"))
+				.content(VALID_REQUEST))
 				.andExpect(status().isUnauthorized());
 	}
 
@@ -72,19 +75,20 @@ class MigrateControllerHttpTest {
 		mockMvc.perform(post("/system/migrate/jobs")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ZFGC_USER")))
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"type\":\"USERS\"}"))
+				.content(VALID_REQUEST))
 				.andExpect(status().isForbidden());
 	}
 
 	@Test
 	void post_jobs_as_site_admin_returns_202_with_job_list() throws Exception {
 		Job stub = newJob(JobType.USERS, JobState.QUEUED);
-		Mockito.when(jobService.submit(JobType.USERS)).thenReturn(List.of(stub));
+		Mockito.when(jobService.submit(eq(JobType.USERS), any(SmfConnectionParams.class)))
+				.thenReturn(List.of(stub));
 
 		mockMvc.perform(post("/system/migrate/jobs")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ZFGC_SITE_ADMIN")))
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"type\":\"USERS\"}"))
+				.content(VALID_REQUEST))
 				.andExpect(status().isAccepted())
 				.andExpect(jsonPath("$").isArray())
 				.andExpect(jsonPath("$.length()").value(1))
@@ -99,6 +103,15 @@ class MigrateControllerHttpTest {
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ZFGC_SITE_ADMIN")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void post_jobs_missing_smf_host_returns_400() throws Exception {
+		mockMvc.perform(post("/system/migrate/jobs")
+				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ZFGC_SITE_ADMIN")))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"type\":\"USERS\",\"smfDatabase\":\"smf\",\"smfUser\":\"u\",\"smfPassword\":\"p\"}"))
 				.andExpect(status().isBadRequest());
 	}
 

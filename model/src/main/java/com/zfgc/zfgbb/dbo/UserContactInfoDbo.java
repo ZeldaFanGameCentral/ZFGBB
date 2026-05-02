@@ -4,93 +4,93 @@ import jakarta.annotation.Generated;
 import java.time.LocalDateTime;
 
 public class UserContactInfoDbo extends AbstractDbo {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352344869-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495675117-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
     private Integer userId;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352389548-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495716616-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
     private Integer emailAddressId;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352424717-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495746385-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
     private Boolean allowEmailFlag;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352455256-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495772464-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
     private Boolean allowPmFlag;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352486595-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495798653-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
     private LocalDateTime createdTs;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352518934-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495826032-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
     private LocalDateTime updatedTs;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352550653-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495863141-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
     private String migrationHash;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352364729-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495691517-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
     public Integer getUserId() {
         return userId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352378678-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495702986-04:00", comments="Source field: zfgbb.user_contact_info.user_id")
     public void setUserId(Integer userId) {
         this.userId = userId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352402868-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495727926-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
     public Integer getEmailAddressId() {
         return emailAddressId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352414667-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495738355-04:00", comments="Source field: zfgbb.user_contact_info.email_address_id")
     public void setEmailAddressId(Integer emailAddressId) {
         this.emailAddressId = emailAddressId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352435327-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495755825-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
     public Boolean getAllowEmailFlag() {
         return allowEmailFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352445516-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495765004-04:00", comments="Source field: zfgbb.user_contact_info.allow_email_flag")
     public void setAllowEmailFlag(Boolean allowEmailFlag) {
         this.allowEmailFlag = allowEmailFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352465995-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495782024-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
     public Boolean getAllowPmFlag() {
         return allowPmFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352477665-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495791324-04:00", comments="Source field: zfgbb.user_contact_info.allow_pm_flag")
     public void setAllowPmFlag(Boolean allowPmFlag) {
         this.allowPmFlag = allowPmFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352498454-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495809123-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
     public LocalDateTime getCreatedTs() {
         return createdTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352510284-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495818623-04:00", comments="Source field: zfgbb.user_contact_info.created_ts")
     public void setCreatedTs(LocalDateTime createdTs) {
         this.createdTs = createdTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352530683-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495836142-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
     public LocalDateTime getUpdatedTs() {
         return updatedTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352541823-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495854491-04:00", comments="Source field: zfgbb.user_contact_info.updated_ts")
     public void setUpdatedTs(LocalDateTime updatedTs) {
         this.updatedTs = updatedTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352572152-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.495873121-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
     public String getMigrationHash() {
         return migrationHash;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-04-26T00:49:43.352586342-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.49588483-04:00", comments="Source field: zfgbb.user_contact_info.migration_hash")
     public void setMigrationHash(String migrationHash) {
         this.migrationHash = migrationHash;
     }

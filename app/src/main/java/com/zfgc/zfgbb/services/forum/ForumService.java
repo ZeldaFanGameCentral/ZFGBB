@@ -21,6 +21,7 @@ import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.services.AbstractService;
 import com.zfgc.zfgbb.services.core.IpService;
+import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.model.meta.IpAddress;
@@ -45,8 +46,13 @@ public class ForumService extends AbstractService {
 	@Autowired
 	private IpService ipService;
 
+	@Autowired
+	private SystemConfigService systemConfigService;
+
 	public Forum getForum(User zfgcUser) {
 		Forum forum = forumDataProvider.getForum();
+		forum.setBoardName(StringUtils.defaultIfBlank(
+				systemConfigService.get(SystemConfigService.Keys.SITE_NAME), "ZFGBB"));
 		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
 
 		forum.getCategories().stream().filter(c -> c.getBoards() != null).forEach(c -> {

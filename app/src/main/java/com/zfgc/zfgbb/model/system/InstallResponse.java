@@ -4,5 +4,7 @@ public record InstallResponse(
 		boolean installed,
 		Integer adminUserId,
 		String siteName,
-		boolean sampleDataApplied) {
+		boolean sampleDataApplied,
+		String accessToken,
+		String refreshToken) {
 }

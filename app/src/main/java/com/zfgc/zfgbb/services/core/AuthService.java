@@ -109,6 +109,10 @@ public class AuthService {
 		}
 
 		User user = userDataProvider.getUser(dbo.getUserId(), new LoggedInUserLoadOptions());
+		return issueLoginResponse(user);
+	}
+
+	public LoginResponse issueLoginResponse(User user) {
 		String accessToken = jwtService.issueAccessToken(user);
 		String refreshToken = refreshTokenService.issue(user.getUserId());
 		return new LoginResponse(accessToken, refreshToken, user);

@@ -9,14 +9,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.KarmaDbo;
 import com.zfgc.zfgbb.dbo.KarmaDboExample;
 import com.zfgc.zfgbb.mappers.KarmaDboMapper;
+import com.zfgc.zfgbb.migrator.SmfTimes;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDb;
+import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
+import com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogKarmaDbMapper;
@@ -29,67 +32,75 @@ public class KarmaConverter extends AbstractConverter<Map<Integer, KarmaDbo>> {
 		return JobType.KARMA;
 	}
 
-	
 	@Autowired
 	private KarmaDboMapper karmaMapper;
-	
+
 	@Autowired
 	private SMFLogKarmaDbMapper SMFKarmaMapper;
-	
+
+	@Autowired
+	private MigratorIdMapService idMap;
+
+	@Autowired
+	private MigratorTimestampMapper migratorTimestampMapper;
+
 	private final String MSG_REGEX = "[0-9]+$";
-	
+
 	@Override
+	@Transactional
 	public Map<Integer, KarmaDbo> convertToZfgbb() {
 		List<SMFLogKarmaDbWithBLOBs> karmaSMF = SMFKarmaMapper.selectByExampleWithBLOBs(new SMFLogKarmaDbExample());
 		Pattern pattern = Pattern.compile(MSG_REGEX);
-		
-		
+
 		return karmaSMF.stream()
 				.map(karma -> {
 					Cancellable.check();
-					try {
-						Matcher matcher = pattern.matcher(karma.getLink());
-						matcher.find();
-						Integer msgId =Integer.parseInt(matcher.group());
-						
-						KarmaDbo karmaPg = new KarmaDbo();
-						karmaPg.setCommentingUserId(karma.getIdExecutor());
-						karmaPg.setCreatedTs(karma.getLogTimeAsTime());
-						karmaPg.setUpdatedTs(karma.getLogTimeAsTime());
-						karmaPg.setIsPositive(karma.getAction().equals(1));
-						karmaPg.setMessageId(msgId);
-						karmaPg.setDescription(karma.getDescription());
+					Matcher matcher = pattern.matcher(karma.getLink());
+					if (!matcher.find()) {
+						return null;
+					}
+					Integer smfMsgId = Integer.parseInt(matcher.group());
+					Integer zfgbbMsgId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, smfMsgId);
+					if (zfgbbMsgId == null) {
+						return null;
+					}
+					Integer smfExecutor = karma.getIdExecutor();
+					Integer zfgbbCommentingUserId = (smfExecutor == null || smfExecutor == 0)
+							? null
+							: idMap.lookupOrNull(LegacyEntityType.USER, smfExecutor);
 
-						karmaPg.setMigrationId(MigrationHasher.hash(karmaPg.getCommentingUserId().toString()
-								+ karmaPg.getIsPositive().toString()
-								+ karmaPg.getMessageId().toString()
-								+ (karmaPg.getDescription() == null ? "" : karmaPg.getDescription().toString())
-								+ karmaPg.getCreatedTs().toString()
-								+ (karmaPg.getUpdatedTs() == null ? "" : karmaPg.getUpdatedTs().toString())));
-						
-						KarmaDboExample ex = new KarmaDboExample();
-						ex.createCriteria().andMigrationIdEqualTo(karmaPg.getMigrationId());
-						
-						Optional<KarmaDbo> existing = karmaMapper.selectByExample(ex).stream().findFirst();
-						existing.ifPresentOrElse(ext -> {
-							karmaPg.setKarmaId(ext.getKarmaId());
-							karmaMapper.updateByPrimaryKey(karmaPg);
-						}, () ->{
-							karmaMapper.insert(karmaPg);
-						});
-						
-						return karmaPg;
+					KarmaDbo karmaPg = new KarmaDbo();
+					karmaPg.setCommentingUserId(zfgbbCommentingUserId);
+					karmaPg.setCreatedTs(SmfTimes.fromEpochSeconds(karma.getLogTime()));
+					karmaPg.setUpdatedTs(SmfTimes.fromEpochSeconds(karma.getLogTime()));
+					karmaPg.setIsPositive(karma.getAction().equals(1));
+					karmaPg.setMessageId(zfgbbMsgId);
+					karmaPg.setDescription(karma.getDescription());
+
+					karmaPg.setMigrationId(MigrationHasher.hash(karma.getIdExecutor().toString()
+							+ smfMsgId.toString()
+							+ karmaPg.getIsPositive().toString()
+							+ (karmaPg.getDescription() == null ? "" : karmaPg.getDescription().toString())
+							+ karmaPg.getCreatedTs().toString()
+							+ (karmaPg.getUpdatedTs() == null ? "" : karmaPg.getUpdatedTs().toString())));
+
+					KarmaDboExample ex = new KarmaDboExample();
+					ex.createCriteria().andMigrationIdEqualTo(karmaPg.getMigrationId());
+
+					Optional<KarmaDbo> existing = karmaMapper.selectByExample(ex).stream().findFirst();
+					existing.ifPresentOrElse(ext -> {
+						karmaPg.setKarmaId(ext.getKarmaId());
+						karmaMapper.updateByPrimaryKey(karmaPg);
+					}, () -> {
+						karmaMapper.insert(karmaPg);
+					});
+
+					if (karmaPg.getCreatedTs() != null) {
+						migratorTimestampMapper.setKarmaTimestamps(
+								karmaPg.getKarmaId(), karmaPg.getCreatedTs(), karmaPg.getUpdatedTs());
 					}
-					catch(DataIntegrityViolationException dEx) {
-						if(dEx.getMessage().contains("message_id")) {
-							//SMF can sometimes have a karma record that belongs to a deleted message (no referential integrity in the SMF db since it's just a link)
-							return null;
-						}
-						else {
-							throw dEx;
-						}
-					}
-					
+
+					return karmaPg;
 				})
 				.filter(km -> km != null)
 				.collect(Collectors.toMap(KarmaDbo::getKarmaId, Function.identity()));

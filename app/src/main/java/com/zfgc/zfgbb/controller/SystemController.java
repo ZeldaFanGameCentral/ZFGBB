@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +14,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.model.system.InstallRequest;
 import com.zfgc.zfgbb.model.system.InstallResponse;
+import com.zfgc.zfgbb.model.system.InstallResult;
 import com.zfgc.zfgbb.model.system.InstallStatusResponse;
+import com.zfgc.zfgbb.model.users.LoginResponse;
+import com.zfgc.zfgbb.services.core.AuthCookieService;
+import com.zfgc.zfgbb.services.core.AuthService;
 import com.zfgc.zfgbb.services.system.InstallService;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
@@ -25,13 +30,19 @@ public class SystemController {
 
 	private final InstallService installService;
 	private final SystemConfigService systemConfigService;
+	private final AuthService authService;
+	private final AuthCookieService cookieService;
 	private final String installToken;
 
 	public SystemController(InstallService installService,
 			SystemConfigService systemConfigService,
+			AuthService authService,
+			AuthCookieService cookieService,
 			@Value("${zfgbb.install.token:}") String installToken) {
 		this.installService = installService;
 		this.systemConfigService = systemConfigService;
+		this.authService = authService;
+		this.cookieService = cookieService;
 		this.installToken = installToken;
 	}
 
@@ -57,8 +68,25 @@ public class SystemController {
 			throw notFound();
 		}
 
-		InstallResponse response = installService.install(request);
-		return ResponseEntity.ok(response);
+		InstallResult result = installService.install(request);
+		LoginResponse tokens = authService.issueLoginResponse(result.admin());
+		InstallResponse base = result.response();
+
+		if (Boolean.TRUE.equals(request.useTokens())) {
+			InstallResponse withTokens = new InstallResponse(
+					base.installed(),
+					base.adminUserId(),
+					base.siteName(),
+					base.sampleDataApplied(),
+					tokens.accessToken(),
+					tokens.refreshToken());
+			return ResponseEntity.ok(withTokens);
+		}
+
+		return ResponseEntity.ok()
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(tokens.accessToken()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(tokens.refreshToken()).toString())
+				.body(base);
 	}
 
 	private static boolean constantTimeEquals(String presented, String expected) {

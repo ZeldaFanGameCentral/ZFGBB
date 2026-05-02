@@ -3,26 +3,37 @@ package com.zfgc.zfgbb.migrator.converters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.BoardDbo;
 import com.zfgc.zfgbb.mappers.BoardDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
+import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFBoardDbMapper;
 
 @Component
 public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
+
 	@Autowired
 	private SMFBoardDbMapper smfBoardMapper;
 
 	@Autowired
 	private BoardDboMapper boardMapper;
+
+	@Autowired
+	private MigratorIdMapService idMap;
+
+	@Autowired
+	private MigratorPermissionService permissions;
 
 	@Override
 	public JobType getType() {
@@ -30,51 +41,64 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 	}
 
 	@Override
+	@Transactional
 	public Map<Integer, BoardDbo> convertToZfgbb() {
 		List<SMFBoardDb> SMFBoards = smfBoardMapper.selectByExample(new SMFBoardDbExample());
-		Map<Integer, SMFBoardDb> smf = SMFBoards.stream().collect(Collectors.toMap(SMFBoardDb::getIdBoard, Function.identity()));
-		Map<Integer,BoardDbo> result = new HashMap<>();
+		Map<Integer, BoardDbo> result = new HashMap<>();
 
 		SMFBoards.forEach((smfBoard) -> {
 			Cancellable.check();
 			BoardDbo board = new BoardDbo();
 
-			board.setBoardId(smfBoard.getIdBoard());
 			board.setBoardName(smfBoard.getName());
-			board.setCategoryId(smfBoard.getIdCat());
+			board.setCategoryId(idMap.lookup(LegacyEntityType.CATEGORY, smfBoard.getIdCat()));
 			board.setSeqno(smfBoard.getBoardOrder().intValue());
-			
-			board.setMigrationHash(MigrationHasher.hash(board.getBoardId()
+
+			board.setMigrationHash(MigrationHasher.hash(smfBoard.getIdBoard().toString()
 					+ board.getBoardName()
 					+ (board.getDescription() == null ? "" : board.getDescription())
 					+ (board.getCategoryId() == null ? "" : board.getCategoryId())
 					+ board.getSeqno()
-					+ (board.getParentBoardId() == null ? "" : board.getParentBoardId())));
-			
-			result.put(board.getBoardId(), board);
-			
-			
-			BoardDbo existingBoard = boardMapper.selectByPrimaryKey(board.getBoardId());
-			if(existingBoard == null) {
+					+ (smfBoard.getIdParent() == null ? "" : smfBoard.getIdParent())));
+
+			Integer existingZfgbbId = idMap.lookupOrNull(LegacyEntityType.BOARD, smfBoard.getIdBoard());
+			if (existingZfgbbId == null) {
 				boardMapper.insert(board);
+				idMap.record(LegacyEntityType.BOARD, smfBoard.getIdBoard(), board.getBoardId());
+			} else {
+				BoardDbo existing = boardMapper.selectByPrimaryKey(existingZfgbbId);
+				if (existing == null) {
+					board.setBoardId(existingZfgbbId);
+					boardMapper.insert(board);
+				} else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), board.getMigrationHash())) {
+					board.setBoardId(existingZfgbbId);
+					boardMapper.updateByPrimaryKey(board);
+				} else {
+					board.setBoardId(existingZfgbbId);
+				}
 			}
-			else if(!existingBoard.getMigrationHash().equals(board.getMigrationHash())) {
-				boardMapper.updateByPrimaryKey(board);
-			}
+
+			result.put(smfBoard.getIdBoard(), board);
 		});
-		
-		//run again to update parent board IDs
-		result.values().forEach(board -> {
-			if(smf.get(board.getBoardId()).getIdParent() == null){
+
+		// Second pass: set parent_board_id (now that all boards have ZFGBB ids)
+		SMFBoards.forEach(smfBoard -> {
+			BoardDbo board = result.get(smfBoard.getIdBoard());
+			Integer smfParent = smfBoard.getIdParent();
+			if (smfParent == null) {
 				board.setParentBoardId(0);
 				boardMapper.updateByPrimaryKey(board);
-			}
-			else if(smf.get(board.getBoardId()).getIdParent() != 0) {
-				board.setParentBoardId(smf.get(board.getBoardId()).getIdParent());
-				boardMapper.updateByPrimaryKey(board);
+			} else if (smfParent != 0) {
+				Integer parentZfgbbId = idMap.lookupOrNull(LegacyEntityType.BOARD, smfParent);
+				if (parentZfgbbId != null) {
+					board.setParentBoardId(parentZfgbbId);
+					boardMapper.updateByPrimaryKey(board);
+				}
 			}
 		});
-		
+
+		result.values().forEach(board -> permissions.grantDefaultBoardPermissions(board.getBoardId()));
+
 		return result;
 	}
 }

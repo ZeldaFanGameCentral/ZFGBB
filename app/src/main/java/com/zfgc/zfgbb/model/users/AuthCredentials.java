@@ -5,7 +5,8 @@ public class AuthCredentials {
 	private String scope = "all";
 	private String username;
 	private String password;
-	
+	private boolean useTokens = false;
+
 	public String getGrant_type() {
 		return grant_type;
 	}
@@ -29,5 +30,11 @@ public class AuthCredentials {
 	}
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	public boolean isUseTokens() {
+		return useTokens;
+	}
+	public void setUseTokens(boolean useTokens) {
+		this.useTokens = useTokens;
 	}
 }

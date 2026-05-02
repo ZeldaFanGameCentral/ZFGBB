@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.dao.BoardDao;
 import com.zfgc.zfgbb.dao.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.ThreadDao;
 import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
@@ -55,6 +56,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private BoardPermissionViewDao boardPermissionDao;
+
+	@Autowired
+	private BoardDao boardDao;
 	
 	@Autowired
 	private PollDao pollDao;
@@ -84,10 +88,13 @@ public class ThreadDataProvider extends AbstractDataProvider {
 			
 			//get messages
 			result.setMessages(super.convertDboListToModel(messageDataProvider.getMessagesForThread(threadId, page, count), Message.class));
-			
+
 			//get permissions for the parent board
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
-			
+
+			boardDao.get(result.getBoardId())
+					.ifPresent(board -> result.setBoardName(board.getBoardName()));
+
 			//get poll info
 			result.setPollInfo(getPollInfo(threadId));
 			
@@ -167,6 +174,7 @@ public class ThreadDataProvider extends AbstractDataProvider {
 			LatestMessageInThreadViewDbo latestDbo = messagesByThreadId.get(th.getThreadId());
 			if(latestDbo != null) {
 				th.setLatestMessage(mapper.map(latestDbo, LatestMessage.class));
+				th.getLatestMessage().setOwnerId(latestDetails.getLastPostedUserId());
 				th.getLatestMessage().setOwnerName(latestDetails.getLastPostedUser());
 			}
 			

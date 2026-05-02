@@ -10,9 +10,9 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDbExample;
@@ -26,23 +26,18 @@ public class AttachmentFilesConverter extends AbstractConverter<Void> {
 		return JobType.ATTACHMENT_FILES;
 	}
 
-
 	private static final Logger logger = LoggerFactory.getLogger(AttachmentFilesConverter.class);
 
 	@Autowired
 	private SMFAttachmentsDbMapper smfAttachmentsMapper;
 
-	@Value("${zfgbb.migrator.attachments.source-path:}")
-	private String sourcePath;
-
-	@Value("${zfgbb.migrator.attachments.target-path:}")
-	private String targetPath;
-
 	@Override
 	public Void convertToZfgbb() throws IOException {
+		String sourcePath = JobContextHolder.getAttachmentsSourcePath();
+		String targetPath = JobContextHolder.getAttachmentsTargetPath();
 		if (sourcePath == null || sourcePath.isBlank() || targetPath == null || targetPath.isBlank()) {
 			throw new IllegalStateException(
-					"zfgbb.migrator.attachments.source-path and target-path must both be set");
+					"Attachment source and target paths must be provided with the job request");
 		}
 
 		Path source = Paths.get(sourcePath);

@@ -218,6 +218,22 @@ The following build actions are available:
 
 Eclipse will respect the applications.properties file, so you can use that to configure the application.
 
+This project uses [Lombok](https://projectlombok.org/) for generated getters, setters, builders, and logging. Out of the box, Eclipse's compiler doesn't understand `@Data`, `@Getter`, `@Builder`, etc., so the project will look like it's full of "method not found" errors until the Lombok agent is installed:
+
+1. Download the Lombok JAR matching the version pinned in the [parent pom](./pom.xml) (`lombok.version`):
+
+   ```bash
+   mvn dependency:get -Dartifact=org.projectlombok:lombok:$(mvn -q -Dexec.executable=echo -Dexec.args='${lombok.version}' --non-recursive exec:exec)
+   ```
+
+   Or grab it from <https://projectlombok.org/download>.
+
+2. Run the JAR with `java -jar lombok-<version>.jar`. The installer GUI auto-detects Eclipse installs on your machine — point it at the one you use, hit **Install/Update**, and quit.
+
+3. Restart Eclipse. The Lombok agent line should now appear at the bottom of the Eclipse splash screen ("Lombok vX.Y.Z by ...") confirming the agent is loaded.
+
+4. If errors persist after install, do **Project → Clean → Clean all projects** to force a full rebuild against the Lombok-aware compiler.
+
 ### Developing Standalone
 
 To run the application in development mode, run the following command:
@@ -259,6 +275,18 @@ mvn -pl model -am mybatis-generator:generate
 ```
 
 The custom plugin that emits the `AbstractDbo` overrides lives in the [mbg-plugin](./mbg-plugin) module — `-am` makes sure it gets compiled before the generator runs.
+
+The [migrator](./migrator) module has its own MBG config ([generatorConfig-smf.xml](./migrator/src/main/resources/generatorConfig-smf.xml)) for the SMF source-side DBOs and mappers. The generator introspects against a live MySQL with the SMF schema, so bring up the fixture first and then run MBG against it. The `SmfTablePrefixPlugin` in [mbg-plugin](./mbg-plugin) rewrites the introspected `smf_1` prefix into a `${smfTablePrefix}` placeholder bound from `JobContextHolder.getTablePrefix()` at SQL execution time, so the resulting mappers work against any SMF table prefix.
+
+```bash
+docker compose -f docker-compose.service.smf.yml --profile fixture up -d --wait
+mvn -pl mbg-plugin install -DskipTests
+(cd migrator && mvn initialize mybatis-generator:generate \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_URL="jdbc:mysql://localhost:3307/smf?nullDatabaseMeansCurrent=true&allowPublicKeyRetrieval=true&useSSL=false" \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_USERNAME=smf \
+  -DZFGBB_MIGRATOR_SMF_GENERATOR_PASSWORD=smfpw)
+docker compose -f docker-compose.service.smf.yml --profile fixture down -v
+```
 
 ### Docker
 
@@ -335,10 +363,12 @@ When enabled, ZFGBB exposes operator-only endpoints under `/system/migrate/*`. T
 
 ##### Bringing up a local SMF fixture
 
-For development, the repo ships a canned SMF 2.0.15 dataset (one alice + one bob, a couple of categories/boards/topics/messages, a poll, two attachments) under [`app/src/test/resources/smf-fixtures/2.0.15/`](./app/src/test/resources/smf-fixtures/2.0.15/). [docker-compose.service.smf-fixture.yml](./docker-compose.service.smf-fixture.yml) spins up a MySQL container preloaded with this dataset so you can point the migrator at it without a real SMF install:
+For development, the repo ships a canned SMF 2.0.15 dataset (one alice + one bob, a couple of categories/boards/topics/messages, a poll, two attachments) under [`app/src/test/resources/smf-fixtures/2.0.15/`](./app/src/test/resources/smf-fixtures/2.0.15/). [docker-compose.service.smf.yml](./docker-compose.service.smf.yml) ships two Compose profiles — `fixture` brings up a MySQL preloaded with this dataset, `live` brings up an empty MySQL plus the SMF web installer for generating new fixtures. The same compose file is used by `MigrateSmfInstallationE2ETest`.
+
+Stand the fixture up so you can point the migrator at it without a real SMF install:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.service.smf-fixture.yml up -d smf_fixture_mysql
+docker compose -f docker-compose.yml -f docker-compose.service.smf.yml --profile fixture up -d
 ```
 
 Then point the migrator at it:
@@ -352,7 +382,7 @@ ZFGBB_MIGRATOR_ATTACHMENTS_SOURCE_PATH=./app/src/test/resources/smf-fixtures/2.0
 ZFGBB_MIGRATOR_ATTACHMENTS_TARGET_PATH=/tmp/zfgbb-attachments
 ```
 
-The fixture's port (default `3307`), credentials, and database name are configurable via `SMF_FIXTURE_PORT`, `SMF_FIXTURE_USER`, `SMF_FIXTURE_PASSWORD`, `SMF_FIXTURE_DATABASE` env vars before `docker compose up`. The SMF schema is the upstream `install_2-0_mysql.sql` (see [SOURCE.md](./app/src/test/resources/smf-fixtures/2.0.15/SOURCE.md) for provenance and how to regenerate it).
+The fixture's port (default `3307`), credentials, and database name are configurable via `SMF_FIXTURE_MYSQL_PORT`, `SMF_USER`, `SMF_PASSWORD`, `SMF_DATABASE` env vars before `docker compose up`. The SMF schema is the upstream `install_2-0_mysql.sql` (see [SOURCE.md](./app/src/test/resources/smf-fixtures/2.0.15/SOURCE.md) for provenance and how to regenerate it).
 
 #### Submitting and tracking jobs
 

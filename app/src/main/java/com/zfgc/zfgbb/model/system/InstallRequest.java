@@ -6,5 +6,6 @@ public record InstallRequest(
 		String adminEmail,
 		String adminPassword,
 		String siteName,
-		Boolean applySampleData) {
+		Boolean applySampleData,
+		Boolean useTokens) {
 }

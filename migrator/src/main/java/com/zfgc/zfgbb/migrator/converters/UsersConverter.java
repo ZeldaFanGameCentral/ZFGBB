@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.migrator.converters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
+import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
@@ -24,6 +29,12 @@ public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
 	@Autowired
 	public UserDboMapper userDboMapper;
 
+	@Autowired
+	public MigratorIdMapService idMap;
+
+	@Autowired
+	public MigratorPermissionService permissions;
+
 	@Override
 	public JobType getType() {
 		return JobType.USERS;
@@ -33,38 +44,46 @@ public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
 	@Transactional
 	public Map<Integer, UserDbo> convertToZfgbb() {
 		List<SMFMembersDbWithBLOBs> SMFMembers = smfMembersMapper.selectByExampleWithBLOBs(new SMFMembersDbExample());
-		Map<Integer,UserDbo> result = new HashMap<>();
-		
+		Map<Integer, UserDbo> result = new HashMap<>();
+
 		SMFMembers.forEach((smfMember) -> {
 			Cancellable.check();
 			UserDbo user = new UserDbo();
-			
-			user.setUserId(smfMember.getIdMember());
+
 			user.setDisplayName(smfMember.getRealName());
 			user.setSsoKey(smfMember.getMemberName());
 			user.setUserName(smfMember.getMemberName());
 			user.setActiveFlag(smfMember.getIsActivated().intValue() > 0);
 			user.setFailedLoginCount(0);
 
-			user.setMigrationHash(MigrationHasher.hash(user.getUserId()
+			user.setMigrationHash(MigrationHasher.hash(smfMember.getIdMember().toString()
 					+ user.getSsoKey()
 					+ user.getActiveFlag().toString()
 					+ user.getDisplayName()
 					+ user.getUserName()));
-			
-			result.put(user.getUserId(), user);
-			
-			
-			UserDbo existingUser = userDboMapper.selectByPrimaryKey(user.getUserId());
-			if(existingUser == null) {
+
+			Integer existingZfgbbId = idMap.lookupOrNull(LegacyEntityType.USER, smfMember.getIdMember());
+			if (existingZfgbbId == null) {
 				userDboMapper.insert(user);
+				idMap.record(LegacyEntityType.USER, smfMember.getIdMember(), user.getUserId());
+			} else {
+				UserDbo existing = userDboMapper.selectByPrimaryKey(existingZfgbbId);
+				if (existing == null) {
+					user.setUserId(existingZfgbbId);
+					userDboMapper.insert(user);
+				} else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), user.getMigrationHash())) {
+					user.setUserId(existingZfgbbId);
+					userDboMapper.updateByPrimaryKey(user);
+				} else {
+					user.setUserId(existingZfgbbId);
+				}
 			}
-			else if(!existingUser.getMigrationHash().equals(user.getMigrationHash())) {
-				userDboMapper.updateByPrimaryKey(user);
-			}
+
+			result.put(smfMember.getIdMember(), user);
 		});
-		
+
+		result.values().forEach(user -> permissions.grantDefaultUserPermissions(user.getUserId()));
+
 		return result;
 	}
-	
 }

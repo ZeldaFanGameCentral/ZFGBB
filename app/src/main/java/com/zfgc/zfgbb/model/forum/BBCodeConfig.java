@@ -11,6 +11,7 @@ public class BBCodeConfig extends BaseModel {
     private String code;
     private String endTag;
     private Boolean processContentFlag;
+    private Boolean selfClosingFlag = false;
     private String allAttributeNamesAsString;
     private Map<String,BBCodeAttributeMode> attributeConfig = new HashMap<>();
     
@@ -44,6 +45,14 @@ public class BBCodeConfig extends BaseModel {
 
 	public void setProcessContentFlag(Boolean processContentFlag) {
 		this.processContentFlag = processContentFlag;
+	}
+
+	public Boolean getSelfClosingFlag() {
+		return selfClosingFlag;
+	}
+
+	public void setSelfClosingFlag(Boolean selfClosingFlag) {
+		this.selfClosingFlag = selfClosingFlag;
 	}
 
 	public String getAllAttributeNamesAsString() {

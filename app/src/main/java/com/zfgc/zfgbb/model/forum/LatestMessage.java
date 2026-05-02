@@ -10,8 +10,9 @@ public class LatestMessage {
     private String threadName;
     @JsonIgnore
     private LocalDateTime lastPostTs;
+    private Integer ownerId;
     private String ownerName;
-    
+
 	public LocalDateTime getLastPostTs() {
 		return lastPostTs;
 	}
@@ -30,6 +31,12 @@ public class LatestMessage {
 	public void setThreadName(String threadName) {
 		this.threadName = threadName;
 	}
+	public Integer getOwnerId() {
+		return ownerId;
+	}
+	public void setOwnerId(Integer ownerId) {
+		this.ownerId = ownerId;
+	}
 	public String getOwnerName() {
 		return ownerName;
 	}
@@ -38,7 +45,7 @@ public class LatestMessage {
 	}
 	public String getLastPostTsAsString() {
 		if(lastPostTs != null) {
-			return lastPostTs.format(DateTimeFormatter.ofPattern("MM/dd/YYYY HH:mm:SS"));
+			return lastPostTs.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 		}
 		return "";
 	}

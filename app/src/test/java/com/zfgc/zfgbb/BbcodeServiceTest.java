@@ -19,6 +19,7 @@ import com.zfgc.zfgbb.model.forum.AttributeDataType;
 import com.zfgc.zfgbb.model.forum.BBCodeAttribute;
 import com.zfgc.zfgbb.model.forum.BBCodeAttributeMode;
 import com.zfgc.zfgbb.model.forum.BBCodeConfig;
+import com.zfgc.zfgbb.services.forum.BBCodeOutputSanitizer;
 import com.zfgc.zfgbb.services.forum.BBCodeService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,7 +40,7 @@ public class BbcodeServiceTest {
 		bbCodeU.setAllAttributeNamesAsString("");
 
 		BBCodeAttributeMode mode0 = new BBCodeAttributeMode();
-		mode0.setOpenTag("<span class='bbcode-u'>");
+		mode0.setOpenTag("<span class=\"bbcode-u\">");
 		mode0.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode0Att = new ArrayList<>();
@@ -62,7 +63,7 @@ public class BbcodeServiceTest {
 		bbCodeI.setAllAttributeNamesAsString("");
 
 		BBCodeAttributeMode mode0 = new BBCodeAttributeMode();
-		mode0.setOpenTag("<span class='bbcode-i'>");
+		mode0.setOpenTag("<span class=\"bbcode-i\">");
 		mode0.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode0Att = new ArrayList<>();
@@ -85,7 +86,7 @@ public class BbcodeServiceTest {
 		bbCodeB.setAllAttributeNamesAsString("");
 
 		BBCodeAttributeMode mode0 = new BBCodeAttributeMode();
-		mode0.setOpenTag("<span class='bbcode-b'>");
+		mode0.setOpenTag("<span class=\"bbcode-b\">");
 		mode0.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode0Att = new ArrayList<>();
@@ -108,7 +109,7 @@ public class BbcodeServiceTest {
 		bbCodeCode.setAllAttributeNamesAsString("");
 
 		BBCodeAttributeMode mode0 = new BBCodeAttributeMode();
-		mode0.setOpenTag("<span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>");
+		mode0.setOpenTag("<span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\">");
 		mode0.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode0Att = new ArrayList<>();
@@ -132,7 +133,7 @@ public class BbcodeServiceTest {
 
 		BBCodeAttributeMode mode0 = new BBCodeAttributeMode();
 		mode0.setOpenTag(
-				"<span class='bbcode-quote-header'><a href='{{1}}'>Authored by {{0}} at {{2}}</a></span><span class='bbcode-quote-block'>");
+				"<span class=\"bbcode-quote-header\"><a href=\"{{1}}\">Authored by {{0}} at {{2}}</a></span><span class=\"bbcode-quote-block\">");
 		mode0.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode0Att = new ArrayList<>();
@@ -168,7 +169,7 @@ public class BbcodeServiceTest {
 		bbCodeQuote.setEndTag("</span>");
 
 		BBCodeAttributeMode mode1 = new BBCodeAttributeMode();
-		mode1.setOpenTag("<span class='bbcode-quote-header'>Authored by {{0}}</span><span class='bbcode-quote-block'>");
+		mode1.setOpenTag("<span class=\"bbcode-quote-header\">Authored by {{0}}</span><span class=\"bbcode-quote-block\">");
 		mode1.setCloseTag("</span>");
 
 		List<BBCodeAttribute> mode1Att = new ArrayList<>();
@@ -183,7 +184,7 @@ public class BbcodeServiceTest {
 
 		BBCodeAttributeMode modeNameless = new BBCodeAttributeMode();
 		modeNameless.setOpenTag(
-				"<span class='bbcode-quote-header'>Authored by {{0}}</span><span class='bbcode-quote-block'>");
+				"<span class=\"bbcode-quote-header\">Authored by {{0}}</span><span class=\"bbcode-quote-block\">");
 		modeNameless.setCloseTag("</span>");
 
 		List<BBCodeAttribute> modeNamelessAtt = new ArrayList<>();
@@ -197,7 +198,7 @@ public class BbcodeServiceTest {
 		bbCodeQuote.getAttributeConfig().put("=", modeNameless);
 
 		BBCodeAttributeMode empty = new BBCodeAttributeMode();
-		empty.setOpenTag("<span class='bbcode-quote-header'>Quote</span><span class='bbcode-quote-block'>");
+		empty.setOpenTag("<span class=\"bbcode-quote-header\">Quote</span><span class=\"bbcode-quote-block\">");
 		empty.setCloseTag("</span>");
 		bbCodeQuote.getAttributeConfig().put("", empty);
 
@@ -213,7 +214,7 @@ public class BbcodeServiceTest {
 		bbCodeUrl.setEndTag("</a>");
 
 		BBCodeAttributeMode modeNameless = new BBCodeAttributeMode();
-		modeNameless.setOpenTag("<a href='{{0}}'>");
+		modeNameless.setOpenTag("<a href=\"{{0}}\">");
 		modeNameless.setCloseTag("</a>");
 		BBCodeAttribute nameless = new BBCodeAttribute();
 		nameless.setAttributeIndex("{{0}}");
@@ -224,8 +225,8 @@ public class BbcodeServiceTest {
 		bbCodeUrl.getAttributeConfig().put("=", modeNameless);
 
 		BBCodeAttributeMode empty = new BBCodeAttributeMode();
-		empty.setOpenTag("<a href='{{c}}'>");
-		empty.setCloseTag("</span>");
+		empty.setOpenTag("<a href=\"{{c}}\">");
+		empty.setCloseTag("</a>");
 		empty.setContentIsAttributeFlag(true);
 		bbCodeUrl.getAttributeConfig().put("", empty);
 
@@ -241,7 +242,7 @@ public class BbcodeServiceTest {
 		bbCodeImg.setEndTag("</span>");
 
 		BBCodeAttributeMode none = new BBCodeAttributeMode();
-		none.setOpenTag("<span class='bbcode-img'><img src='{{c}}'/>");
+		none.setOpenTag("<span class=\"bbcode-img\"><img src=\"{{c}}\">");
 		none.setCloseTag("</span>");
 		none.setContentIsAttributeFlag(true);
 		none.setOutputContentFlag(false);
@@ -252,7 +253,11 @@ public class BbcodeServiceTest {
 	}
 
 	@BeforeAll
-	public static void initialize() {
+	public static void initialize() throws Exception {
+		Field sanitizerField = BBCodeService.class.getDeclaredField("outputSanitizer");
+		sanitizerField.setAccessible(true);
+		sanitizerField.set(service, new BBCodeOutputSanitizer());
+
 		initQuote();
 		initCode();
 		initB();
@@ -268,7 +273,7 @@ public class BbcodeServiceTest {
 					.parseText("[IMG]http://img.photobucket.com/albums/v191/legofreak1988/avy-sig/corpse.jpg[/img]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-img'><img src='http://img.photobucket.com/albums/v191/legofreak1988/avy-sig/corpse.jpg'/></span>"));
+					"<span class=\"bbcode-img\"><img src=\"http://img.photobucket.com/albums/v191/legofreak1988/avy-sig/corpse.jpg\"></span>"));
 	}
 
 	@Test
@@ -277,7 +282,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[quote author=test]test[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'>Authored by test</span><span class='bbcode-quote-block'>test</span>"));
+					"<span class=\"bbcode-quote-header\">Authored by test</span><span class=\"bbcode-quote-block\">test</span>"));
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -290,10 +295,10 @@ public class BbcodeServiceTest {
 	@Test
 	public void parseTextMode0Code() {
 		try {
-			String result = service.parseText("[quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote]");
+			String result = service.parseText("[quote author=MG-Zero link=/thread/99 time=1494552503000]test[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span>"));
+					"<span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">test</span>"));
 		}  catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -305,11 +310,11 @@ public class BbcodeServiceTest {
 
 	@Test
 	public void processAttributesAllValidMode0() {
-		String attributes = "author=MG-Zero link=thread/99 time=1494552503000";
+		String attributes = "author=MG-Zero link=/thread/99 time=1494552503000";
 		String result = service.processAttributes(bbCodeQuote, attributes.toCharArray(), new MutableInt());
 
 		assertTrue(result.equals(
-				"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>"));
+				"<span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">"));
 	}
 
 	@Test
@@ -318,7 +323,7 @@ public class BbcodeServiceTest {
 		String result = service.processAttributes(bbCodeQuote, attributes.toCharArray(), new MutableInt());
 
 		assertTrue(result.equals(
-				"<span class='bbcode-quote-header'>Authored by MG-Zero</span><span class='bbcode-quote-block'>"));
+				"<span class=\"bbcode-quote-header\">Authored by MG-Zero</span><span class=\"bbcode-quote-block\">"));
 	}
 
 	@Test
@@ -342,7 +347,9 @@ public class BbcodeServiceTest {
 		String attributes = "link=test author=test time=1494552504";
 		String result = service.processAttributes(bbCodeQuote, attributes.toCharArray(), new MutableInt());
 
-		assertEquals(attributes, result);
+		assertEquals(
+				"<span class=\"bbcode-quote-header\"><a href=\"test\">Authored by test at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">",
+				result);
 	}
 
 	@Test
@@ -357,10 +364,10 @@ public class BbcodeServiceTest {
 	public void parseTextQuoteEmbeddedMode0() {
 		try {
 			String result = service.parseText(
-					"[quote author=MG-Zero link=thread/99 time=1494552503000][quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote][/quote]");
+					"[quote author=MG-Zero link=/thread/99 time=1494552503000][quote author=MG-Zero link=/thread/99 time=1494552503000]test[/quote][/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'><span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span></span>"));
+					"<span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\"><span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">test</span></span>"));
 		} catch (SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -376,7 +383,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[code]test[/code]");
 
 			assertTrue(result
-					.equals("<span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span>"));
+					.equals("<span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\">test</span>"));
 	}
 
 	@Test
@@ -384,7 +391,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[code]test[code]test[quote][/code]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test[code]test[quote]</span>"));
+					"<span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\">test[code]test[quote]</span>"));
 	}
 
 	@Test
@@ -392,16 +399,16 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[quote]test[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'>Quote</span><span class='bbcode-quote-block'>test</span>"));
+					"<span class=\"bbcode-quote-header\">Quote</span><span class=\"bbcode-quote-block\">test</span>"));
 	}
 
 	@Test
 	public void parseTextQuoteTwo() {
 			String result = service.parseText(
-					"[quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote][quote author=MG-Zero link=thread/99 time=1494552503000]test[/quote]");
+					"[quote author=MG-Zero link=/thread/99 time=1494552503000]test[/quote][quote author=MG-Zero link=/thread/99 time=1494552503000]test[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span><span class='bbcode-quote-header'><a href='thread/99'>Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class='bbcode-quote-block'>test</span>"));
+					"<span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">test</span><span class=\"bbcode-quote-header\"><a href=\"/thread/99\">Authored by MG-Zero at 05/12/2017 01:28:23</a></span><span class=\"bbcode-quote-block\">test</span>"));
 	}
 
 	@Test
@@ -416,7 +423,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("This is my [code] house");
 
 			assertTrue(result.equals(
-					"This is my <span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'> house</span>"));
+					"This is my <span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\"> house</span>"));
 
 	}
 
@@ -426,7 +433,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[quote author=MG-Zero]This is [/code] my house[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'>Authored by MG-Zero</span><span class='bbcode-quote-block'>This is [/code]</span> my house[/quote]"));
+					"<span class=\"bbcode-quote-header\">Authored by MG-Zero</span><span class=\"bbcode-quote-block\">This is [/code]</span> my house[/quote]"));
 
 	}
 
@@ -435,7 +442,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[b][i]This is my house[/b][/i]");
 
 			assertTrue(result
-					.equals("<span class='bbcode-b'><span class='bbcode-i'>This is my house[/b]</span>[/i]</span>"));
+					.equals("<span class=\"bbcode-b\"><span class=\"bbcode-i\">This is my house[/b]</span>[/i]</span>"));
 
 	}
 
@@ -444,7 +451,7 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[quote author=MG-Zero]This is my house[/quote][/code]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'>Authored by MG-Zero</span><span class='bbcode-quote-block'>This is my house</span>[/code]"));
+					"<span class=\"bbcode-quote-header\">Authored by MG-Zero</span><span class=\"bbcode-quote-block\">This is my house</span>[/code]"));
 
 	}
 
@@ -454,7 +461,7 @@ public class BbcodeServiceTest {
 					"[b][code]test[/code][/b][b]hey[b]yo[b]wassup[b][i][u]bitch!!![/i][/u][/b][/b][/b][/b]  [i][u]yeah man[/i][/u] ");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-b'><span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span></span><span class='bbcode-b'>hey<span class='bbcode-b'>yo<span class='bbcode-b'>wassup<span class='bbcode-b'><span class='bbcode-i'><span class='bbcode-u'>bitch!!![/i]</span>[/u]</span></span></span></span></span>  <span class='bbcode-i'><span class='bbcode-u'>yeah man[/i]</span>[/u]</span> "));
+					"<span class=\"bbcode-b\"><span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\">test</span></span><span class=\"bbcode-b\">hey<span class=\"bbcode-b\">yo<span class=\"bbcode-b\">wassup<span class=\"bbcode-b\"><span class=\"bbcode-i\"><span class=\"bbcode-u\">bitch!!![/i]</span>[/u]</span></span></span></span></span>  <span class=\"bbcode-i\"><span class=\"bbcode-u\">yeah man[/i]</span>[/u]</span> "));
 
 	}
 
@@ -464,7 +471,7 @@ public class BbcodeServiceTest {
 					"[b][code]test[/code][/b][b]hey[b]yo[b]wassup[b][i][u]bitch!!![/u][/i][/b][/b][/b][/b]  [i][u]yeah man[/u][/i] o");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-b'><span class='bbcode-code-header'>Code</span><span class='bbcode-code-block'>test</span></span><span class='bbcode-b'>hey<span class='bbcode-b'>yo<span class='bbcode-b'>wassup<span class='bbcode-b'><span class='bbcode-i'><span class='bbcode-u'>bitch!!!</span></span></span></span></span></span>  <span class='bbcode-i'><span class='bbcode-u'>yeah man</span></span> o"));
+					"<span class=\"bbcode-b\"><span class=\"bbcode-code-header\">Code</span><span class=\"bbcode-code-block\">test</span></span><span class=\"bbcode-b\">hey<span class=\"bbcode-b\">yo<span class=\"bbcode-b\">wassup<span class=\"bbcode-b\"><span class=\"bbcode-i\"><span class=\"bbcode-u\">bitch!!!</span></span></span></span></span></span>  <span class=\"bbcode-i\"><span class=\"bbcode-u\">yeah man</span></span> o"));
 
 	}
 
@@ -473,21 +480,21 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[quote=MGZero]test[/quote]");
 
 			assertTrue(result.equals(
-					"<span class='bbcode-quote-header'>Authored by MGZero</span><span class='bbcode-quote-block'>test</span>"));
+					"<span class=\"bbcode-quote-header\">Authored by MGZero</span><span class=\"bbcode-quote-block\">test</span>"));
 	}
 
 	@Test
 	public void parseTextUrlContent() {
 			String result = service.parseText("[url]http://zfgc.com[/url]");
 
-			assertEquals("<a href='http://zfgc.com'>http://zfgc.com</a>", result);
+			assertEquals("<a href=\"http://zfgc.com\">http://zfgc.com</a>", result);
 	}
 
 	@Test
 	public void parseTextUrlContentEmbedded() {
 			String result = service.parseText("[url][b]http://zfgc.com[/b][/url]");
 
-			assertEquals("<a href='http://zfgc.com'><span class='bbcode-b'>http://zfgc.com</span></a>", result);
+			assertEquals("<a href=\"http://zfgc.com\"><span class=\"bbcode-b\">http://zfgc.com</span></a>", result);
 	}
 
 	@Test
@@ -495,36 +502,36 @@ public class BbcodeServiceTest {
 			String result = service.parseText("[url=https://somelink.com][img]https://someimg.jpg[/img][/url]");
 
 			assertTrue(result.equals(
-					"<a href='https://somelink.com'><span class='bbcode-img'><img src='https://someimg.jpg'/></span></a>"));
+					"<a href=\"https://somelink.com\"><span class=\"bbcode-img\"><img src=\"https://someimg.jpg\"></span></a>"));
 	}
 
 	// @Test
 	public void parseTextUrlContentEmbeddedStray() {
 			String result = service.parseText("[url][/b]http://zfgc.com[/url]");
-			// current output: "<a href='{{c}}'>[/b]</span>http://zfgc.com[/url]"
+			// current output: "<a href=\"{{c}}\">[/b]</span>http://zfgc.com[/url]"
 			// FIXME: handle stray closing tags, seems to be something with the way the
 			// cursor flushes text?
-			assertEquals("<a href='[/b]http://zfgc.com'>[/b]http://zfgc.com</a>", result);
+			assertEquals("<a href=\"[/b]http://zfgc.com\">[/b]http://zfgc.com</a>", result);
 	}
 
 	@Test
 	public void parseTextImg() {
 			String result = service.parseText("[img]http://zfgc.com[/img]");
 
-			assertEquals("<span class='bbcode-img'><img src='http://zfgc.com'/></span>", result);
+			assertEquals("<span class=\"bbcode-img\"><img src=\"http://zfgc.com\"></span>", result);
 	}
 
 	@Test
 	public void parseTextImgStrayEmbedded() {
 			String result = service.parseText("[img][/b]http://zfgc.com[/img]");
 
-			assertEquals("<span class='bbcode-img'><img src='[/b]http://zfgc.com'/></span>", result);
+			assertEquals("<span class=\"bbcode-img\"><img></span>", result);
 	}
 
 	@Test
 	public void parseTextInvalidTag() {
 			String result = service.parseText("i am [hr] a [hr] dumb [b]test[/b]");
-			assertEquals("i am [hr] a [hr] dumb <span class='bbcode-b'>test</span>", result);
+			assertEquals("i am [hr] a [hr] dumb <span class=\"bbcode-b\">test</span>", result);
 	}
 
 }
