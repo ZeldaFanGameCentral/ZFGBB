@@ -103,12 +103,14 @@ docker exec "$PG_CONTAINER" pg_dump -U "$PG_USER" -d "$PG_DB" -n zfgbb \
   --table='zfgbb."user"' \
   --table=zfgbb.email_address \
   --table=zfgbb.user_contact_info \
+  --table=zfgbb.avatar \
   --table=zfgbb.user_bio_info \
   --table=zfgbb.br_user_permission \
   --table=zfgbb.ip_address \
   --table=zfgbb.thread \
   --table=zfgbb.message \
   --table=zfgbb.message_history \
+  --table=zfgbb.content_resource \
   --table=zfgbb.file_attachments \
   --table=zfgbb.poll \
   --table=zfgbb.poll_choice \
@@ -139,6 +141,8 @@ select setval(pg_get_serial_sequence('zfgbb."user"', 'user_id'), coalesce((selec
 select setval(pg_get_serial_sequence('zfgbb.email_address', 'email_address_id'), coalesce((select max(email_address_id) from zfgbb.email_address), 0) + 1, false);
 select setval(pg_get_serial_sequence('zfgbb.ip_address', 'ip_address_id'), coalesce((select max(ip_address_id) from zfgbb.ip_address), 0) + 1, false);
 select setval(pg_get_serial_sequence('zfgbb.file_attachments', 'file_attachment_id'), coalesce((select max(file_attachment_id) from zfgbb.file_attachments), 0) + 1, false);
+select setval(pg_get_serial_sequence('zfgbb.avatar', 'avatar_id'), coalesce((select max(avatar_id) from zfgbb.avatar), 0) + 1, false);
+select setval(pg_get_serial_sequence('zfgbb.content_resource', 'content_resource_id'), coalesce((select max(content_resource_id) from zfgbb.content_resource), 0) + 1, false);
 select setval(pg_get_serial_sequence('zfgbb.poll', 'poll_id'), coalesce((select max(poll_id) from zfgbb.poll), 0) + 1, false);
 select setval(pg_get_serial_sequence('zfgbb.poll_choice', 'poll_choice_id'), coalesce((select max(poll_choice_id) from zfgbb.poll_choice), 0) + 1, false);
 select setval(pg_get_serial_sequence('zfgbb.br_board_permission', 'br_board_permission_id'), coalesce((select max(br_board_permission_id) from zfgbb.br_board_permission), 0) + 1, false);
