@@ -51,13 +51,13 @@ public class InstallService {
 			throw new ZfgcInvalidRequestException("System is already installed.");
 		}
 
-		User admin = installCore(req);
-
 		boolean sampleApplied = false;
 		if (Boolean.TRUE.equals(req.applySampleData())) {
 			runSeedMigration();
 			sampleApplied = true;
 		}
+
+		User admin = installCore(req);
 
 		String siteName = StringUtils.defaultIfBlank(req.siteName(), "ZFGBB");
 		InstallResponse response = new InstallResponse(true, admin.getUserId(), siteName, sampleApplied, null, null);
