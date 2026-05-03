@@ -1,0 +1,108 @@
+package com.zfgc.zfgbb.services.system;
+
+import java.time.LocalDateTime;
+
+import javax.sql.DataSource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
+import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
+import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
+import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.system.InstallRequest;
+import com.zfgc.zfgbb.model.system.InstallResponse;
+import com.zfgc.zfgbb.model.system.InstallResult;
+import com.zfgc.zfgbb.model.users.RegistrationRequest;
+import com.zfgc.zfgbb.services.core.UserService;
+
+@Service
+public class InstallService {
+
+	public static final Integer ZFGC_SITE_ADMIN_PERMISSION_ID = 10;
+
+	private final SystemConfigService systemConfigService;
+	private final UserService userService;
+	private final BrUserPermissionDao brUserPermissionDao;
+	private final DataSource dataSource;
+
+	@Autowired
+	public InstallService(SystemConfigService systemConfigService,
+			UserService userService,
+			BrUserPermissionDao brUserPermissionDao,
+			DataSource dataSource) {
+		this.systemConfigService = systemConfigService;
+		this.userService = userService;
+		this.brUserPermissionDao = brUserPermissionDao;
+		this.dataSource = dataSource;
+	}
+
+	public InstallResult install(InstallRequest req) {
+		if (req == null) {
+			throw new ZfgcInvalidRequestException("Install request is required.");
+		}
+		if (systemConfigService.isInstalled()) {
+			throw new ZfgcInvalidRequestException("System is already installed.");
+		}
+
+		boolean sampleApplied = false;
+		if (Boolean.TRUE.equals(req.applySampleData())) {
+			runSeedMigration();
+			sampleApplied = true;
+		}
+
+		User admin = installCore(req);
+
+		String siteName = StringUtils.defaultIfBlank(req.siteName(), "ZFGBB");
+		InstallResponse response = new InstallResponse(true, admin.getUserId(), siteName, sampleApplied, null, null);
+		return new InstallResult(response, admin);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	protected User installCore(InstallRequest req) {
+		// UserService validates the registration fields for us (username regex,
+		// email format, password length). Reuse to avoid drift.
+		RegistrationRequest reg = new RegistrationRequest(
+				req.adminUserName(),
+				req.adminDisplayName(),
+				req.adminEmail(),
+				req.adminPassword());
+		User admin = userService.createNewUser(reg);
+
+		// createNewUser grants ZFGC_USER; the install endpoint also grants
+		// ZFGC_SITE_ADMIN.
+		BrUserPermissionDbo siteAdmin = new BrUserPermissionDbo();
+		siteAdmin.setUserId(admin.getUserId());
+		siteAdmin.setUserPermissionId(ZFGC_SITE_ADMIN_PERMISSION_ID);
+		brUserPermissionDao.save(siteAdmin);
+
+		String siteName = StringUtils.defaultIfBlank(req.siteName(), "ZFGBB");
+		systemConfigService.set(SystemConfigService.Keys.SITE_NAME, siteName);
+		systemConfigService.set(SystemConfigService.Keys.INSTALLED_AT, LocalDateTime.now().toString());
+		systemConfigService.set(SystemConfigService.Keys.INSTALLED_BY_USER_ID, String.valueOf(admin.getUserId()));
+		// Flip the marker LAST so a partial-install failure means we didnt install.
+
+		systemConfigService.set(SystemConfigService.Keys.INSTALLED, "true");
+
+		return admin;
+	}
+
+	private void runSeedMigration() {
+		Flyway.configure()
+				.dataSource(dataSource)
+				.locations("classpath:db/seed")
+				.schemas("zfgbb")
+				.defaultSchema("zfgbb")
+				.table("flyway_seed_history")
+				.baselineOnMigrate(true)
+				.baselineVersion(MigrationVersion.fromVersion("0"))
+				.load()
+				.migrate();
+	}
+}

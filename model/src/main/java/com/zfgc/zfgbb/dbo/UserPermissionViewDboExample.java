@@ -1,0 +1,427 @@
+package com.zfgc.zfgbb.dbo;
+
+import jakarta.annotation.Generated;
+import java.util.ArrayList;
+import java.util.List;
+
+public class UserPermissionViewDboExample {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527330561-04:00", comments="Source Table: zfgbb.user_permission_view")
+    protected String orderByClause;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527345501-04:00", comments="Source Table: zfgbb.user_permission_view")
+    protected boolean distinct;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.5273638-04:00", comments="Source Table: zfgbb.user_permission_view")
+    protected List<Criteria> oredCriteria;
+
+    protected Integer limit;
+
+    protected Integer offset;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527322322-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public UserPermissionViewDboExample() {
+        oredCriteria = new ArrayList<>();
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527338101-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public void setOrderByClause(String orderByClause) {
+        this.orderByClause = orderByClause;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527342391-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public String getOrderByClause() {
+        return orderByClause;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527349661-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public void setDistinct(boolean distinct) {
+        this.distinct = distinct;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527354701-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public boolean isDistinct() {
+        return distinct;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.52736861-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public List<Criteria> getOredCriteria() {
+        return oredCriteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.52738238-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public void or(Criteria criteria) {
+        oredCriteria.add(criteria);
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527387849-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public Criteria or() {
+        Criteria criteria = createCriteriaInternal();
+        oredCriteria.add(criteria);
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527394089-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public Criteria createCriteria() {
+        Criteria criteria = createCriteriaInternal();
+        if (oredCriteria.size() == 0) {
+            oredCriteria.add(criteria);
+        }
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527398289-04:00", comments="Source Table: zfgbb.user_permission_view")
+    protected Criteria createCriteriaInternal() {
+        Criteria criteria = new Criteria();
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527402289-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public void clear() {
+        oredCriteria.clear();
+        orderByClause = null;
+        distinct = false;
+    }
+
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Integer offset) {
+        this.offset = offset;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527406539-04:00", comments="Source Table: zfgbb.user_permission_view")
+    protected abstract static class GeneratedCriteria {
+        protected List<Criterion> criteria;
+
+        protected GeneratedCriteria() {
+            super();
+            criteria = new ArrayList<>();
+        }
+
+        public boolean isValid() {
+            return criteria.size() > 0;
+        }
+
+        public List<Criterion> getAllCriteria() {
+            return criteria;
+        }
+
+        public List<Criterion> getCriteria() {
+            return criteria;
+        }
+
+        protected void addCriterion(String condition) {
+            if (condition == null) {
+                throw new RuntimeException("Value for condition cannot be null");
+            }
+            criteria.add(new Criterion(condition));
+        }
+
+        protected void addCriterion(String condition, Object value, String property) {
+            if (value == null) {
+                throw new RuntimeException("Value for " + property + " cannot be null");
+            }
+            criteria.add(new Criterion(condition, value));
+        }
+
+        protected void addCriterion(String condition, Object value1, Object value2, String property) {
+            if (value1 == null || value2 == null) {
+                throw new RuntimeException("Between values for " + property + " cannot be null");
+            }
+            criteria.add(new Criterion(condition, value1, value2));
+        }
+
+        public Criteria andUserIdIsNull() {
+            addCriterion("user_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdIsNotNull() {
+            addCriterion("user_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdEqualTo(Integer value) {
+            addCriterion("user_id =", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdNotEqualTo(Integer value) {
+            addCriterion("user_id <>", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdGreaterThan(Integer value) {
+            addCriterion("user_id >", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("user_id >=", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdLessThan(Integer value) {
+            addCriterion("user_id <", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdLessThanOrEqualTo(Integer value) {
+            addCriterion("user_id <=", value, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdIn(List<Integer> values) {
+            addCriterion("user_id in", values, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdNotIn(List<Integer> values) {
+            addCriterion("user_id not in", values, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdBetween(Integer value1, Integer value2) {
+            addCriterion("user_id between", value1, value2, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("user_id not between", value1, value2, "userId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdIsNull() {
+            addCriterion("permission_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdIsNotNull() {
+            addCriterion("permission_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdEqualTo(Integer value) {
+            addCriterion("permission_id =", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdNotEqualTo(Integer value) {
+            addCriterion("permission_id <>", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdGreaterThan(Integer value) {
+            addCriterion("permission_id >", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("permission_id >=", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdLessThan(Integer value) {
+            addCriterion("permission_id <", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdLessThanOrEqualTo(Integer value) {
+            addCriterion("permission_id <=", value, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdIn(List<Integer> values) {
+            addCriterion("permission_id in", values, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdNotIn(List<Integer> values) {
+            addCriterion("permission_id not in", values, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdBetween(Integer value1, Integer value2) {
+            addCriterion("permission_id between", value1, value2, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("permission_id not between", value1, value2, "permissionId");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeIsNull() {
+            addCriterion("permission_code is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeIsNotNull() {
+            addCriterion("permission_code is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeEqualTo(String value) {
+            addCriterion("permission_code =", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeNotEqualTo(String value) {
+            addCriterion("permission_code <>", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeGreaterThan(String value) {
+            addCriterion("permission_code >", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeGreaterThanOrEqualTo(String value) {
+            addCriterion("permission_code >=", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeLessThan(String value) {
+            addCriterion("permission_code <", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeLessThanOrEqualTo(String value) {
+            addCriterion("permission_code <=", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeLike(String value) {
+            addCriterion("permission_code like", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeNotLike(String value) {
+            addCriterion("permission_code not like", value, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeIn(List<String> values) {
+            addCriterion("permission_code in", values, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeNotIn(List<String> values) {
+            addCriterion("permission_code not in", values, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeBetween(String value1, String value2) {
+            addCriterion("permission_code between", value1, value2, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeNotBetween(String value1, String value2) {
+            addCriterion("permission_code not between", value1, value2, "permissionCode");
+            return (Criteria) this;
+        }
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527510125-04:00", comments="do_not_delete_during_merge")
+    public static class Criteria extends GeneratedCriteria {
+        protected Criteria() {
+            super();
+        }
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.527520455-04:00", comments="Source Table: zfgbb.user_permission_view")
+    public static class Criterion {
+        private String condition;
+
+        private Object value;
+
+        private Object secondValue;
+
+        private boolean noValue;
+
+        private boolean singleValue;
+
+        private boolean betweenValue;
+
+        private boolean listValue;
+
+        private String typeHandler;
+
+        public String getCondition() {
+            return condition;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        public Object getSecondValue() {
+            return secondValue;
+        }
+
+        public boolean isNoValue() {
+            return noValue;
+        }
+
+        public boolean isSingleValue() {
+            return singleValue;
+        }
+
+        public boolean isBetweenValue() {
+            return betweenValue;
+        }
+
+        public boolean isListValue() {
+            return listValue;
+        }
+
+        public String getTypeHandler() {
+            return typeHandler;
+        }
+
+        protected Criterion(String condition) {
+            super();
+            this.condition = condition;
+            this.typeHandler = null;
+            this.noValue = true;
+        }
+
+        protected Criterion(String condition, Object value, String typeHandler) {
+            super();
+            this.condition = condition;
+            this.value = value;
+            this.typeHandler = typeHandler;
+            if (value instanceof List<?>) {
+                this.listValue = true;
+            } else {
+                this.singleValue = true;
+            }
+        }
+
+        protected Criterion(String condition, Object value) {
+            this(condition, value, null);
+        }
+
+        protected Criterion(String condition, Object value, Object secondValue, String typeHandler) {
+            super();
+            this.condition = condition;
+            this.value = value;
+            this.secondValue = secondValue;
+            this.typeHandler = typeHandler;
+            this.betweenValue = true;
+        }
+
+        protected Criterion(String condition, Object value, Object secondValue) {
+            this(condition, value, secondValue, null);
+        }
+    }
+}

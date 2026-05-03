@@ -1,0 +1,38 @@
+services:
+  pgadmin:
+    container_name: zfgbb_pgadmin
+    image: dpage/pgadmin4:9.2.0
+    environment:
+      PGADMIN_LISTEN_PORT: ${PGADMIN_PORT:-5050}
+      PGADMIN_DEFAULT_EMAIL: admin@zfgc.com
+      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      CONFIG_DATABASE_URI: ${PGADMIN_DATABASE_URI:-postgres://postgres:123456@zfgbb_postgresql:5432/zfgc_dev}
+      PGADMIN_CONFIG_PASSWORD_STORE: "True"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # Whitelist allowed IP addresses
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_ALLOWED_HOSTS: "${PGADMIN_ALLOWED_HOSTS:-['localhost', '127.0.0.1', 'host.docker.internal']}"
+      # PGADMIN_CONFIG_PASSFILE: '"/var/lib/pgadmin/.pgpass"'
+    ports:
+      - "${PGADMIN_PORT:-5050}:${PGADMIN_PORT:-5050}"
+    networks:
+      - zfgbb
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./scripts/docker/pgadmin/servers.json:/pgadmin4/servers.json
+      # - ./docker/pgadmin/.pgpass:/var/lib/pgadmin/.pgpass:ro
+
+    depends_on:
+      - postgresql
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 500M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgadmin:
