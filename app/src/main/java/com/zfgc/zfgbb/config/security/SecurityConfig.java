@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -19,6 +20,7 @@ public class SecurityConfig {
 
 	@Autowired
 	private CookieOrHeaderBearerTokenResolver bearerTokenResolver;
+	private final PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -27,21 +29,31 @@ public class SecurityConfig {
 			.csrf(csrf -> csrf.disable())
 			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
+				// Actuator health endpoints — reachable anonymously so K8s probes succeed.
+				.requestMatchers(mvc.matcher("/actuator/health/**")).permitAll()
+				.requestMatchers(mvc.matcher("/error")).permitAll()
 				// CORS preflight
-				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				// auth endpoints (login/refresh/logout/register) must be reachable without a token
-				.requestMatchers("/users/auth/**", "/users/register").permitAll()
+				.requestMatchers(mvc.matcher(HttpMethod.OPTIONS, "/**")).permitAll()
+				// auth endpoints (login/refresh/logout/register) reachable without a token
+				.requestMatchers(
+					mvc.matcher("/users/auth/**"),
+					mvc.matcher("/users/register")
+				).permitAll()
 				// first-run install endpoints. Token check + installed-marker check live
 				// inside SystemController; SecurityConfig just lets the request reach it.
-				.requestMatchers("/system/install/**").permitAll()
+				.requestMatchers(mvc.matcher("/system/install/**")).permitAll()
 				// Default rule: every read is public; every write requires auth.
 				// Finer-grained role checks live on individual handlers via @PreAuthorize.
-				// Permission-table-driven gating is planned but not implemented yet.
-				.requestMatchers(HttpMethod.GET,
-					"/",
-					"/board/**", "/thread/**", "/message/**",
-					"/content/**", "/resources/**", "/user-profile/**",
-					"/users/loggedInUser").permitAll()
+				.requestMatchers(
+					mvc.matcher(HttpMethod.GET, "/"),
+					mvc.matcher(HttpMethod.GET, "/board/**"),
+					mvc.matcher(HttpMethod.GET, "/thread/**"),
+					mvc.matcher(HttpMethod.GET, "/message/**"),
+					mvc.matcher(HttpMethod.GET, "/content/**"),
+					mvc.matcher(HttpMethod.GET, "/resources/**"),
+					mvc.matcher(HttpMethod.GET, "/user-profile/**"),
+					mvc.matcher(HttpMethod.GET, "/users/loggedInUser")
+				).permitAll()
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(oauth -> oauth
 				.bearerTokenResolver(bearerTokenResolver)
