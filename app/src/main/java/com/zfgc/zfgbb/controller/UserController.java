@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.model.users.AuthCredentials;
 import com.zfgc.zfgbb.model.users.LoginResponse;
@@ -33,6 +35,9 @@ public class UserController extends BaseController {
 
 	@Autowired
 	private AuthCookieService cookieService;
+
+	@Value("${zfgbb.registration.enabled:false}")
+	private boolean registrationEnabled;
 
 	@GetMapping("/loggedInUser")
 	public ResponseEntity<?> getLoggedInUser() {
@@ -94,6 +99,10 @@ public class UserController extends BaseController {
 
 	@PostMapping("/register")
 	public ResponseEntity<?> registerNewUser(@RequestBody RegistrationRequest request) {
+		if (!registrationEnabled) {
+			throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+					"Registration is currently disabled");
+		}
 		return ResponseEntity.status(HttpStatus.OK).body(userService.createNewUser(request));
 	}
 }
