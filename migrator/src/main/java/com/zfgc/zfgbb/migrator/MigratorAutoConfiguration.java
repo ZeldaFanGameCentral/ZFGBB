@@ -24,6 +24,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 		"com.zfgc.zfgbb.migrator.web"})
 @MapperScans({
 		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
+		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.queries", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
 		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.mappers")
 })
 public class MigratorAutoConfiguration {

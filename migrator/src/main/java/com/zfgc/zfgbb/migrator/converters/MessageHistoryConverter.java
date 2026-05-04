@@ -4,15 +4,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
@@ -32,20 +32,19 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageHistoryDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
 
 @Component
-public class MessageHistoryConverter extends AbstractConverter<Map<Integer, MessageHistoryDbo>> {
-
-	@Override
-	public JobType getType() {
-		return JobType.MESSAGE_HISTORY;
-	}
+public class MessageHistoryConverter extends AbstractConverter<Void> {
 
 	@Autowired
 	private SMFMessageHistoryDbMapper smfMsgHistoryMapper;
 
 	@Autowired
 	private SMFMessageDbMapper smfMsgMapper;
+
+	@Autowired
+	private SmfMessageStreamMapper smfMessageStreamMapper;
 
 	@Autowired
 	private MessageHistoryDboMapper msgHistoryMapper;
@@ -59,106 +58,130 @@ public class MessageHistoryConverter extends AbstractConverter<Map<Integer, Mess
 	@Autowired
 	private MigratorTimestampMapper migratorTimestampMapper;
 
-	Logger logger = LoggerFactory.getLogger(MessageHistoryConverter.class);
+	@Autowired
+	private TransactionTemplate transactionTemplate;
+
+	@Value("${zfgbb.migrator.batch-size:5000}")
+	private int batchSize;
+
+	private static final Logger logger = LoggerFactory.getLogger(MessageHistoryConverter.class);
 
 	@Override
-	@Transactional
-	public Map<Integer, MessageHistoryDbo> convertToZfgbb() {
-		Map<Integer, List<SMFMessageHistoryDb>> SMFMessageHistory = smfMsgHistoryMapper
-				.selectByExampleWithBLOBs(new SMFMessageHistoryDbExample()).stream()
-				.collect(Collectors.groupingBy(SMFMessageHistoryDb::getIdMsg));
-		Map<String, IpAddressDbo> ipMap = ipMapper.selectByExample(new IpAddressDboExample()).stream()
-				.collect(Collectors.toMap(IpAddressDbo::getIp, Function.identity()));
-		Map<Integer, SMFMessageDbWithBLOBs> msgMap = smfMsgMapper.selectByExampleWithBLOBs(new SMFMessageDbExample())
-				.stream().collect(Collectors.toMap(SMFMessageDbWithBLOBs::getIdMsg, Function.identity()));
-
-		Map<Integer, MessageHistoryDbo> result = new HashMap<>();
-		AtomicInteger totalCount = new AtomicInteger(0);
-
-		logger.info("Beginning conversion of SMF message history to ZFGBB message history");
-		logger.info(msgMap.size() + " records found");
-
-		msgMap.values().forEach(msg -> {
-			Cancellable.check();
-			if (totalCount.get() % 10000 == 0) {
-				logger.info("Processing message history for SMF msg id " + msg.getIdMsg() + " record "
-						+ totalCount.get() + " of " + msgMap.size());
-			}
-
-			Integer zfgbbMessageId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, msg.getIdMsg());
-			if (zfgbbMessageId == null) {
-				return;
-			}
-			Integer ipAddressId = ipMap.get(msg.getPosterIp()).getIpAddressId();
-
-			if (SMFMessageHistory.containsKey(msg.getIdMsg())) {
-				SMFMessageHistory.get(msg.getIdMsg()).forEach(smfHist -> {
-					MessageHistoryDbo currentMsg = new MessageHistoryDbo();
-					currentMsg.setCreatedTs(SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()));
-					currentMsg.setCurrentFlag(false);
-					currentMsg.setIpAddressId(ipAddressId);
-					currentMsg.setLegacyId(null);
-					currentMsg.setMessageId(zfgbbMessageId);
-					currentMsg.setMessageText(smfHist.getBody());
-					currentMsg.setUpdatedTs(currentMsg.getCreatedTs());
-
-					currentMsg.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
-							+ "history-" + SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()).toString()
-							+ currentMsg.getMessageText()
-							+ currentMsg.getCurrentFlag().toString()
-							+ ipAddressId
-							+ currentMsg.getLegacyId()));
-
-					upsertHistory(currentMsg);
-					result.put(currentMsg.getMessageHistoryId(), currentMsg);
-				});
-			}
-
-			MessageHistoryDbo currentMsg = new MessageHistoryDbo();
-			currentMsg.setCreatedTs(SmfTimes.fromEpochSeconds(msg.getPosterTime()));
-			currentMsg.setCurrentFlag(true);
-			currentMsg.setIpAddressId(ipAddressId);
-			currentMsg.setLegacyId(null);
-			currentMsg.setMessageId(zfgbbMessageId);
-			currentMsg.setMessageText(msg.getBody());
-			currentMsg.setUpdatedTs(currentMsg.getCreatedTs());
-
-			currentMsg.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
-					+ "current"
-					+ currentMsg.getMessageText()
-					+ currentMsg.getCurrentFlag().toString()
-					+ currentMsg.getCreatedTs().toString()
-					+ ipAddressId
-					+ currentMsg.getLegacyId()));
-
-			upsertHistory(currentMsg);
-			result.put(currentMsg.getMessageHistoryId(), currentMsg);
-			totalCount.incrementAndGet();
-		});
-
-		logger.info("Finished converting message history");
-
-		return result;
+	public JobType getType() {
+		return JobType.MESSAGE_HISTORY;
 	}
 
-	private void upsertHistory(MessageHistoryDbo currentMsg) {
-		MessageHistoryDboExample ex = new MessageHistoryDboExample();
-		ex.createCriteria().andMigrationHashEqualTo(currentMsg.getMigrationHash());
-		MessageHistoryDbo existing = msgHistoryMapper.selectByExample(ex).stream().findFirst().orElse(null);
-		if (existing == null) {
-			msgHistoryMapper.insert(currentMsg);
-		} else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), currentMsg.getMigrationHash())) {
-			currentMsg.setMessageHistoryId(existing.getMessageHistoryId());
-			msgHistoryMapper.updateByPrimaryKey(currentMsg);
-		} else {
-			currentMsg.setMessageHistoryId(existing.getMessageHistoryId());
+	@Override
+	public Void convertToZfgbb() {
+		Map<Integer, List<SMFMessageHistoryDb>> historyByMsgId = smfMsgHistoryMapper
+				.selectByExampleWithBLOBs(new SMFMessageHistoryDbExample()).stream()
+				.collect(Collectors.groupingBy(SMFMessageHistoryDb::getIdMsg));
+		Map<String, IpAddressDbo> ipByIp = ipMapper.selectByExample(new IpAddressDboExample()).stream()
+				.collect(Collectors.toMap(IpAddressDbo::getIp, Function.identity(), (a, b) -> a));
+
+		long total = smfMsgMapper.countByExample(new SMFMessageDbExample());
+		logger.info("Beginning conversion of {} SMF messages -> message history (batch size {})", total, batchSize);
+
+		Integer lastId = 0;
+		long processed = 0;
+
+		while (true) {
+			final Integer cursor = lastId;
+			List<SMFMessageDbWithBLOBs> batch =
+					smfMessageStreamMapper.selectAfterIdLimit(cursor, batchSize);
+			if (batch.isEmpty()) {
+				break;
+			}
+
+			transactionTemplate.executeWithoutResult(status -> {
+				for (SMFMessageDbWithBLOBs msg : batch) {
+					Cancellable.check();
+					convertOne(msg, historyByMsgId, ipByIp);
+				}
+			});
+
+			processed += batch.size();
+			lastId = batch.get(batch.size() - 1).getIdMsg();
+			logger.info("Processed {}/{} message-history records", processed, total);
 		}
 
-		if (currentMsg.getCreatedTs() != null) {
+		logger.info("Finished converting message history");
+		return null;
+	}
+
+	private void convertOne(SMFMessageDbWithBLOBs msg,
+			Map<Integer, List<SMFMessageHistoryDb>> historyByMsgId,
+			Map<String, IpAddressDbo> ipByIp) {
+		Integer zfgbbMessageId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, msg.getIdMsg());
+		if (zfgbbMessageId == null) {
+			return;
+		}
+		IpAddressDbo ip = ipByIp.get(msg.getPosterIp());
+		if (ip == null) {
+			return;
+		}
+		Integer ipAddressId = ip.getIpAddressId();
+
+		List<SMFMessageHistoryDb> historyRows = historyByMsgId.get(msg.getIdMsg());
+		if (historyRows != null) {
+			for (SMFMessageHistoryDb smfHist : historyRows) {
+				MessageHistoryDbo histRow = new MessageHistoryDbo();
+				histRow.setCreatedTs(SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()));
+				histRow.setCurrentFlag(false);
+				histRow.setIpAddressId(ipAddressId);
+				histRow.setLegacyId(null);
+				histRow.setMessageId(zfgbbMessageId);
+				histRow.setMessageText(smfHist.getBody());
+				histRow.setUpdatedTs(histRow.getCreatedTs());
+
+				histRow.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
+						+ "history-" + SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()).toString()
+						+ histRow.getMessageText()
+						+ histRow.getCurrentFlag().toString()
+						+ ipAddressId
+						+ histRow.getLegacyId()));
+
+				upsertHistory(histRow);
+			}
+		}
+
+		MessageHistoryDbo currentRow = new MessageHistoryDbo();
+		currentRow.setCreatedTs(SmfTimes.fromEpochSeconds(msg.getPosterTime()));
+		currentRow.setCurrentFlag(true);
+		currentRow.setIpAddressId(ipAddressId);
+		currentRow.setLegacyId(null);
+		currentRow.setMessageId(zfgbbMessageId);
+		currentRow.setMessageText(msg.getBody());
+		currentRow.setUpdatedTs(currentRow.getCreatedTs());
+
+		currentRow.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
+				+ "current"
+				+ currentRow.getMessageText()
+				+ currentRow.getCurrentFlag().toString()
+				+ currentRow.getCreatedTs().toString()
+				+ ipAddressId
+				+ currentRow.getLegacyId()));
+
+		upsertHistory(currentRow);
+	}
+
+	private void upsertHistory(MessageHistoryDbo row) {
+		MessageHistoryDboExample ex = new MessageHistoryDboExample();
+		ex.createCriteria().andMigrationHashEqualTo(row.getMigrationHash());
+		MessageHistoryDbo existing = msgHistoryMapper.selectByExample(ex).stream().findFirst().orElse(null);
+		if (existing == null) {
+			msgHistoryMapper.insert(row);
+		} else if (JobContextHolder.isForce()
+				|| !Objects.equals(existing.getMigrationHash(), row.getMigrationHash())) {
+			row.setMessageHistoryId(existing.getMessageHistoryId());
+			msgHistoryMapper.updateByPrimaryKey(row);
+		} else {
+			row.setMessageHistoryId(existing.getMessageHistoryId());
+		}
+
+		if (row.getCreatedTs() != null) {
 			migratorTimestampMapper.setMessageHistoryTimestamps(
-					currentMsg.getMessageHistoryId(),
-					currentMsg.getCreatedTs(),
-					currentMsg.getUpdatedTs());
+					row.getMessageHistoryId(), row.getCreatedTs(), row.getUpdatedTs());
 		}
 	}
 }

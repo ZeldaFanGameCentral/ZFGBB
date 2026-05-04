@@ -1,37 +1,36 @@
 package com.zfgc.zfgbb.migrator.converters;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
 import com.zfgc.zfgbb.mappers.IpAddressDboMapper;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDb;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDb;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDbExample;
-import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
-import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageHistoryDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageDistinctIpsMapper;
 
 @Component
-public class IpAddressConverter extends AbstractConverter<Map<Integer, IpAddressDbo>> {
+public class IpAddressConverter extends AbstractConverter<Void> {
 
 	@Autowired
-	private SMFMessageDbMapper SMFMessageMapper;
+	private SmfMessageDistinctIpsMapper smfDistinctIpsMapper;
 
 	@Autowired
 	private IpAddressDboMapper ipAddressMapper;
 
-	Logger logger = LoggerFactory.getLogger(IpAddressConverter.class);
+	@Autowired
+	private TransactionTemplate transactionTemplate;
+
+	@Value("${zfgbb.migrator.batch-size:5000}")
+	private int batchSize;
+
+	private static final Logger logger = LoggerFactory.getLogger(IpAddressConverter.class);
 
 	@Override
 	public JobType getType() {
@@ -39,44 +38,39 @@ public class IpAddressConverter extends AbstractConverter<Map<Integer, IpAddress
 	}
 
 	@Override
-	@Transactional
-	public Map<Integer, IpAddressDbo> convertToZfgbb() {
-		List<SMFMessageDb> SMFMessages = SMFMessageMapper.selectByExample(new SMFMessageDbExample());
-		Map<String, IpAddressDbo> ipList = new HashMap<>();
-		Map<Integer, IpAddressDbo> result = new HashMap<>();
-		
-		logger.info("Beginning conversion of IP Addresses based on SMF messages");
-		logger.info(SMFMessages.size() + " records found");
-		
-		SMFMessages.forEach(smfMsg -> {
-			Cancellable.check();
-			if(!ipList.containsKey(smfMsg.getPosterIp())) {
-				IpAddressDbo ip = new IpAddressDbo();
-				
-				ip.setIp(smfMsg.getPosterIp());
-				ip.setIpV6Flag(false);
-				ip.setIsSpammerFlag(false);
-				
-				ip.setMigrationHash(MigrationHasher.hash(ip.getIp()
-						+ ip.getIpV6Flag().toString()
-						+ ip.getIsSpammerFlag().toString()));
-				
-				IpAddressDboExample ex = new IpAddressDboExample();
-				ex.createCriteria().andIpEqualTo(ip.getIp()).andMigrationHashEqualTo(ip.getMigrationHash());
-				IpAddressDbo existingIp = ipAddressMapper.selectByExample(ex).stream().findFirst().orElse(null);
-				if(existingIp == null) {
-					ipAddressMapper.insert(ip);
-				}
-				else {
-					ip.setIpAddressId(existingIp.getIpAddressId());
-					ipAddressMapper.updateByPrimaryKeySelective(ip);
-				}
-				ipList.put(smfMsg.getPosterIp(), ip);
-				result.put(ip.getIpAddressId(), ip);
-			}
-		});
-		
-		return result;
+	public Void convertToZfgbb() {
+		List<String> ips = smfDistinctIpsMapper.selectDistinctPosterIps();
+		logger.info("Beginning conversion of {} distinct IPs", ips.size());
+
+		for (int from = 0; from < ips.size(); from += batchSize) {
+			int to = Math.min(from + batchSize, ips.size());
+			List<String> slice = ips.subList(from, to);
+			transactionTemplate.executeWithoutResult(status -> slice.forEach(this::upsertIp));
+			logger.info("Processed {}/{} IPs", to, ips.size());
+		}
+
+		logger.info("Finished converting IP addresses");
+		return null;
 	}
-	
+
+	private void upsertIp(String ipString) {
+		Cancellable.check();
+		IpAddressDbo ip = new IpAddressDbo();
+		ip.setIp(ipString);
+		ip.setIpV6Flag(false);
+		ip.setIsSpammerFlag(false);
+		ip.setMigrationHash(MigrationHasher.hash(ip.getIp()
+				+ ip.getIpV6Flag().toString()
+				+ ip.getIsSpammerFlag().toString()));
+
+		IpAddressDboExample ex = new IpAddressDboExample();
+		ex.createCriteria().andIpEqualTo(ip.getIp()).andMigrationHashEqualTo(ip.getMigrationHash());
+		IpAddressDbo existingIp = ipAddressMapper.selectByExample(ex).stream().findFirst().orElse(null);
+		if (existingIp == null) {
+			ipAddressMapper.insert(ip);
+		} else {
+			ip.setIpAddressId(existingIp.getIpAddressId());
+			ipAddressMapper.updateByPrimaryKeySelective(ip);
+		}
+	}
 }
