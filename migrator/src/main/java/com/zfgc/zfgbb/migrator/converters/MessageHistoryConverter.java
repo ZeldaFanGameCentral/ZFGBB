@@ -7,12 +7,14 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.ibatis.session.ExecutorType;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
@@ -23,7 +25,6 @@ import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
 import com.zfgc.zfgbb.migrator.SmfTimes;
 import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
-import com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbExample;
@@ -56,15 +57,14 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 	private MigratorIdMapService idMap;
 
 	@Autowired
-	private MigratorTimestampMapper migratorTimestampMapper;
-
-	@Autowired
-	private TransactionTemplate transactionTemplate;
+	private SqlSessionFactory sqlSessionFactory;
 
 	@Value("${zfgbb.migrator.batch-size:5000}")
 	private int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageHistoryConverter.class);
+
+	private boolean freshRun;
 
 	@Override
 	public JobType getType() {
@@ -73,32 +73,30 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 
 	@Override
 	public Void convertToZfgbb() {
+		long total = smfMsgMapper.countByExample(new SMFMessageDbExample());
+		boolean force = JobContextHolder.isForce();
+		long existingHistory = msgHistoryMapper.countByExample(new MessageHistoryDboExample());
+		freshRun = !force && existingHistory == 0;
+		logger.info("Beginning conversion of {} SMF messages -> message history (batch size {}, freshRun={})",
+				total, batchSize, freshRun);
+
 		Map<Integer, List<SMFMessageHistoryDb>> historyByMsgId = smfMsgHistoryMapper
 				.selectByExampleWithBLOBs(new SMFMessageHistoryDbExample()).stream()
 				.collect(Collectors.groupingBy(SMFMessageHistoryDb::getIdMsg));
 		Map<String, IpAddressDbo> ipByIp = ipMapper.selectByExample(new IpAddressDboExample()).stream()
 				.collect(Collectors.toMap(IpAddressDbo::getIp, Function.identity(), (a, b) -> a));
 
-		long total = smfMsgMapper.countByExample(new SMFMessageDbExample());
-		logger.info("Beginning conversion of {} SMF messages -> message history (batch size {})", total, batchSize);
-
 		Integer lastId = 0;
 		long processed = 0;
 
 		while (true) {
-			final Integer cursor = lastId;
 			List<SMFMessageDbWithBLOBs> batch =
-					smfMessageStreamMapper.selectAfterIdLimit(cursor, batchSize);
+					smfMessageStreamMapper.selectAfterIdLimit(lastId, batchSize);
 			if (batch.isEmpty()) {
 				break;
 			}
 
-			transactionTemplate.executeWithoutResult(status -> {
-				for (SMFMessageDbWithBLOBs msg : batch) {
-					Cancellable.check();
-					convertOne(msg, historyByMsgId, ipByIp);
-				}
-			});
+			processBatch(batch, historyByMsgId, ipByIp);
 
 			processed += batch.size();
 			lastId = batch.get(batch.size() - 1).getIdMsg();
@@ -109,9 +107,24 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 		return null;
 	}
 
-	private void convertOne(SMFMessageDbWithBLOBs msg,
+	private void processBatch(List<SMFMessageDbWithBLOBs> batch,
 			Map<Integer, List<SMFMessageHistoryDb>> historyByMsgId,
 			Map<String, IpAddressDbo> ipByIp) {
+		try (SqlSession bs = sqlSessionFactory.openSession(ExecutorType.BATCH, false)) {
+			MessageHistoryDboMapper bsHistory = bs.getMapper(MessageHistoryDboMapper.class);
+			for (SMFMessageDbWithBLOBs msg : batch) {
+				Cancellable.check();
+				convertOne(msg, historyByMsgId, ipByIp, bsHistory);
+			}
+			bs.flushStatements();
+			bs.commit();
+		}
+	}
+
+	private void convertOne(SMFMessageDbWithBLOBs msg,
+			Map<Integer, List<SMFMessageHistoryDb>> historyByMsgId,
+			Map<String, IpAddressDbo> ipByIp,
+			MessageHistoryDboMapper bsHistory) {
 		Integer zfgbbMessageId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, msg.getIdMsg());
 		if (zfgbbMessageId == null) {
 			return;
@@ -141,7 +154,7 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 						+ ipAddressId
 						+ histRow.getLegacyId()));
 
-				upsertHistory(histRow);
+				upsertHistory(histRow, bsHistory);
 			}
 		}
 
@@ -162,26 +175,26 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 				+ ipAddressId
 				+ currentRow.getLegacyId()));
 
-		upsertHistory(currentRow);
+		upsertHistory(currentRow, bsHistory);
 	}
 
-	private void upsertHistory(MessageHistoryDbo row) {
+	private void upsertHistory(MessageHistoryDbo row, MessageHistoryDboMapper bsHistory) {
+		if (freshRun) {
+			bsHistory.insert(row);
+			return;
+		}
+
 		MessageHistoryDboExample ex = new MessageHistoryDboExample();
 		ex.createCriteria().andMigrationHashEqualTo(row.getMigrationHash());
 		MessageHistoryDbo existing = msgHistoryMapper.selectByExample(ex).stream().findFirst().orElse(null);
 		if (existing == null) {
-			msgHistoryMapper.insert(row);
+			bsHistory.insert(row);
 		} else if (JobContextHolder.isForce()
 				|| !Objects.equals(existing.getMigrationHash(), row.getMigrationHash())) {
 			row.setMessageHistoryId(existing.getMessageHistoryId());
-			msgHistoryMapper.updateByPrimaryKey(row);
+			bsHistory.updateByPrimaryKey(row);
 		} else {
 			row.setMessageHistoryId(existing.getMessageHistoryId());
-		}
-
-		if (row.getCreatedTs() != null) {
-			migratorTimestampMapper.setMessageHistoryTimestamps(
-					row.getMessageHistoryId(), row.getCreatedTs(), row.getUpdatedTs());
 		}
 	}
 }
