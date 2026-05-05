@@ -49,6 +49,8 @@ public class IpAddressConverter extends AbstractConverter<Void> {
 			logger.info("Processed {}/{} IPs", to, ips.size());
 		}
 
+		transactionTemplate.executeWithoutResult(status -> upsertIp("127.0.0.1"));
+
 		logger.info("Finished converting IP addresses");
 		return null;
 	}

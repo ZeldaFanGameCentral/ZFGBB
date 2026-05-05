@@ -218,6 +218,13 @@ The following build actions are available:
 
 Eclipse will respect the applications.properties file, so you can use that to configure the application.
 
+**Environment configuration (`.env.local`):** The project uses a `.env.local` file at the repository root for local dev configuration (database URL, secrets, etc.). Spring Boot loads it automatically via `spring.config.import=optional:file:.env.local[.properties]` when the `local` profile is active. To set this up in Eclipse:
+
+1. In your Run Configuration → **Environment** tab, add `SPRING_PROFILES_ACTIVE=local`.
+2. In Run Configuration → **Arguments** or **Working Directory**, ensure the working directory is the **repository root** (not `app/`), so `file:.env.local` resolves correctly.
+
+If you prefer not to use `.env.local`, you can set the required environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, etc.) directly in Eclipse's Run Configuration environment tab.
+
 This project uses [Lombok](https://projectlombok.org/) for generated getters, setters, builders, and logging. Out of the box, Eclipse's compiler doesn't understand `@Data`, `@Getter`, `@Builder`, etc., so the project will look like it's full of "method not found" errors until the Lombok agent is installed:
 
 1. Download the Lombok JAR matching the version pinned in the [parent pom](./pom.xml) (`lombok.version`):

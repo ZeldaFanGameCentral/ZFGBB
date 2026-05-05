@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.zfgc.zfgbb.config.loadoption.user.FullUserLoadOptions;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.EmailAddress;
@@ -59,7 +60,8 @@ public class UserService {
 	}
 
 	public User loadUser(Integer userId) {
-		return userDataProvider.getUser(userId, new FullUserLoadOptions());
+		return userDataProvider.findUser(userId, new FullUserLoadOptions())
+				.orElseThrow(ZfgcNotFoundException::new);
 	}
 
 	public User saveUserProfile(User user, User zfgcUser) {

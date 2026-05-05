@@ -10,10 +10,10 @@ select t.thread_id,
 	   t.view_count,
 	   m.message_id,
 	   m.owner_id as last_posted_user_id,
-	   u.display_name as last_posted_user,
+	   coalesce(u.display_name, 'ORPHANED') as last_posted_user,
 	   m.created_ts as post_ts,
 	   m.post_in_thread
 from zfgbb.thread t
 join zfgbb.message m on m.thread_id = t.thread_id
-join zfgbb.user u on u.user_id = m.owner_id
+left join zfgbb.user u on u.user_id = m.owner_id
 order by t.thread_id, m.created_ts desc

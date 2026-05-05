@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
+import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
 
 @Service
 // noRollbackFor: consume() throws when an already-used or expired refresh token is
@@ -29,27 +30,32 @@ public class RefreshTokenService {
 	private static final int TOKEN_BYTES = 32;
 
 	private final UserRefreshTokenDao dao;
-	private final long ttlDays;
+	private final Duration rememberedTtl;
+	private final Duration sessionTtl;
 
 	public RefreshTokenService(UserRefreshTokenDao dao,
-			@Value("${zfgbb.auth.refresh.ttl-days}") long ttlDays) {
+			@Value("${zfgbb.auth.refresh.ttl-days}") long rememberedTtlDays,
+			@Value("${zfgbb.auth.refresh.session-ttl-hours}") long sessionTtlHours) {
 		this.dao = dao;
-		this.ttlDays = ttlDays;
+		this.rememberedTtl = Duration.ofDays(rememberedTtlDays);
+		this.sessionTtl = Duration.ofHours(sessionTtlHours);
 	}
 
-	public String issue(Integer userId) {
+	public String issue(Integer userId, boolean stayLoggedIn) {
 		String rawToken = generateRawToken();
+		LocalDateTime now = LocalDateTime.now();
+		Duration ttl = stayLoggedIn ? rememberedTtl : sessionTtl;
 		UserRefreshTokenDbo dbo = new UserRefreshTokenDbo();
 		dbo.setUserId(userId);
 		dbo.setTokenHash(sha256Hex(rawToken));
-		dbo.setIssuedTs(LocalDateTime.now());
-		dbo.setExpiresTs(LocalDateTime.now().plus(Duration.ofDays(ttlDays)));
+		dbo.setIssuedTs(now);
+		dbo.setExpiresTs(now.plus(ttl));
 		dbo.setRevokedFlag(false);
 		dao.save(dbo);
 		return rawToken;
 	}
 
-	public Integer consume(String rawToken) {
+	public ConsumedRefreshToken consume(String rawToken) {
 		UserRefreshTokenDbo dbo = lookup(rawToken)
 				.orElseThrow(() -> new BadCredentialsException("Invalid refresh token."));
 
@@ -60,9 +66,14 @@ public class RefreshTokenService {
 			throw new BadCredentialsException("Refresh token has expired.");
 		}
 
+		// Original lifetime > sessionTtl ⇒ this token was issued under "stay logged in",
+		// so the rotated cookie should also be persistent.
+		Duration originalTtl = Duration.between(dbo.getIssuedTs(), dbo.getExpiresTs());
+		boolean stayLoggedIn = originalTtl.compareTo(sessionTtl) > 0;
+
 		dbo.setRevokedFlag(true);
 		dao.save(dbo);
-		return dbo.getUserId();
+		return new ConsumedRefreshToken(dbo.getUserId(), stayLoggedIn);
 	}
 
 	public void revoke(String rawToken) {

@@ -38,6 +38,7 @@ class LoginRegisterPostFlowTest {
 		r.add("spring.datasource.url", pg::getJdbcUrl);
 		r.add("spring.datasource.username", pg::getUsername);
 		r.add("spring.datasource.password", pg::getPassword);
+		r.add("zfgbb.registration.enabled", () -> "true");
 	}
 
 	@Autowired

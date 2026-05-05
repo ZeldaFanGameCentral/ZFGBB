@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
@@ -129,11 +130,11 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 		if (zfgbbMessageId == null) {
 			return;
 		}
-		IpAddressDbo ip = ipByIp.get(msg.getPosterIp());
-		if (ip == null) {
-			return;
+		String posterIp = msg.getPosterIp();
+		if (posterIp == null || posterIp.isBlank()) {
+			posterIp = "127.0.0.1";
 		}
-		Integer ipAddressId = ip.getIpAddressId();
+		Integer ipAddressId = ipByIp.get(posterIp).getIpAddressId();
 
 		List<SMFMessageHistoryDb> historyRows = historyByMsgId.get(msg.getIdMsg());
 		if (historyRows != null) {
@@ -142,17 +143,15 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 				histRow.setCreatedTs(SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()));
 				histRow.setCurrentFlag(false);
 				histRow.setIpAddressId(ipAddressId);
-				histRow.setLegacyId(null);
 				histRow.setMessageId(zfgbbMessageId);
-				histRow.setMessageText(smfHist.getBody());
+				histRow.setMessageText(HtmlUtils.htmlUnescape(smfHist.getBody()));
 				histRow.setUpdatedTs(histRow.getCreatedTs());
 
 				histRow.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
 						+ "history-" + SmfTimes.fromEpochSeconds(smfHist.getModifiedTime()).toString()
 						+ histRow.getMessageText()
 						+ histRow.getCurrentFlag().toString()
-						+ ipAddressId
-						+ histRow.getLegacyId()));
+						+ ipAddressId));
 
 				upsertHistory(histRow, bsHistory);
 			}
@@ -162,9 +161,8 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 		currentRow.setCreatedTs(SmfTimes.fromEpochSeconds(msg.getPosterTime()));
 		currentRow.setCurrentFlag(true);
 		currentRow.setIpAddressId(ipAddressId);
-		currentRow.setLegacyId(null);
 		currentRow.setMessageId(zfgbbMessageId);
-		currentRow.setMessageText(msg.getBody());
+		currentRow.setMessageText(HtmlUtils.htmlUnescape(msg.getBody()));
 		currentRow.setUpdatedTs(currentRow.getCreatedTs());
 
 		currentRow.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
@@ -172,8 +170,7 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 				+ currentRow.getMessageText()
 				+ currentRow.getCurrentFlag().toString()
 				+ currentRow.getCreatedTs().toString()
-				+ ipAddressId
-				+ currentRow.getLegacyId()));
+				+ ipAddressId));
 
 		upsertHistory(currentRow, bsHistory);
 	}

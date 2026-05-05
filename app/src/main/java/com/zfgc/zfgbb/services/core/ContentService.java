@@ -25,29 +25,33 @@ public class ContentService extends AbstractService {
 	private String path;
 	private String images;
 
+	public void setPath(String path) {
+		this.path = path;
+	}
+
+	public void setImages(String images) {
+		this.images = images;
+	}
+
 	@Autowired
 	private ContentResourceDao contentResourceDao;
 
-	public Resource getImageResource(Integer resourceId) throws MalformedURLException {
+	public ContentResourceDbo getContentResourceDbo(Integer resourceId) {
 		ContentResourceDboExample ex = new ContentResourceDboExample();
 		ex.createCriteria().andContentResourceIdEqualTo(resourceId);
+		return contentResourceDao.get(ex).stream().findFirst().orElse(null);
+	}
 
-		ContentResourceDbo dbo = contentResourceDao.get(ex).stream().findFirst().orElse(null);
+	public Resource getImageResource(Integer resourceId) throws MalformedURLException {
+		ContentResourceDbo dbo = getContentResourceDbo(resourceId);
 		if (dbo == null) {
 			throw new ZfgcNotFoundException();
-		} else {
-			return createContentResource(path + images, dbo.getFilename());
 		}
+		Path filePath = Paths.get(path, images, String.valueOf(dbo.getContentResourceId()));
+		return new UrlResource(filePath.toUri());
 	}
 
 	public Optional<MediaType> getMimeType(String filename) {
 		return MediaTypeFactory.getMediaType(filename);
-	}
-
-	private Resource createContentResource(String fullPath, String filename) throws MalformedURLException {
-		Path path = Paths.get(fullPath + "/" + filename);
-		Resource resource = new UrlResource(path.toUri());
-
-		return resource;
 	}
 }

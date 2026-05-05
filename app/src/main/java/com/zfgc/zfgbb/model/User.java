@@ -61,6 +61,13 @@ public class User extends BaseModel implements UserDetails {
 	private UserBioInfo bioInfo;
 	private UserContactInfo contactInfo;
 	
+	public static User orphaned() {
+		return User.builder()
+				.displayName("ORPHANED")
+				.permissions(new ArrayList<>())
+				.build();
+	}
+
 	public List<Permission> getPermissions() {
 		return permissions;
 	}
