@@ -134,6 +134,7 @@ class MigrateSmfInstallationE2ETest {
 				null,
 				attachmentsSource().toString(),
 				attachmentsTarget.toString(),
+				null,
 				false);
 	}
 

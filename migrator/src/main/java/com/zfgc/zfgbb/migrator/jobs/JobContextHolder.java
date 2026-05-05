@@ -9,6 +9,7 @@ public class JobContextHolder {
 	private static final ThreadLocal<DataSource> DATA_SOURCE = new ThreadLocal<>();
 	private static final ThreadLocal<String> ATTACHMENTS_SOURCE_PATH = new ThreadLocal<>();
 	private static final ThreadLocal<String> ATTACHMENTS_TARGET_PATH = new ThreadLocal<>();
+	private static final ThreadLocal<String> AVATARS_SOURCE_PATH = new ThreadLocal<>();
 	private static final ThreadLocal<String> TABLE_PREFIX = new ThreadLocal<>();
 	private static final ThreadLocal<String> LEGACY_HOST = new ThreadLocal<>();
 	private static final ThreadLocal<String> APP_BASE_URL = new ThreadLocal<>();
@@ -17,6 +18,7 @@ public class JobContextHolder {
 	public static void set(DataSource dataSource,
 			String sourcePath,
 			String targetPath,
+			String avatarsSourcePath,
 			String tablePrefix,
 			String legacyHost,
 			String appBaseUrl,
@@ -24,6 +26,7 @@ public class JobContextHolder {
 		DATA_SOURCE.set(dataSource);
 		ATTACHMENTS_SOURCE_PATH.set(sourcePath);
 		ATTACHMENTS_TARGET_PATH.set(targetPath);
+		AVATARS_SOURCE_PATH.set(avatarsSourcePath);
 		TABLE_PREFIX.set(normalizePrefix(tablePrefix));
 		LEGACY_HOST.set(normalizeBlankToNull(legacyHost));
 		APP_BASE_URL.set(normalizeAppBaseUrl(appBaseUrl));
@@ -40,6 +43,10 @@ public class JobContextHolder {
 
 	public static String getAttachmentsTargetPath() {
 		return ATTACHMENTS_TARGET_PATH.get();
+	}
+
+	public static String getAvatarsSourcePath() {
+		return AVATARS_SOURCE_PATH.get();
 	}
 
 	public static String getTablePrefix() {
@@ -64,6 +71,7 @@ public class JobContextHolder {
 		DATA_SOURCE.remove();
 		ATTACHMENTS_SOURCE_PATH.remove();
 		ATTACHMENTS_TARGET_PATH.remove();
+		AVATARS_SOURCE_PATH.remove();
 		TABLE_PREFIX.remove();
 		LEGACY_HOST.remove();
 		APP_BASE_URL.remove();

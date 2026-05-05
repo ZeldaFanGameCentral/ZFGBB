@@ -1,5 +1,10 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -95,10 +100,10 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 			AvatarDbo avatar = new AvatarDbo();
 			SMFAttachmentsDb smfAvatar = SMFAvatarAttachments.get(smfMember.getIdMember());
 			if (smfAvatar != null || !smfMember.getAvatar().equals("")) {
-				avatar.setUrl(smfMember.getAvatar());
 				avatar.setActiveFlag(true);
 
 				if (smfAvatar != null) {
+					avatar.setUrl("");
 					ContentResourceDbo contentResource = new ContentResourceDbo();
 					contentResource.setContentTypeId(1);
 					contentResource.setFilename(smfAvatar.getFilename());
@@ -125,6 +130,11 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 
 					avatar.setContentResourceId(contentResource.getContentResourceId());
 					avatar.setActiveFlag(smfAvatar.getApproved() == 1);
+				} else if (!smfMember.getAvatar().isEmpty() && !smfMember.getAvatar().startsWith("http")) {
+					avatar.setUrl("");
+					createInternalAvatarResource(avatar, smfMember.getAvatar(), zfgbbUserId);
+				} else {
+					avatar.setUrl(smfMember.getAvatar());
 				}
 
 				avatar.setMigrationHash(MigrationHasher.hash((avatar.getUrl() != null ? avatar.getUrl() : "")
@@ -191,5 +201,51 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 		});
 
 		return result;
+	}
+
+	private void createInternalAvatarResource(AvatarDbo avatar, String smfAvatarPath, Integer zfgbbUserId) {
+		String avatarsSourcePath = JobContextHolder.getAvatarsSourcePath();
+		String targetPath = JobContextHolder.getAttachmentsTargetPath();
+		if (avatarsSourcePath == null || avatarsSourcePath.isBlank() || targetPath == null) {
+			avatar.setUrl(smfAvatarPath);
+			return;
+		}
+
+		Path sourceFile = Paths.get(avatarsSourcePath, smfAvatarPath);
+		if (!Files.exists(sourceFile)) {
+			avatar.setUrl(smfAvatarPath);
+			return;
+		}
+
+		String filename = sourceFile.getFileName().toString();
+		String ext = filename.contains(".") ? filename.substring(filename.lastIndexOf('.') + 1) : "";
+		long fileSize;
+		try { fileSize = Files.size(sourceFile); } catch (IOException e) { fileSize = 0; }
+
+		ContentResourceDbo cr = new ContentResourceDbo();
+		cr.setContentTypeId(1);
+		cr.setFilename(filename);
+		cr.setFileExt(ext);
+		cr.setMimeType("image/" + (ext.equalsIgnoreCase("jpg") ? "jpeg" : ext.toLowerCase()));
+		cr.setChecksum("");
+		cr.setUploadedUserId(zfgbbUserId);
+		cr.setFileSize(fileSize);
+		cr.setMigrationHash(MigrationHasher.hash("internal-avatar-" + smfAvatarPath));
+
+		ContentResourceDboExample existingEx = new ContentResourceDboExample();
+		existingEx.createCriteria().andMigrationHashEqualTo(cr.getMigrationHash());
+		Optional<ContentResourceDbo> existing = contentMapper.selectByExample(existingEx).stream().findFirst();
+		existing.ifPresentOrElse(
+				e -> cr.setContentResourceId(e.getContentResourceId()),
+				() -> contentMapper.insert(cr));
+
+		try {
+			Path dest = Paths.get(targetPath, String.valueOf(cr.getContentResourceId()));
+			Files.copy(sourceFile, dest, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			throw new RuntimeException("failed to copy internal avatar " + smfAvatarPath, e);
+		}
+
+		avatar.setContentResourceId(cr.getContentResourceId());
 	}
 }

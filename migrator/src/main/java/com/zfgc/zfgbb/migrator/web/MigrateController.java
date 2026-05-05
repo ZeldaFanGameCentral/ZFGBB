@@ -55,6 +55,7 @@ public class MigrateController {
 				request.getAppBaseUrl(),
 				request.getAttachmentsSourcePath(),
 				request.getAttachmentsTargetPath(),
+				request.getAvatarsSourcePath(),
 				Boolean.TRUE.equals(request.getForce()));
 
 		try {

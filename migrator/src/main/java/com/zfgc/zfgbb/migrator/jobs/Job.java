@@ -27,5 +27,6 @@ public class Job {
 	@JsonIgnore private String appBaseUrl;
 	@JsonIgnore private String attachmentsSourcePath;
 	@JsonIgnore private String attachmentsTargetPath;
+	@JsonIgnore private String avatarsSourcePath;
 	@JsonIgnore private boolean force;
 }
