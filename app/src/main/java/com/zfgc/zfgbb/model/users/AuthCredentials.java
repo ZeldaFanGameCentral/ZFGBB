@@ -6,6 +6,7 @@ public class AuthCredentials {
 	private String username;
 	private String password;
 	private boolean useTokens = false;
+	private boolean stayLoggedIn = false;
 
 	public String getGrant_type() {
 		return grant_type;
@@ -36,5 +37,11 @@ public class AuthCredentials {
 	}
 	public void setUseTokens(boolean useTokens) {
 		this.useTokens = useTokens;
+	}
+	public boolean isStayLoggedIn() {
+		return stayLoggedIn;
+	}
+	public void setStayLoggedIn(boolean stayLoggedIn) {
+		this.stayLoggedIn = stayLoggedIn;
 	}
 }

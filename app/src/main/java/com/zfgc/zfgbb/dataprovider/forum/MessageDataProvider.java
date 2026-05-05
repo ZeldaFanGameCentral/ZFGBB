@@ -93,7 +93,8 @@ public class MessageDataProvider extends AbstractDataProvider {
 		 MessageHistory hist = mapper.map(msgDbo, MessageHistory.class);
 		 hist.setUnparsedText(hist.getMessageText());
 		 
-		 User createdUser = userDataProvider.getUser(msgDbo.getOwnerId());
+		 User createdUser = userDataProvider.findUser(msgDbo.getOwnerId())
+				 .orElseGet(User::orphaned);
 		 
 		 return messageMap.toModel(msgDbo, createdUser)
 		 		   .toBuilder()

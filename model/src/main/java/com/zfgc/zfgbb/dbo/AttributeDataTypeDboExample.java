@@ -6,62 +6,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AttributeDataTypeDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522108154-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458382289-04:00", comments="Source Table: zfgbb.attribute_data_type")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522123663-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458398968-04:00", comments="Source Table: zfgbb.attribute_data_type")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522144973-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458417858-04:00", comments="Source Table: zfgbb.attribute_data_type")
     protected List<Criteria> oredCriteria;
 
     protected Integer limit;
 
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522099274-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458374399-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public AttributeDataTypeDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522113974-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458387489-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522119094-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458392169-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522129893-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458404058-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522135883-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458408838-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522148493-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458422668-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522153782-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458426277-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522159232-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458430477-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522163452-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458435107-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,13 +70,13 @@ public class AttributeDataTypeDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522167452-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458439667-04:00", comments="Source Table: zfgbb.attribute_data_type")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522171432-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458444297-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
@@ -99,7 +99,7 @@ public class AttributeDataTypeDboExample {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522177072-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458449857-04:00", comments="Source Table: zfgbb.attribute_data_type")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -392,14 +392,14 @@ public class AttributeDataTypeDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522327617-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458602712-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522337756-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458614451-04:00", comments="Source Table: zfgbb.attribute_data_type")
     public static class Criterion {
         private String condition;
 

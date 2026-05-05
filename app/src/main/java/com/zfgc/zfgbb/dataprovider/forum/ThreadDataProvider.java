@@ -168,7 +168,9 @@ public class ThreadDataProvider extends AbstractDataProvider {
 		//finally, link up all the data
 		result.forEach(th -> {
 			AllMessagesInThreadViewDbo latestDetails = mappedMessageDetails.get(th.getThreadId()).get(0);
-			th.setCreatedUser(super.mapper.map(userDao.get(th.getCreatedUserId()), User.class));
+			th.setCreatedUser(userDao.get(th.getCreatedUserId())
+					.map(dbo -> super.mapper.map(dbo, User.class))
+					.orElseGet(User::orphaned));
 			th.setPostCount(messageDataProvider.getTotalPostsInThread(th.getThreadId()).intValue());
 			
 			LatestMessageInThreadViewDbo latestDbo = messagesByThreadId.get(th.getThreadId());

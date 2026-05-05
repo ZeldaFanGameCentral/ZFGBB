@@ -6,62 +6,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class KarmaDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51949395-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455712774-04:00", comments="Source Table: zfgbb.karma")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51950706-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455728494-04:00", comments="Source Table: zfgbb.karma")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519524399-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455751913-04:00", comments="Source Table: zfgbb.karma")
     protected List<Criteria> oredCriteria;
 
     protected Integer limit;
 
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519485231-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455702834-04:00", comments="Source Table: zfgbb.karma")
     public KarmaDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51949987-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455719344-04:00", comments="Source Table: zfgbb.karma")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51950411-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455723794-04:00", comments="Source Table: zfgbb.karma")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51951131-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455739783-04:00", comments="Source Table: zfgbb.karma")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.51951612-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455743143-04:00", comments="Source Table: zfgbb.karma")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519529169-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455756723-04:00", comments="Source Table: zfgbb.karma")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519533529-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455761093-04:00", comments="Source Table: zfgbb.karma")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519537839-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455765372-04:00", comments="Source Table: zfgbb.karma")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519540629-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455769562-04:00", comments="Source Table: zfgbb.karma")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,13 +70,13 @@ public class KarmaDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519553738-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455773772-04:00", comments="Source Table: zfgbb.karma")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519558378-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455776392-04:00", comments="Source Table: zfgbb.karma")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
@@ -99,7 +99,7 @@ public class KarmaDboExample {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519563968-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455782002-04:00", comments="Source Table: zfgbb.karma")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -642,14 +642,14 @@ public class KarmaDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519780091-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.455995865-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.519789721-04:00", comments="Source Table: zfgbb.karma")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.456007355-04:00", comments="Source Table: zfgbb.karma")
     public static class Criterion {
         private String condition;
 

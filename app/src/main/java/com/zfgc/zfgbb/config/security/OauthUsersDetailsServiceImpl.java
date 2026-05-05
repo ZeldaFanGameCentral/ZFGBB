@@ -35,7 +35,8 @@ public class OauthUsersDetailsServiceImpl implements UserDetailsService{
 	 
 	@Override
 	public UserDetails loadUserByUsername(String ssoKey) throws UsernameNotFoundException {
-		return userDataProvider.getUser(ssoKey);
+		return userDataProvider.findUser(ssoKey)
+				.orElseThrow(() -> new UsernameNotFoundException(ssoKey));
 	}
 	
 	public String getLoginToken(AuthCredentials credentials) {

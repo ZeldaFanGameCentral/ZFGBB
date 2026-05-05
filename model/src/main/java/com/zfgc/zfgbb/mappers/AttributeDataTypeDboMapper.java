@@ -7,37 +7,37 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface AttributeDataTypeDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522566909-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458874523-04:00", comments="Source Table: zfgbb.attribute_data_type")
     long countByExample(AttributeDataTypeDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522624417-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.458936871-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int deleteByExample(AttributeDataTypeDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522645316-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.45895897-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int deleteByPrimaryKey(Integer attributeDataTypeId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522659386-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.45898177-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int insert(AttributeDataTypeDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522672145-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459016099-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int insertSelective(AttributeDataTypeDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522695385-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459041398-04:00", comments="Source Table: zfgbb.attribute_data_type")
     List<AttributeDataTypeDbo> selectByExample(AttributeDataTypeDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522715014-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459067027-04:00", comments="Source Table: zfgbb.attribute_data_type")
     AttributeDataTypeDbo selectByPrimaryKey(Integer attributeDataTypeId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522731523-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459088686-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int updateByExampleSelective(@Param("row") AttributeDataTypeDbo row, @Param("example") AttributeDataTypeDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522757542-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459115005-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int updateByExample(@Param("row") AttributeDataTypeDbo row, @Param("example") AttributeDataTypeDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522779002-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459139515-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int updateByPrimaryKeySelective(AttributeDataTypeDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.522799311-04:00", comments="Source Table: zfgbb.attribute_data_type")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.459159864-04:00", comments="Source Table: zfgbb.attribute_data_type")
     int updateByPrimaryKey(AttributeDataTypeDbo row);
 
     List<AttributeDataTypeDbo> selectByExampleWithLimits(AttributeDataTypeDboExample example);

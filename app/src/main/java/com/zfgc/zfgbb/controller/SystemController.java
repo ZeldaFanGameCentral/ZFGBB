@@ -69,7 +69,7 @@ public class SystemController {
 		}
 
 		InstallResult result = installService.install(request);
-		LoginResponse tokens = authService.issueLoginResponse(result.admin());
+		LoginResponse tokens = authService.issueLoginResponse(result.admin(), false);
 		InstallResponse base = result.response();
 
 		if (Boolean.TRUE.equals(request.useTokens())) {
@@ -84,8 +84,8 @@ public class SystemController {
 		}
 
 		return ResponseEntity.ok()
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(tokens.accessToken()).toString())
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(tokens.refreshToken()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(tokens.accessToken(), false).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(tokens.refreshToken(), false).toString())
 				.body(base);
 	}
 

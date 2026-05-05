@@ -5,62 +5,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BrBoardPermissionDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486002887-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418935319-04:00", comments="Source Table: zfgbb.br_board_permission")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486040056-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418970607-04:00", comments="Source Table: zfgbb.br_board_permission")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486099704-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419012776-04:00", comments="Source Table: zfgbb.br_board_permission")
     protected List<Criteria> oredCriteria;
 
     protected Integer limit;
 
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.485983288-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418918319-04:00", comments="Source Table: zfgbb.br_board_permission")
     public BrBoardPermissionDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486016957-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418948218-04:00", comments="Source Table: zfgbb.br_board_permission")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486028056-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418959528-04:00", comments="Source Table: zfgbb.br_board_permission")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486053625-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418984727-04:00", comments="Source Table: zfgbb.br_board_permission")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486067295-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.418996717-04:00", comments="Source Table: zfgbb.br_board_permission")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486114013-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419023236-04:00", comments="Source Table: zfgbb.br_board_permission")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486127803-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419034465-04:00", comments="Source Table: zfgbb.br_board_permission")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486140152-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419045755-04:00", comments="Source Table: zfgbb.br_board_permission")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486152942-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419057675-04:00", comments="Source Table: zfgbb.br_board_permission")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -69,13 +69,13 @@ public class BrBoardPermissionDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486163072-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419075914-04:00", comments="Source Table: zfgbb.br_board_permission")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486174611-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419094663-04:00", comments="Source Table: zfgbb.br_board_permission")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
@@ -98,7 +98,7 @@ public class BrBoardPermissionDboExample {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486187261-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419114773-04:00", comments="Source Table: zfgbb.br_board_permission")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -321,14 +321,14 @@ public class BrBoardPermissionDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486421703-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419359695-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-02T13:05:48.486443752-04:00", comments="Source Table: zfgbb.br_board_permission")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-04T22:43:37.419381954-04:00", comments="Source Table: zfgbb.br_board_permission")
     public static class Criterion {
         private String condition;
 

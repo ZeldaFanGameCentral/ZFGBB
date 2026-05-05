@@ -53,8 +53,8 @@ public class UserController extends BaseController {
 		}
 
 		return ResponseEntity.ok()
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(result.accessToken()).toString())
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(result.refreshToken()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(result.accessToken(), result.stayLoggedIn()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(result.refreshToken(), result.stayLoggedIn()).toString())
 				.body(result.user());
 	}
 
@@ -75,8 +75,8 @@ public class UserController extends BaseController {
 		}
 
 		return ResponseEntity.noContent()
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(pair.accessToken()).toString())
-				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(pair.refreshToken()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildAccessCookie(pair.accessToken(), pair.stayLoggedIn()).toString())
+				.header(HttpHeaders.SET_COOKIE, cookieService.buildRefreshCookie(pair.refreshToken(), pair.stayLoggedIn()).toString())
 				.build();
 	}
 

@@ -20,6 +20,15 @@ public class CookieOrHeaderBearerTokenResolver implements BearerTokenResolver {
 
 	@Override
 	public String resolve(HttpServletRequest request) {
+		String path = request.getRequestURI();
+		String contextPath = request.getContextPath();
+		if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
+			path = path.substring(contextPath.length());
+		}
+		if (path.startsWith("/users/auth/")) {
+			return null;
+		}
+
 		String fromHeader = headerResolver.resolve(request);
 		if (fromHeader != null) {
 			return fromHeader;

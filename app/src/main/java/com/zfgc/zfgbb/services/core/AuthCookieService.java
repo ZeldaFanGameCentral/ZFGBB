@@ -4,6 +4,7 @@ import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseCookie.ResponseCookieBuilder;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.Cookie;
@@ -31,24 +32,30 @@ public class AuthCookieService {
 		this.refreshPath = contextPath + "/users/auth/refresh";
 	}
 
-	public ResponseCookie buildAccessCookie(String token) {
-		return ResponseCookie.from(ACCESS_COOKIE_NAME, token)
+	public ResponseCookie buildAccessCookie(String token, boolean persistent) {
+		ResponseCookieBuilder b = ResponseCookie.from(ACCESS_COOKIE_NAME, token)
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Lax")
-				.path("/")
-				.maxAge(Duration.ofMinutes(accessTtlMinutes))
-				.build();
+				.path("/");
+		// Without persistence, omit maxAge so the browser drops the cookie when the
+		// session ends. With persistence, bound it by the access-token TTL.
+		if (persistent) {
+			b.maxAge(Duration.ofMinutes(accessTtlMinutes));
+		}
+		return b.build();
 	}
 
-	public ResponseCookie buildRefreshCookie(String token) {
-		return ResponseCookie.from(REFRESH_COOKIE_NAME, token)
+	public ResponseCookie buildRefreshCookie(String token, boolean persistent) {
+		ResponseCookieBuilder b = ResponseCookie.from(REFRESH_COOKIE_NAME, token)
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Strict")
-				.path(refreshPath)
-				.maxAge(Duration.ofDays(refreshTtlDays))
-				.build();
+				.path(refreshPath);
+		if (persistent) {
+			b.maxAge(Duration.ofDays(refreshTtlDays));
+		}
+		return b.build();
 	}
 
 	public ResponseCookie clearAccessCookie() {
