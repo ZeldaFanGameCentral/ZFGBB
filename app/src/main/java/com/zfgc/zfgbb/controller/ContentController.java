@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.services.core.ContentService;
 
 @RestController
@@ -24,14 +25,13 @@ public class ContentController extends BaseController {
 	@GetMapping("image/{resourceId}")
 	public ResponseEntity<Resource> getImageResource(@PathVariable("resourceId") Integer resourceId)
 			throws MalformedURLException {
-		return prepareResource(contentService.getImageResource(resourceId));
-	}
-
-	private ResponseEntity<Resource> prepareResource(Resource resource) {
+		ContentResourceDbo dbo = contentService.getContentResourceDbo(resourceId);
+		Resource resource = contentService.getImageResource(resourceId);
+		String displayName = dbo != null ? dbo.getFilename() : resource.getFilename();
 		return ResponseEntity.ok()
 				.contentType(
-						contentService.getMimeType(resource.getFilename()).orElse(MediaType.APPLICATION_OCTET_STREAM))
-				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+						contentService.getMimeType(displayName).orElse(MediaType.APPLICATION_OCTET_STREAM))
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + displayName + "\"")
 				.body(resource);
 	}
 

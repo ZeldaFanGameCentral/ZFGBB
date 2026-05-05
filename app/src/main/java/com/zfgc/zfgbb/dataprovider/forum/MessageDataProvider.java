@@ -1,6 +1,9 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,20 +12,27 @@ import org.springframework.stereotype.Repository;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Streams;
 import com.zfgc.zfgbb.dao.forum.CurrentMessageDao;
+import com.zfgc.zfgbb.dao.forum.FileAttachmentsDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
+import com.zfgc.zfgbb.dbo.ContentResourceDbo;
+import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
 import com.zfgc.zfgbb.dbo.CurrentMessageDbo;
 import com.zfgc.zfgbb.dbo.CurrentMessageDboExample;
+import com.zfgc.zfgbb.dbo.FileAttachmentDbo;
+import com.zfgc.zfgbb.dbo.FileAttachmentDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
+import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
 import com.zfgc.zfgbb.mapstruct.forum.MessageMap;
 import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.forum.FileAttachment;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
 
@@ -39,7 +49,13 @@ public class MessageDataProvider extends AbstractDataProvider {
 	
 	@Autowired
 	private UserDataProvider userDataProvider;
-	
+
+	@Autowired
+	private FileAttachmentsDao fileAttachmentsDao;
+
+	@Autowired
+	private ContentResourceDboMapper contentResourceMapper;
+
 	@Autowired
 	private MessageMap messageMap;
 	
@@ -83,9 +99,49 @@ public class MessageDataProvider extends AbstractDataProvider {
 						   .andPostInThreadBetween(start, start + count - 1);
 		ex.setOrderByClause("post_in_thread asc");
 
-		return currentMessageDao.get(ex)
+		List<Message> messages = currentMessageDao.get(ex)
 						 .stream()
 						 .map(this::mapMessage).toList();
+
+		hydrateAttachments(messages);
+		return messages;
+	}
+
+	private void hydrateAttachments(List<Message> messages) {
+		List<Integer> messageIds = messages.stream()
+				.map(Message::getMessageId)
+				.filter(id -> id != null)
+				.toList();
+		if (messageIds.isEmpty()) return;
+
+		FileAttachmentDboExample faEx = new FileAttachmentDboExample();
+		faEx.createCriteria().andMessageIdIn(messageIds);
+		List<FileAttachmentDbo> attachmentDbos = fileAttachmentsDao.get(faEx);
+		if (attachmentDbos.isEmpty()) return;
+
+		List<Integer> resourceIds = attachmentDbos.stream()
+				.map(FileAttachmentDbo::getContentResourceId).distinct().toList();
+		ContentResourceDboExample crEx = new ContentResourceDboExample();
+		crEx.createCriteria().andContentResourceIdIn(resourceIds);
+		Map<Integer, ContentResourceDbo> resourceById = contentResourceMapper.selectByExample(crEx).stream()
+				.collect(Collectors.toMap(ContentResourceDbo::getContentResourceId, r -> r));
+
+		Map<Integer, List<FileAttachment>> byMessageId = attachmentDbos.stream()
+				.collect(Collectors.groupingBy(FileAttachmentDbo::getMessageId,
+						Collectors.mapping(fa -> {
+							ContentResourceDbo cr = resourceById.get(fa.getContentResourceId());
+							return FileAttachment.builder()
+									.fileAttachmentId(fa.getFileAttachmentId())
+									.contentResourceId(fa.getContentResourceId())
+									.filename(cr != null ? cr.getFilename() : null)
+									.mimeType(cr != null ? cr.getMimeType() : null)
+									.fileSize(cr != null ? cr.getFileSize() : null)
+									.downloads(fa.getDownloads())
+									.build();
+						}, Collectors.toList())));
+
+		messages.forEach(m -> m.setFileAttachments(
+				byMessageId.getOrDefault(m.getMessageId(), Collections.emptyList())));
 	}
 	
 	private Message mapMessage(CurrentMessageDbo msgDbo){

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import com.zfgc.zfgbb.dbo.AvatarDbo;
 import com.zfgc.zfgbb.dbo.AvatarDboExample;
@@ -149,9 +150,9 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 			Integer genderId = genderLk.stream().filter(lk -> lk.getCode().equals(genderCode)).findFirst().map(GenderLkupDbo::getGenderId).orElse(null);
 
 			user.setUserId(zfgbbUserId);
-			user.setCustomTitle(smfMember.getUsertitle());
-			user.setPersonalText(smfMember.getPersonalText());
-			user.setSignature(smfMember.getSignature());
+			user.setCustomTitle(smfMember.getUsertitle() != null ? HtmlUtils.htmlUnescape(smfMember.getUsertitle()) : null);
+			user.setPersonalText(smfMember.getPersonalText() != null ? HtmlUtils.htmlUnescape(smfMember.getPersonalText()) : null);
+			user.setSignature(smfMember.getSignature() != null ? HtmlUtils.htmlUnescape(smfMember.getSignature()) : null);
 			user.setAvatarId(avatar.getAvatarId());
 			user.setBirthDate(smfMember.getBirthdate());
 			user.setKarmaBad(smfMember.getKarmaBad());

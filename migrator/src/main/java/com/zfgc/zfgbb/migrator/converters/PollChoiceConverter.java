@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import com.zfgc.zfgbb.dbo.PollChoiceDbo;
 import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
@@ -47,7 +48,7 @@ public class PollChoiceConverter extends AbstractConverter<Map<Integer, PollChoi
 
 					PollChoiceDbo pollChoice = new PollChoiceDbo();
 					pollChoice.setActiveFlag(true);
-					pollChoice.setChoiceText(smfChoice.getLabel());
+					pollChoice.setChoiceText(HtmlUtils.htmlUnescape(smfChoice.getLabel()));
 					pollChoice.setSeqno(smfChoice.getIdChoice());
 					pollChoice.setPollId(zfgbbPollId);
 					pollChoice.setVotes(smfChoice.getVotes().intValue());
