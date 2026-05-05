@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.util.HtmlUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,7 +53,7 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 			Cancellable.check();
 			BoardDbo board = new BoardDbo();
 
-			board.setBoardName(smfBoard.getName());
+			board.setBoardName(HtmlUtils.htmlUnescape(smfBoard.getName()));
 			board.setCategoryId(idMap.lookup(LegacyEntityType.CATEGORY, smfBoard.getIdCat()));
 			board.setSeqno(smfBoard.getBoardOrder().intValue());
 

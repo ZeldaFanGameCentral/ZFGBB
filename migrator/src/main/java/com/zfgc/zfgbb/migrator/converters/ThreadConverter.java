@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.mappers.ThreadDboMapper;
@@ -77,7 +78,7 @@ public class ThreadConverter extends AbstractConverter<Map<Integer, ThreadDbo>> 
 					: idMap.lookup(LegacyEntityType.USER, smfMemberStarted));
 			thread.setLockedFlag(smfTopic.getLocked().intValue() > 0);
 			thread.setPinnedFlag(smfTopic.getIsSticky().intValue() > 0);
-			thread.setThreadName(msg.getSubject());
+			thread.setThreadName(HtmlUtils.htmlUnescape(msg.getSubject()));
 			thread.setViewCount(smfTopic.getNumViews());
 
 			thread.setMigrationHash(MigrationHasher.hash(smfTopic.getIdTopic().toString()

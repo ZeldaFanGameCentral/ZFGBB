@@ -113,6 +113,13 @@ public class BBCodeService {
 				String bbCodetest = "";
 				i++;
 
+				// '[' as the final char (e.g. ':-[' emoticon at end of post) — flush
+				// remainder as literal text and stop instead of reading past the buffer.
+				if (i >= length) {
+					currentBuffer.append(inputChar, lastKnownFreshPosition, length - lastKnownFreshPosition);
+					break;
+				}
+
 				// hold the phone, this might be a closing brace
 				if (inputChar[i] == '/') {
 					isClosingBrace = true;

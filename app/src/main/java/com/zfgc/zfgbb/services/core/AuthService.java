@@ -17,6 +17,7 @@ import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.AuthCredentials;
+import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
 import com.zfgc.zfgbb.model.users.HashedPassword;
 import com.zfgc.zfgbb.model.users.LoginResponse;
 import com.zfgc.zfgbb.model.users.PasswordAlgo;
@@ -108,22 +109,24 @@ public class AuthService {
 			userDao.save(dbo);
 		}
 
-		User user = userDataProvider.getUser(dbo.getUserId(), new LoggedInUserLoadOptions());
-		return issueLoginResponse(user);
+		User user = userDataProvider.findUser(dbo.getUserId(), new LoggedInUserLoadOptions())
+				.orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+		return issueLoginResponse(user, credentials.isStayLoggedIn());
 	}
 
-	public LoginResponse issueLoginResponse(User user) {
+	public LoginResponse issueLoginResponse(User user, boolean stayLoggedIn) {
 		String accessToken = jwtService.issueAccessToken(user);
-		String refreshToken = refreshTokenService.issue(user.getUserId());
-		return new LoginResponse(accessToken, refreshToken, user);
+		String refreshToken = refreshTokenService.issue(user.getUserId(), stayLoggedIn);
+		return new LoginResponse(accessToken, refreshToken, stayLoggedIn, user);
 	}
 
 	public TokenPair refresh(String refreshToken) {
-		Integer userId = refreshTokenService.consume(refreshToken);
-		User user = userDataProvider.getUser(userId, new LoggedInUserLoadOptions());
+		ConsumedRefreshToken consumed = refreshTokenService.consume(refreshToken);
+		User user = userDataProvider.findUser(consumed.userId(), new LoggedInUserLoadOptions())
+				.orElseThrow(() -> new BadCredentialsException("Refresh token references unknown user"));
 		String newAccess = jwtService.issueAccessToken(user);
-		String newRefresh = refreshTokenService.issue(user.getUserId());
-		return new TokenPair(newAccess, newRefresh);
+		String newRefresh = refreshTokenService.issue(user.getUserId(), consumed.stayLoggedIn());
+		return new TokenPair(newAccess, newRefresh, consumed.stayLoggedIn());
 	}
 
 	public void logout(String refreshToken) {

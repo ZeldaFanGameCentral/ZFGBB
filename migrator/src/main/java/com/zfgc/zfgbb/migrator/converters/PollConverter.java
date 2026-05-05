@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.HtmlUtils;
 
 import com.zfgc.zfgbb.dbo.PollDbo;
 import com.zfgc.zfgbb.mappers.PollDboMapper;
@@ -87,7 +88,7 @@ public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
 			poll.setGuestVoteFlag(smfPoll.getGuestVote());
 			poll.setHideResultsFlag(smfPoll.getHideResults());
 			poll.setMaxVotes(smfPoll.getMaxVotes());
-			poll.setPollQuestion(smfPoll.getQuestion());
+			poll.setPollQuestion(HtmlUtils.htmlUnescape(smfPoll.getQuestion()));
 			poll.setResetPoll(smfPoll.getResetPoll());
 			poll.setThreadId(zfgbbThreadId);
 			poll.setVotingLockedFlag(smfPoll.getVotingLocked());

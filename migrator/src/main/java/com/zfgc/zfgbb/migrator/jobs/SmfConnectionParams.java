@@ -9,5 +9,6 @@ public record SmfConnectionParams(
 		String appBaseUrl,
 		String attachmentsSourcePath,
 		String attachmentsTargetPath,
+		String avatarsSourcePath,
 		boolean force) {
 }

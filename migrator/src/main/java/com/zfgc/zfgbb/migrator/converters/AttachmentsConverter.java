@@ -69,10 +69,11 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 					resource.setFileExt(attachment.getFileext());
 					resource.setFilename(attachment.getFilename());
 					resource.setMimeType(attachment.getMimeType());
-					resource.setUploadedUserId(msg.getOwnerId());
+					Integer ownerId = msg.getOwnerId() != null ? msg.getOwnerId() : 1;
+					resource.setUploadedUserId(ownerId);
 					resource.setFileSize(attachment.getSize().longValue());
 					resource.setMigrationHash(MigrationHasher.hash(resource.getContentTypeId().toString()
-							+ resource.getUploadedUserId().toString()
+							+ ownerId.toString()
 							+ resource.getFilename()
 							+ resource.getChecksum()
 							+ resource.getFileExt()

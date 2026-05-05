@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,8 @@ public class JwtUserAuthenticationConverter implements Converter<Jwt, AbstractAu
 	@Override
 	public AbstractAuthenticationToken convert(Jwt jwt) {
 		Integer userId = Integer.valueOf(jwt.getSubject());
-		User user = userDataProvider.getUser(userId, new LoggedInUserLoadOptions());
+		User user = userDataProvider.findUser(userId, new LoggedInUserLoadOptions())
+				.orElseThrow(() -> new BadJwtException("JWT subject references unknown user " + userId));
 		return new UsernamePasswordAuthenticationToken(user, jwt, user.getAuthorities());
 	}
 }

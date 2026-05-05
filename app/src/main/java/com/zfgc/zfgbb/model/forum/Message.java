@@ -29,7 +29,10 @@ public class Message extends BaseModel {
 	private Integer postInThread;
 	
 	private User createdUser;
-	
+
+	@Builder.Default
+	private List<FileAttachment> fileAttachments = new ArrayList<>();
+
 	@Builder.Default
 	private MessageHistory currentMessage = new MessageHistory();
 

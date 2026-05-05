@@ -103,27 +103,36 @@ public class UserDataProvider extends AbstractDataProvider {
 	@Autowired
 	private PermissionMap permissionMap;
 
-	public User getUser(String userName) {
+	public Optional<User> findUser(String userName) {
+		if (userName == null || userName.isBlank()) {
+			return Optional.empty();
+		}
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName).andActiveFlagEqualTo(true);
-		UserDbo userDb = userDao.get(ex).stream().findFirst().orElse(createGuest());
-
-		return getUser(userDb.getUserId(), new LoggedInUserLoadOptions());
+		return userDao.get(ex).stream().findFirst()
+				.flatMap(dbo -> findUser(dbo.getUserId(), new LoggedInUserLoadOptions()));
 	}
 
-	public User getUser(Integer userId) {
-		return getUser(userId, new BasicUserLoadOptions());
+	public Optional<User> findUser(Integer userId) {
+		return findUser(userId, new BasicUserLoadOptions());
 	}
 
-	public User getUser(Integer userId, BasicUserLoadOptions loadOptions) {
-
+	public Optional<User> findUser(Integer userId, BasicUserLoadOptions loadOptions) {
+		if (userId == null) {
+			return Optional.empty();
+		}
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdEqualTo(userId).andActiveFlagEqualTo(true);
-		UserDbo userDb = userDao.get(ex).stream().findFirst().orElse(createGuest());
+		return userDao.get(ex).stream().findFirst()
+				.map(userDb -> hydrateUser(userDb, loadOptions));
+	}
+
+	private User hydrateUser(UserDbo userDb, BasicUserLoadOptions loadOptions) {
+		Integer userId = userDb.getUserId();
 
 		// todo: setup guest permissions
 		UserPermissionViewDboExample upEx = new UserPermissionViewDboExample();
-		upEx.createCriteria().andUserIdEqualTo(userDb.getUserId());
+		upEx.createCriteria().andUserIdEqualTo(userId);
 		List<Permission> permissions = Boolean.TRUE.equals(loadOptions.loadPermissions())
 				? userPermissionDao.get(upEx).stream().map(permissionMap::toModel).toList()
 				: Collections.emptyList();
@@ -207,7 +216,8 @@ public class UserDataProvider extends AbstractDataProvider {
 		defaultPerm.setUserPermissionId(ZFGC_USER_PERMISSION_ID);
 		brUserPermissionDao.save(defaultPerm);
 
-		return getUser(userDbo.getUserId(), new FullUserLoadOptions());
+		return findUser(userDbo.getUserId(), new FullUserLoadOptions())
+				.orElseThrow(() -> new IllegalStateException("user disappeared after createUser"));
 	}
 
 	public Optional<UserDbo> findByUserName(String userName) {
@@ -222,14 +232,6 @@ public class UserDataProvider extends AbstractDataProvider {
 		return emailDao.get(ex).stream().findFirst();
 	}
 
-	public UserDbo createGuest() {
-		UserDbo user = new UserDbo();
-		user.setUserId(-1);
-		user.setDisplayName("Guest");
-
-		return user;
-	}
-
 	public User saveUserProfile(User user) {
 		UserDbo userDbo = mapper.map(user, UserDbo.class);
 		userDbo = userDao.save(userDbo);
@@ -239,7 +241,8 @@ public class UserDataProvider extends AbstractDataProvider {
 			bioInfoDao.save(bioInfoDbo);
 		}
 
-		return getUser(userDbo.getUserId(), null);
+		return findUser(userDbo.getUserId(), new BasicUserLoadOptions())
+				.orElseThrow(() -> new IllegalStateException("user disappeared after saveUserProfile"));
 	}
 
 }

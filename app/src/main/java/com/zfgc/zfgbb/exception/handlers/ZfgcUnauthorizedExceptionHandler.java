@@ -14,7 +14,7 @@ public class ZfgcUnauthorizedExceptionHandler {
 
 	@ExceptionHandler(value=ZfgcUnauthorizedException.class)
 	public ResponseEntity concurrentErrorHandler(HttpServletRequest req, ZfgcUnauthorizedException e) {
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized access attempted.");
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden.");
 	}
 	
 }

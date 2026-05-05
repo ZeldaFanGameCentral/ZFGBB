@@ -96,6 +96,7 @@ public class JobService {
 		job.setAppBaseUrl(params.appBaseUrl());
 		job.setAttachmentsSourcePath(params.attachmentsSourcePath());
 		job.setAttachmentsTargetPath(params.attachmentsTargetPath());
+		job.setAvatarsSourcePath(params.avatarsSourcePath());
 		job.setForce(params.force());
 		jobs.put(job.getId(), job);
 		futures.put(job.getId(), executor.submit(() -> run(job)));
@@ -105,6 +106,7 @@ public class JobService {
 	private void run(Job job) {
 		DataSource ds = buildDataSource(job.getSmfJdbcUrl(), job.getSmfUser(), job.getSmfPassword());
 		JobContextHolder.set(ds, job.getAttachmentsSourcePath(), job.getAttachmentsTargetPath(),
+				job.getAvatarsSourcePath(),
 				job.getSmfTablePrefix(), job.getSmfLegacyHost(), job.getAppBaseUrl(), job.isForce());
 		job.setState(JobState.RUNNING);
 		job.setStartedAt(Instant.now());
