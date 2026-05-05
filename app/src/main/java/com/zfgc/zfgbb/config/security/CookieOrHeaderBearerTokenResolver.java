@@ -1,9 +1,13 @@
 package com.zfgc.zfgbb.config.security;
 
+import java.time.Instant;
+import java.util.Date;
+
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.stereotype.Component;
 
+import com.nimbusds.jwt.SignedJWT;
 import com.zfgc.zfgbb.services.core.AuthCookieService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,19 +24,23 @@ public class CookieOrHeaderBearerTokenResolver implements BearerTokenResolver {
 
 	@Override
 	public String resolve(HttpServletRequest request) {
-		String path = request.getRequestURI();
-		String contextPath = request.getContextPath();
-		if (contextPath != null && !contextPath.isEmpty() && path.startsWith(contextPath)) {
-			path = path.substring(contextPath.length());
+		String token = headerResolver.resolve(request);
+		if (token == null) {
+			token = cookieService.readAccessCookie(request);
 		}
-		if (path.startsWith("/users/auth/")) {
+		if (token == null) {
 			return null;
 		}
 
-		String fromHeader = headerResolver.resolve(request);
-		if (fromHeader != null) {
-			return fromHeader;
+		try {
+			SignedJWT jwt = SignedJWT.parse(token);
+			Date exp = jwt.getJWTClaimsSet().getExpirationTime();
+			if (exp != null && exp.toInstant().isBefore(Instant.now())) {
+				return null;
+			}
+		} catch (Exception ignored) {
 		}
-		return cookieService.readAccessCookie(request);
+
+		return token;
 	}
 }
