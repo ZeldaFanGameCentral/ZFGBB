@@ -2,6 +2,7 @@ package com.zfgc.zfgbb;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -65,9 +66,18 @@ class MigrateControllerHttpTest {
 	@Test
 	void post_jobs_without_auth_returns_401() throws Exception {
 		mockMvc.perform(post("/system/migrate/jobs")
+				.with(csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(VALID_REQUEST))
 				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void post_jobs_without_csrf_token_returns_403() throws Exception {
+		mockMvc.perform(post("/system/migrate/jobs")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(VALID_REQUEST))
+				.andExpect(status().isForbidden());
 	}
 
 	@Test

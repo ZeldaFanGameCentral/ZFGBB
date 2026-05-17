@@ -7,9 +7,16 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import java.util.Set;
+
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -19,14 +26,33 @@ public class SecurityConfig {
 	private JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
 
 	@Autowired
-	private CookieOrHeaderBearerTokenResolver bearerTokenResolver;
+	private AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
 	private final PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
+
+	private static final Set<String> CSRF_SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
+		csrfHandler.setCsrfRequestAttributeName(null);
+
+		CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+		csrfTokenRepository.setCookieCustomizer(c -> c.path("/"));
+
+		RequestMatcher csrfIgnored = new OrRequestMatcher(
+			mvc.matcher("/users/auth/login"),
+			mvc.matcher("/users/register"),
+			mvc.matcher("/system/install/**"));
+		RequestMatcher requireCsrf = request ->
+			!CSRF_SAFE_METHODS.contains(request.getMethod()) && !csrfIgnored.matches(request);
+
 		http
 			.cors(Customizer.withDefaults())
-			.csrf(csrf -> csrf.disable())
+			.csrf(csrf -> csrf
+				.csrfTokenRepository(csrfTokenRepository)
+				.csrfTokenRequestHandler(csrfHandler)
+				.requireCsrfProtectionMatcher(requireCsrf))
+			.addFilterBefore(accessCookieBearerHeaderFilter, BearerTokenAuthenticationFilter.class)
 			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				// Actuator health endpoints — reachable anonymously so K8s probes succeed.
@@ -56,7 +82,6 @@ public class SecurityConfig {
 				).permitAll()
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(oauth -> oauth
-				.bearerTokenResolver(bearerTokenResolver)
 				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
 
 		return http.build();

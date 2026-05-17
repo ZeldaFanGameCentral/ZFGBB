@@ -268,13 +268,14 @@ class MigrateSmfInstallationE2ETest {
 	}
 
 	private void assertAllMigratedFilesPresentInTarget() {
-		List<String> filenames = jdbcTemplate.queryForList(
-				"select cr.filename from zfgbb.content_resource cr "
+		List<Integer> contentResourceIds = jdbcTemplate.queryForList(
+				"select cr.content_resource_id from zfgbb.content_resource cr "
 						+ "join zfgbb.file_attachments fa on fa.content_resource_id = cr.content_resource_id",
-				String.class);
-		for (String fn : filenames) {
-			assertTrue(Files.exists(attachmentsTarget.resolve(fn)),
-					fn + " should be present in attachments target dir");
+				Integer.class);
+		for (Integer id : contentResourceIds) {
+			Path expected = attachmentsTarget.resolve(String.valueOf(id));
+			assertTrue(Files.exists(expected),
+					"attachment content_resource_id=" + id + " should be present at " + expected);
 		}
 	}
 
