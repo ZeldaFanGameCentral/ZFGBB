@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.UUID;
 
+import jakarta.servlet.http.Cookie;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +23,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -101,6 +103,7 @@ class LoginRegisterPostFlowTest {
 		JsonNode loginJson = objectMapper.readTree(loginResult.getResponse().getContentAsString());
 		String accessToken = loginJson.get("accessToken").asText();
 		String refreshToken = loginJson.get("refreshToken").asText();
+		Cookie xsrf = loginResult.getResponse().getCookie("XSRF-TOKEN");
 
 		String threadBody = """
 				{
@@ -139,6 +142,8 @@ class LoginRegisterPostFlowTest {
 				{"refreshToken": "%s"}
 				""".formatted(refreshToken);
 		MvcResult refreshResult = mockMvc.perform(post("/users/auth/refresh")
+				.cookie(xsrf)
+				.header("X-XSRF-TOKEN", xsrf.getValue())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(refreshBody))
 				.andExpect(status().isOk())
@@ -149,6 +154,8 @@ class LoginRegisterPostFlowTest {
 		String newRefreshToken = refreshJson.get("refreshToken").asText();
 
 		mockMvc.perform(post("/users/auth/refresh")
+				.cookie(xsrf)
+				.header("X-XSRF-TOKEN", xsrf.getValue())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(refreshBody))
 				.andExpect(status().isUnauthorized());
@@ -157,11 +164,15 @@ class LoginRegisterPostFlowTest {
 				{"refreshToken": "%s"}
 				""".formatted(newRefreshToken);
 		mockMvc.perform(post("/users/auth/logout")
+				.cookie(xsrf)
+				.header("X-XSRF-TOKEN", xsrf.getValue())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(logoutBody))
 				.andExpect(status().isNoContent());
 
 		mockMvc.perform(post("/users/auth/refresh")
+				.cookie(xsrf)
+				.header("X-XSRF-TOKEN", xsrf.getValue())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(logoutBody))
 				.andExpect(status().isUnauthorized());
