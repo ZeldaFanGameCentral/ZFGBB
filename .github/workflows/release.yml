@@ -21,7 +21,7 @@ jobs:
     outputs:
       tag: ${{ steps.docker.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: ZeldaFanGameCentral/github-common/actions/docker-release@main
         id: docker
