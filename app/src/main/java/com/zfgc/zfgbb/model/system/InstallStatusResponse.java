@@ -1,4 +1,4 @@
 package com.zfgc.zfgbb.model.system;
 
-public record InstallStatusResponse(boolean installed, String siteName) {
+public record InstallStatusResponse(boolean installed, String siteName, String state, String lastError) {
 }

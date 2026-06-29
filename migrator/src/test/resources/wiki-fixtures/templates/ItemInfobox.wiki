@@ -1,0 +1,25 @@
+<includeonly>{{Infobox
+|title = {{#if:{{{title|}}}|{{{title}}}|EMPTY TITLE FIELD}}
+|image = {{{img1|}}}
+|caption = {{{cap1|}}}
+|image2 = {{{img2|}}}
+|caption2 = {{{cap2|}}}
+
+|label1 = Type
+|data1 = {{{type|}}}
+|label5 = Location
+|data5 = {{{location|}}}
+|label10 = Obtained
+|data10 = {{{obtained|}}}
+|label15 = Required
+|data15 = {{{required|}}}
+|label20 = Cost
+|data20 = {{{cost|}}}
+|label25 = Damage rate
+|data25 = {{{damagerate|}}}
+|label30 = Ammo
+|data30 = {{{ammo|}}}
+}}</includeonly>
+<noinclude>Infobox used to display information on a KOT item. The infobox appears when this template is transcluded onto a page.
+[[Category:King Of Thieves]]
+</noinclude>

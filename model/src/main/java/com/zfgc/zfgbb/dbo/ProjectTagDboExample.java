@@ -1,0 +1,417 @@
+package com.zfgc.zfgbb.dbo;
+
+import jakarta.annotation.Generated;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProjectTagDboExample {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728801319-04:00", comments="Source Table: zfgbb.project_tag")
+    protected String orderByClause;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728824399-04:00", comments="Source Table: zfgbb.project_tag")
+    protected boolean distinct;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728846628-04:00", comments="Source Table: zfgbb.project_tag")
+    protected List<Criteria> oredCriteria;
+
+    protected Integer limit;
+
+    protected Integer offset;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728793619-04:00", comments="Source Table: zfgbb.project_tag")
+    public ProjectTagDboExample() {
+        oredCriteria = new ArrayList<>();
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728806149-04:00", comments="Source Table: zfgbb.project_tag")
+    public void setOrderByClause(String orderByClause) {
+        this.orderByClause = orderByClause;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728811639-04:00", comments="Source Table: zfgbb.project_tag")
+    public String getOrderByClause() {
+        return orderByClause;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728832008-04:00", comments="Source Table: zfgbb.project_tag")
+    public void setDistinct(boolean distinct) {
+        this.distinct = distinct;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728838188-04:00", comments="Source Table: zfgbb.project_tag")
+    public boolean isDistinct() {
+        return distinct;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728849418-04:00", comments="Source Table: zfgbb.project_tag")
+    public List<Criteria> getOredCriteria() {
+        return oredCriteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728853398-04:00", comments="Source Table: zfgbb.project_tag")
+    public void or(Criteria criteria) {
+        oredCriteria.add(criteria);
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728857427-04:00", comments="Source Table: zfgbb.project_tag")
+    public Criteria or() {
+        Criteria criteria = createCriteriaInternal();
+        oredCriteria.add(criteria);
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728861377-04:00", comments="Source Table: zfgbb.project_tag")
+    public Criteria createCriteria() {
+        Criteria criteria = createCriteriaInternal();
+        if (oredCriteria.size() == 0) {
+            oredCriteria.add(criteria);
+        }
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728865247-04:00", comments="Source Table: zfgbb.project_tag")
+    protected Criteria createCriteriaInternal() {
+        Criteria criteria = new Criteria();
+        return criteria;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728868957-04:00", comments="Source Table: zfgbb.project_tag")
+    public void clear() {
+        oredCriteria.clear();
+        orderByClause = null;
+        distinct = false;
+    }
+
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Integer offset) {
+        this.offset = offset;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728874407-04:00", comments="Source Table: zfgbb.project_tag")
+    protected abstract static class GeneratedCriteria {
+        protected List<Criterion> criteria;
+
+        protected GeneratedCriteria() {
+            super();
+            criteria = new ArrayList<>();
+        }
+
+        public boolean isValid() {
+            return criteria.size() > 0;
+        }
+
+        public List<Criterion> getAllCriteria() {
+            return criteria;
+        }
+
+        public List<Criterion> getCriteria() {
+            return criteria;
+        }
+
+        protected void addCriterion(String condition) {
+            if (condition == null) {
+                throw new RuntimeException("Value for condition cannot be null");
+            }
+            criteria.add(new Criterion(condition));
+        }
+
+        protected void addCriterion(String condition, Object value, String property) {
+            if (value == null) {
+                throw new RuntimeException("Value for " + property + " cannot be null");
+            }
+            criteria.add(new Criterion(condition, value));
+        }
+
+        protected void addCriterion(String condition, Object value1, Object value2, String property) {
+            if (value1 == null || value2 == null) {
+                throw new RuntimeException("Between values for " + property + " cannot be null");
+            }
+            criteria.add(new Criterion(condition, value1, value2));
+        }
+
+        public Criteria andProjectTagIdIsNull() {
+            addCriterion("project_tag_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdIsNotNull() {
+            addCriterion("project_tag_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdEqualTo(Integer value) {
+            addCriterion("project_tag_id =", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdNotEqualTo(Integer value) {
+            addCriterion("project_tag_id <>", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdGreaterThan(Integer value) {
+            addCriterion("project_tag_id >", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("project_tag_id >=", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdLessThan(Integer value) {
+            addCriterion("project_tag_id <", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdLessThanOrEqualTo(Integer value) {
+            addCriterion("project_tag_id <=", value, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdIn(List<Integer> values) {
+            addCriterion("project_tag_id in", values, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdNotIn(List<Integer> values) {
+            addCriterion("project_tag_id not in", values, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdBetween(Integer value1, Integer value2) {
+            addCriterion("project_tag_id between", value1, value2, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andProjectTagIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("project_tag_id not between", value1, value2, "projectTagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdIsNull() {
+            addCriterion("content_entity_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdIsNotNull() {
+            addCriterion("content_entity_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdEqualTo(Integer value) {
+            addCriterion("content_entity_id =", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdNotEqualTo(Integer value) {
+            addCriterion("content_entity_id <>", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdGreaterThan(Integer value) {
+            addCriterion("content_entity_id >", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("content_entity_id >=", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdLessThan(Integer value) {
+            addCriterion("content_entity_id <", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdLessThanOrEqualTo(Integer value) {
+            addCriterion("content_entity_id <=", value, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdIn(List<Integer> values) {
+            addCriterion("content_entity_id in", values, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdNotIn(List<Integer> values) {
+            addCriterion("content_entity_id not in", values, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdBetween(Integer value1, Integer value2) {
+            addCriterion("content_entity_id between", value1, value2, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentEntityIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("content_entity_id not between", value1, value2, "contentEntityId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdIsNull() {
+            addCriterion("tag_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdIsNotNull() {
+            addCriterion("tag_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdEqualTo(Integer value) {
+            addCriterion("tag_id =", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdNotEqualTo(Integer value) {
+            addCriterion("tag_id <>", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdGreaterThan(Integer value) {
+            addCriterion("tag_id >", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("tag_id >=", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdLessThan(Integer value) {
+            addCriterion("tag_id <", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdLessThanOrEqualTo(Integer value) {
+            addCriterion("tag_id <=", value, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdIn(List<Integer> values) {
+            addCriterion("tag_id in", values, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdNotIn(List<Integer> values) {
+            addCriterion("tag_id not in", values, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdBetween(Integer value1, Integer value2) {
+            addCriterion("tag_id between", value1, value2, "tagId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTagIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("tag_id not between", value1, value2, "tagId");
+            return (Criteria) this;
+        }
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728971974-04:00", comments="do_not_delete_during_merge")
+    public static class Criteria extends GeneratedCriteria {
+        protected Criteria() {
+            super();
+        }
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.728979904-04:00", comments="Source Table: zfgbb.project_tag")
+    public static class Criterion {
+        private String condition;
+
+        private Object value;
+
+        private Object secondValue;
+
+        private boolean noValue;
+
+        private boolean singleValue;
+
+        private boolean betweenValue;
+
+        private boolean listValue;
+
+        private String typeHandler;
+
+        public String getCondition() {
+            return condition;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        public Object getSecondValue() {
+            return secondValue;
+        }
+
+        public boolean isNoValue() {
+            return noValue;
+        }
+
+        public boolean isSingleValue() {
+            return singleValue;
+        }
+
+        public boolean isBetweenValue() {
+            return betweenValue;
+        }
+
+        public boolean isListValue() {
+            return listValue;
+        }
+
+        public String getTypeHandler() {
+            return typeHandler;
+        }
+
+        protected Criterion(String condition) {
+            super();
+            this.condition = condition;
+            this.typeHandler = null;
+            this.noValue = true;
+        }
+
+        protected Criterion(String condition, Object value, String typeHandler) {
+            super();
+            this.condition = condition;
+            this.value = value;
+            this.typeHandler = typeHandler;
+            if (value instanceof List<?>) {
+                this.listValue = true;
+            } else {
+                this.singleValue = true;
+            }
+        }
+
+        protected Criterion(String condition, Object value) {
+            this(condition, value, null);
+        }
+
+        protected Criterion(String condition, Object value, Object secondValue, String typeHandler) {
+            super();
+            this.condition = condition;
+            this.value = value;
+            this.secondValue = secondValue;
+            this.typeHandler = typeHandler;
+            this.betweenValue = true;
+        }
+
+        protected Criterion(String condition, Object value, Object secondValue) {
+            this(condition, value, secondValue, null);
+        }
+    }
+}

@@ -10,5 +10,15 @@ public record SmfConnectionParams(
 		String attachmentsSourcePath,
 		String attachmentsTargetPath,
 		String avatarsSourcePath,
-		boolean force) {
+		String cmsFilesSourcePath,
+		String wikiImagesSourcePath,
+		boolean force,
+		boolean createMemberWikiPages,
+		Integer discussionBoardId,
+		Integer resourcesBoardId,
+		java.util.Map<String, Integer> talkBoardIds,
+		java.util.Map<Integer, java.util.List<String>> groupPermissionMap,
+		java.util.Map<String, String> wikiNamespaceCaseModes,
+		java.util.Map<String, String> wikiNamespaceAliases,
+		java.util.Map<Integer, String> wikiNamespaceIds) {
 }

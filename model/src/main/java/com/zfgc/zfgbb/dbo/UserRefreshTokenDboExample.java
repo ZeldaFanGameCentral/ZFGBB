@@ -1,67 +1,67 @@
 package com.zfgc.zfgbb.dbo;
 
 import jakarta.annotation.Generated;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserRefreshTokenDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227143581-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.44327749-04:00", comments="Source Table: zfgbb.user_refresh_token")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227162661-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443298719-04:00", comments="Source Table: zfgbb.user_refresh_token")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22719153-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443321329-04:00", comments="Source Table: zfgbb.user_refresh_token")
     protected List<Criteria> oredCriteria;
 
     protected Integer limit;
 
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227136042-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.44326598-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public UserRefreshTokenDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227149761-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.44328529-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227157371-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.44329232-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227167871-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443303599-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227172981-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443309719-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22719794-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443328878-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22720416-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443335898-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227207969-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443342208-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227213079-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443351408-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,13 +70,13 @@ public class UserRefreshTokenDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227218949-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443357578-04:00", comments="Source Table: zfgbb.user_refresh_token")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227223929-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443364457-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
@@ -99,7 +99,7 @@ public class UserRefreshTokenDboExample {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227230049-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443370437-04:00", comments="Source Table: zfgbb.user_refresh_token")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -341,52 +341,52 @@ public class UserRefreshTokenDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsEqualTo(LocalDateTime value) {
+        public Criteria andIssuedTsEqualTo(OffsetDateTime value) {
             addCriterion("issued_ts =", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsNotEqualTo(LocalDateTime value) {
+        public Criteria andIssuedTsNotEqualTo(OffsetDateTime value) {
             addCriterion("issued_ts <>", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsGreaterThan(LocalDateTime value) {
+        public Criteria andIssuedTsGreaterThan(OffsetDateTime value) {
             addCriterion("issued_ts >", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsGreaterThanOrEqualTo(LocalDateTime value) {
+        public Criteria andIssuedTsGreaterThanOrEqualTo(OffsetDateTime value) {
             addCriterion("issued_ts >=", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsLessThan(LocalDateTime value) {
+        public Criteria andIssuedTsLessThan(OffsetDateTime value) {
             addCriterion("issued_ts <", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsLessThanOrEqualTo(LocalDateTime value) {
+        public Criteria andIssuedTsLessThanOrEqualTo(OffsetDateTime value) {
             addCriterion("issued_ts <=", value, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsIn(List<LocalDateTime> values) {
+        public Criteria andIssuedTsIn(List<OffsetDateTime> values) {
             addCriterion("issued_ts in", values, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsNotIn(List<LocalDateTime> values) {
+        public Criteria andIssuedTsNotIn(List<OffsetDateTime> values) {
             addCriterion("issued_ts not in", values, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andIssuedTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("issued_ts between", value1, value2, "issuedTs");
             return (Criteria) this;
         }
 
-        public Criteria andIssuedTsNotBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andIssuedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("issued_ts not between", value1, value2, "issuedTs");
             return (Criteria) this;
         }
@@ -401,52 +401,52 @@ public class UserRefreshTokenDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsEqualTo(LocalDateTime value) {
+        public Criteria andExpiresTsEqualTo(OffsetDateTime value) {
             addCriterion("expires_ts =", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsNotEqualTo(LocalDateTime value) {
+        public Criteria andExpiresTsNotEqualTo(OffsetDateTime value) {
             addCriterion("expires_ts <>", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsGreaterThan(LocalDateTime value) {
+        public Criteria andExpiresTsGreaterThan(OffsetDateTime value) {
             addCriterion("expires_ts >", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsGreaterThanOrEqualTo(LocalDateTime value) {
+        public Criteria andExpiresTsGreaterThanOrEqualTo(OffsetDateTime value) {
             addCriterion("expires_ts >=", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsLessThan(LocalDateTime value) {
+        public Criteria andExpiresTsLessThan(OffsetDateTime value) {
             addCriterion("expires_ts <", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsLessThanOrEqualTo(LocalDateTime value) {
+        public Criteria andExpiresTsLessThanOrEqualTo(OffsetDateTime value) {
             addCriterion("expires_ts <=", value, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsIn(List<LocalDateTime> values) {
+        public Criteria andExpiresTsIn(List<OffsetDateTime> values) {
             addCriterion("expires_ts in", values, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsNotIn(List<LocalDateTime> values) {
+        public Criteria andExpiresTsNotIn(List<OffsetDateTime> values) {
             addCriterion("expires_ts not in", values, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andExpiresTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("expires_ts between", value1, value2, "expiresTs");
             return (Criteria) this;
         }
 
-        public Criteria andExpiresTsNotBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andExpiresTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("expires_ts not between", value1, value2, "expiresTs");
             return (Criteria) this;
         }
@@ -521,52 +521,52 @@ public class UserRefreshTokenDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsEqualTo(LocalDateTime value) {
+        public Criteria andCreatedTsEqualTo(OffsetDateTime value) {
             addCriterion("created_ts =", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsNotEqualTo(LocalDateTime value) {
+        public Criteria andCreatedTsNotEqualTo(OffsetDateTime value) {
             addCriterion("created_ts <>", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsGreaterThan(LocalDateTime value) {
+        public Criteria andCreatedTsGreaterThan(OffsetDateTime value) {
             addCriterion("created_ts >", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsGreaterThanOrEqualTo(LocalDateTime value) {
+        public Criteria andCreatedTsGreaterThanOrEqualTo(OffsetDateTime value) {
             addCriterion("created_ts >=", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsLessThan(LocalDateTime value) {
+        public Criteria andCreatedTsLessThan(OffsetDateTime value) {
             addCriterion("created_ts <", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsLessThanOrEqualTo(LocalDateTime value) {
+        public Criteria andCreatedTsLessThanOrEqualTo(OffsetDateTime value) {
             addCriterion("created_ts <=", value, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsIn(List<LocalDateTime> values) {
+        public Criteria andCreatedTsIn(List<OffsetDateTime> values) {
             addCriterion("created_ts in", values, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsNotIn(List<LocalDateTime> values) {
+        public Criteria andCreatedTsNotIn(List<OffsetDateTime> values) {
             addCriterion("created_ts not in", values, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andCreatedTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("created_ts between", value1, value2, "createdTs");
             return (Criteria) this;
         }
 
-        public Criteria andCreatedTsNotBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andCreatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("created_ts not between", value1, value2, "createdTs");
             return (Criteria) this;
         }
@@ -581,65 +581,255 @@ public class UserRefreshTokenDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsEqualTo(LocalDateTime value) {
+        public Criteria andUpdatedTsEqualTo(OffsetDateTime value) {
             addCriterion("updated_ts =", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsNotEqualTo(LocalDateTime value) {
+        public Criteria andUpdatedTsNotEqualTo(OffsetDateTime value) {
             addCriterion("updated_ts <>", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsGreaterThan(LocalDateTime value) {
+        public Criteria andUpdatedTsGreaterThan(OffsetDateTime value) {
             addCriterion("updated_ts >", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsGreaterThanOrEqualTo(LocalDateTime value) {
+        public Criteria andUpdatedTsGreaterThanOrEqualTo(OffsetDateTime value) {
             addCriterion("updated_ts >=", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsLessThan(LocalDateTime value) {
+        public Criteria andUpdatedTsLessThan(OffsetDateTime value) {
             addCriterion("updated_ts <", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsLessThanOrEqualTo(LocalDateTime value) {
+        public Criteria andUpdatedTsLessThanOrEqualTo(OffsetDateTime value) {
             addCriterion("updated_ts <=", value, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsIn(List<LocalDateTime> values) {
+        public Criteria andUpdatedTsIn(List<OffsetDateTime> values) {
             addCriterion("updated_ts in", values, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsNotIn(List<LocalDateTime> values) {
+        public Criteria andUpdatedTsNotIn(List<OffsetDateTime> values) {
             addCriterion("updated_ts not in", values, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andUpdatedTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts between", value1, value2, "updatedTs");
             return (Criteria) this;
         }
 
-        public Criteria andUpdatedTsNotBetween(LocalDateTime value1, LocalDateTime value2) {
+        public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsIsNull() {
+            addCriterion("rotated_ts is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsIsNotNull() {
+            addCriterion("rotated_ts is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsEqualTo(OffsetDateTime value) {
+            addCriterion("rotated_ts =", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsNotEqualTo(OffsetDateTime value) {
+            addCriterion("rotated_ts <>", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsGreaterThan(OffsetDateTime value) {
+            addCriterion("rotated_ts >", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsGreaterThanOrEqualTo(OffsetDateTime value) {
+            addCriterion("rotated_ts >=", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsLessThan(OffsetDateTime value) {
+            addCriterion("rotated_ts <", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsLessThanOrEqualTo(OffsetDateTime value) {
+            addCriterion("rotated_ts <=", value, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsIn(List<OffsetDateTime> values) {
+            addCriterion("rotated_ts in", values, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsNotIn(List<OffsetDateTime> values) {
+            addCriterion("rotated_ts not in", values, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
+            addCriterion("rotated_ts between", value1, value2, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andRotatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
+            addCriterion("rotated_ts not between", value1, value2, "rotatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdIsNull() {
+            addCriterion("family_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdIsNotNull() {
+            addCriterion("family_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdEqualTo(String value) {
+            addCriterion("family_id =", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdNotEqualTo(String value) {
+            addCriterion("family_id <>", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdGreaterThan(String value) {
+            addCriterion("family_id >", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdGreaterThanOrEqualTo(String value) {
+            addCriterion("family_id >=", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdLessThan(String value) {
+            addCriterion("family_id <", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdLessThanOrEqualTo(String value) {
+            addCriterion("family_id <=", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdLike(String value) {
+            addCriterion("family_id like", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdNotLike(String value) {
+            addCriterion("family_id not like", value, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdIn(List<String> values) {
+            addCriterion("family_id in", values, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdNotIn(List<String> values) {
+            addCriterion("family_id not in", values, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdBetween(String value1, String value2) {
+            addCriterion("family_id between", value1, value2, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdNotBetween(String value1, String value2) {
+            addCriterion("family_id not between", value1, value2, "familyId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdIsNull() {
+            addCriterion("successor_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdIsNotNull() {
+            addCriterion("successor_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdEqualTo(Integer value) {
+            addCriterion("successor_id =", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdNotEqualTo(Integer value) {
+            addCriterion("successor_id <>", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdGreaterThan(Integer value) {
+            addCriterion("successor_id >", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("successor_id >=", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdLessThan(Integer value) {
+            addCriterion("successor_id <", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdLessThanOrEqualTo(Integer value) {
+            addCriterion("successor_id <=", value, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdIn(List<Integer> values) {
+            addCriterion("successor_id in", values, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdNotIn(List<Integer> values) {
+            addCriterion("successor_id not in", values, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdBetween(Integer value1, Integer value2) {
+            addCriterion("successor_id between", value1, value2, "successorId");
+            return (Criteria) this;
+        }
+
+        public Criteria andSuccessorIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("successor_id not between", value1, value2, "successorId");
             return (Criteria) this;
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22751158-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443783614-04:00", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.227524079-04:00", comments="Source Table: zfgbb.user_refresh_token")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-20T03:28:02.443796344-04:00", comments="Source Table: zfgbb.user_refresh_token")
     public static class Criterion {
         private String condition;
 

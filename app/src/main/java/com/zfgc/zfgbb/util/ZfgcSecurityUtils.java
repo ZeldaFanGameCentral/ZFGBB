@@ -11,13 +11,17 @@ public class ZfgcSecurityUtils{
 			digest = MessageDigest.getInstance("MD5");
 			digest.update(digestStr.getBytes());
 			byte[] hash = digest.digest();
-			
+
 			return Base64.getUrlEncoder().encodeToString(hash);
-			
+
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	public static boolean isSafeRelativeUrl(String value) {
+		return value != null && value.startsWith("/") && !value.startsWith("//") && value.indexOf('\\') < 0;
 	}
 }

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.services.core;
 
 import java.time.Duration;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
@@ -22,7 +23,7 @@ public class AuthCookieService {
 	private final String refreshPath;
 
 	public AuthCookieService(
-			@Value("${zfgbb.auth.cookie.secure:false}") boolean secure,
+			@Value("${zfgbb.auth.cookie.secure:true}") boolean secure,
 			@Value("${zfgbb.auth.jwt.access-ttl-minutes}") long accessTtlMinutes,
 			@Value("${zfgbb.auth.refresh.ttl-days}") long refreshTtlDays,
 			@Value("${server.servlet.context-path:}") String contextPath) {
@@ -33,7 +34,7 @@ public class AuthCookieService {
 	}
 
 	public ResponseCookie buildAccessCookie(String token, boolean persistent) {
-		ResponseCookieBuilder b = ResponseCookie.from(ACCESS_COOKIE_NAME, token)
+		ResponseCookieBuilder builder = ResponseCookie.from(ACCESS_COOKIE_NAME, token)
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Lax")
@@ -41,21 +42,21 @@ public class AuthCookieService {
 		// Without persistence, omit maxAge so the browser drops the cookie when the
 		// session ends. With persistence, bound it by the access-token TTL.
 		if (persistent) {
-			b.maxAge(Duration.ofMinutes(accessTtlMinutes));
+			builder.maxAge(Duration.ofMinutes(accessTtlMinutes));
 		}
-		return b.build();
+		return builder.build();
 	}
 
 	public ResponseCookie buildRefreshCookie(String token, boolean persistent) {
-		ResponseCookieBuilder b = ResponseCookie.from(REFRESH_COOKIE_NAME, token)
+		ResponseCookieBuilder builder = ResponseCookie.from(REFRESH_COOKIE_NAME, token)
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Strict")
 				.path(refreshPath);
 		if (persistent) {
-			b.maxAge(Duration.ofDays(refreshTtlDays));
+			builder.maxAge(Duration.ofDays(refreshTtlDays));
 		}
-		return b.build();
+		return builder.build();
 	}
 
 	public ResponseCookie clearAccessCookie() {
@@ -78,23 +79,21 @@ public class AuthCookieService {
 				.build();
 	}
 
-	public String readAccessCookie(HttpServletRequest request) {
+	public Optional<String> readAccessCookie(HttpServletRequest request) {
 		return readCookie(request, ACCESS_COOKIE_NAME);
 	}
 
-	public String readRefreshCookie(HttpServletRequest request) {
+	public Optional<String> readRefreshCookie(HttpServletRequest request) {
 		return readCookie(request, REFRESH_COOKIE_NAME);
 	}
 
-	private String readCookie(HttpServletRequest request, String name) {
-		if (request == null || request.getCookies() == null) {
-			return null;
-		}
+	private Optional<String> readCookie(HttpServletRequest request, String name) {
+		if (request == null || request.getCookies() == null)
+			return Optional.empty();
 		for (Cookie cookie : request.getCookies()) {
-			if (name.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
-				return cookie.getValue();
-			}
+			if (name.equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank())
+				return Optional.of(cookie.getValue());
 		}
-		return null;
+		return Optional.empty();
 	}
 }

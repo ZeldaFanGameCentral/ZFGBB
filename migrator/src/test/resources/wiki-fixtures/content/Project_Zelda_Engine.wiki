@@ -1,0 +1,212 @@
+{{ZFGCProject}}
+{{Game
+|title=[[File:Upzeldalogopics.png|400px]]
+Project Zelda Engine
+|genre=Engine
+|developer=Project Zelda Engine Team
+|publisher=Silent Resident
+|platform=Windows
+ }}
+
+
+==ZFGC Staff Commentary==
+In the past, we've featured games of many types, whether they were faithful to the classic Zelda formula or took more risks as with our most recent project. However, this quarter's featured project is quite unique, as it isn't a Zelda game per se. Instead, the Project Zelda Engine uses RPG Maker XP to allow people to make their own Zelda games. While the next patch isn't due for nearly another year, it's incredibly versatile as it stands.
+
+Containing a large variety of features and items from past Zelda games, it allows savvy creators to mold an adventure in the land of Hyrule (or elsewhere, if they so desire!) with a large variety of tools and puzzles. You can even use the Ocarina for various songs, or ride Epona, or use masks to transform as in Majora's Mask, and so on and so forth. We had a chat with the creators of this "Zelda Starter Kit" as it is known, and here's what they had to say.
+
+==Words from the developer==
+
+===Q&A===
+'''Question 1:
+A lot of developers try to build their own engines from the ground up.  What pushed you towards RPG Maker for this rather than
+going for something completely custom?
+
+- SilentResident:
+    I was just a young teenager with lots of inspirations and fantasy that was fairly enough for creating my own Zelda games.
+    But I came into a problem: some famous and great Zelda game creators (aka Zelda Starter Kits) out there did not satisfy me due to     
+    software or scripting limitations. And my lack of good knowledge in the area of scripting, did not help either. This prevented me
+    from starting my own software for creating Zelda games with. However, 8 years ago, all that changed. Someday, on the internet,
+    I found an unfinished Zelda Starter Kit created by Mastermind and his team,  called Project Zelda Engine, for RPG Maker XP, but it
+    was dead for a long time. Of course I had no clues (and still I have no clues) for why did Mastermind abandoned his work on it.
+    I have failed in finding and contacting him so far. But his work inspired me to continue his well-promising project. And so,
+    I took it over, recruited a team of capable scripters, eventers and artists, who shared the same goals/inspiration with me,
+    and started the hard work of transforming the Mastermind's engine into something great, for all gamers to use and enjoy.
+    So, here we come!
+- Chakanevil:
+    The original platform was made by mastermind, so it was only natural that we would continue on what was already there. It was my
+    suggestion of migrating to XASABS, afterwards the team tested the XASABS system, and agreed it would be a great move to migrate over to 
+    that system. From that point we have taken the original Mastermind system, and rewritten it completely from the ground up. It is safe to 
+    say that this new system is entirely different than it's predecessor, and is a completely new system. We have taken the great system of 
+    XASABS, and through the labor of love and many hours, days, months, and years, we have created a engine that has few limitations, and 
+    almost endless limitations and possibilities.
+- MetalZelda:
+    Well, RPG Maker comes with a really simple scripting language that everyone can understand, and it makes the engine way
+    easier to make, as well as RPG Maker has a build-in map editor and command page list so, this is a plus, everything is
+    well organisated, and the Project Zelda Engine was developped within this kind of "programming" first, before passing to
+    XAS ABS, and that makes the engine more powerful and more customizable, because, we all know RPG Maker have limits, but XAS
+    seems to allow everybody that understand the RUBY scripting language, understandable by everyone to break that limit.
+    We don't go for anything that is 'custom', except for the graphics of the engine, because, we love things that are easy
+    to understand, and for everyone too, we don't want to do complex things that nobody will understand and make them mad because
+    the engine is hard to understand. Even if XAS is a little bit complex, we have some scripters that make things easier,
+    and the engine more powerful, without being harder for players to understand.
+- Baffou:
+    To break the limits of this shareware, and also because it's the one i have started with, and fine to work with.
+
+'''Question 2: 
+You said that your team is made up of members from all over the world.  How do you manage to keep your team together like this?
+Is communication difficult?  Do you ever have management problems?
+
+- Chakanevil:
+    As mentioned previosly we use dropbox, this is a very smart move that our team has been using for some time now. Not only can we sync 
+    our work so that each user has the same files, we can also recover lost files, or even revert back to older changes in the event of a 
+    problem. Communication is fairly done, with the understanding that this is a project of love, there is no time frames, as this is done 
+    in our free times. we feel that if we had deadlines, it would only stress the team out, and with the events of daily life, to many it 
+    would feel more like a chore, and not as a fun project. I guess that is where other teams has failed by pushing content out so quickly,  
+    their members soon becomed bored and drained, and in turn rheir teams fall apart and end development. Over the years we have seen many  
+    great team mates come and go, but each team member are reconigzed with our upmost respect, for with out them, we would not be as  
+    advanced as we are today. The team has had a few struggles with the disbanding of some of our more experienced members, but we have  
+    found other talented members that had picked up the peices, and for that we are extremely graceful.
+- MetalZelda:
+    We manage our team with Dropbox, a simple software that keep everybody connected all around the world, and it's easy
+    to talk too, all the work is synced when we're working on the engine, but the team is very talkative and sometimes we go
+    through other discussion than the engine, so, it's well organisated from this point, as well as all PZE members have their
+    own folders and can do whatever they want. They are free to decide what they want (except for the engine, SilentResident
+    need to approuve something related to the PZE). We never faced some management problem with Dropbox.
+- Baffou:
+    The Team is managed via Dropbox, which allow us to work together in it.
+
+'''Question 3:
+How customizable are things like the advisor and weapons?  Can we create our own advisor other than Navi?  Same for weapons,
+can we create our own weapons or are we restricted to those that are provided?
+
+- Chakanevil:
+    Any thing can be customized, within the limits of the engine, some weapons and ideas may seem great, but then comes the hard part, 
+    figuring out how to make that item function in the game, One of the weapons that is still on the table is the Magnetic gloves, while in  
+    theory it seems like it would be simple, writing a script, that not only pulls the character fowards, but pushes the character 
+    backwards have proved to be a challenge. So I guess you could say that there are really no rescrictions, but more of challenges in 
+    order to make an item or advisor function as seen in an actual Zelda Game, the easy part is dreaming a tool up, the challenging part 
+    is writing a script that performs up to standards using RGSS syntax.
+- MetalZelda:
+    Everything is customizable in the Project Zelda Engine, from the game logo, to the action battle system, XAS is well known in the
+    RPG Maker realm for it's flexibility and making capacity, while PZE comes with a complete 2D styled Zelda Game Maker.
+    Every objects are created with somes simple RUBY scripting language (40%), the rest is made within a dummy map where all items
+    are stored, and their behaviour are made with the Event Page, making it much easier for making new items if players want
+    to make a totaly new item. Navi on the other hand, can be replaced by someone else (Midna, etc ...), all you need is script
+    editing and your advisor's sprite. But as I tell earlier, the programming language is easy to understand.
+- Baffou:
+    You can create almost everything, but to go further in the customization, a little knowledge of Ruby syntax is necessary.
+- SilentResident:
+    Nothing limits you, as long as you are devoted in creating Zelda games. If you have knowledge, inspriration and dedication,
+    then, even the whole world, can fall in your hands! To help the people with the creation of weapons and such stuff in the Project Zelda
+    Engine, we, the team, will release a User Encyclopedia shortly after the starter kit's release to the public. It is our duty to pass down     
+    to next generations of Zelda game creators, our knowledge and experience from all this work in Project Zelda Engine!
+
+'''Question 4:
+Can we import our own resources (sprites, music etc) into the engine?
+
+- Chakanevil:
+    This is perhaps the easiest thing to do, you can either import the resources inside of rpg maker or place them inside their
+    corresponding folders, granted any sprite will work, but being careful to make sure it correspond with the default pixel height and 
+    width, otherwise it may look sightly undesirable. Music will play in mp3, midi, and wav formats, so that is perhaps the easiest resource 
+    to import. I would say the best way to learn how to set up the game engine, would to be to start a new project with Rpg Maker XP or even 
+    read the help guide that comes with Rpg Maker XP.
+- MetalZelda:
+    Of course you can import your own ressources to the Project Zelda Engine. It is based on RPG Maker so you can
+    import your files just by dropping them in the desired folder, they are simple to understand, and very well organisated.
+    In comparison to other engines that are hard to understand and difficult to manage their ressources to your games, I think the PZE
+    is great on this field. And of course, all ressources you imported in the engine, can directly be used into the game itself,
+    making PZE far easier to use, thanks to its user-friendly interface.
+- Baffou:
+    You can import everything as long you keep the 640 X480 resolution.
+- SilentResident:
+    You can import audio, graphics, scripts, fonts, and even tools that change the gamma (color) and such stuff! An engine that allows for
+    a such customization is what makes the Zelda gamer very happy! Our goal is to make the engine as restrictless as possible!
+
+Question 5:
+How time consuming is it to bring the Link to the Past style sprites into an HD setting?  Have you completed all of the sprite
+conversions yet or is this an in progress thing?
+
+- Chakanevil:
+    It can be a bit time consuming, we strive to give our best. The file system, and menus, was designed by me originally, but with the 
+    help of Silentresident, the screens were changed both visually and graphically numerious times to better fit the game before it was  
+    finally agreed upon. It's safe to say these screens are major improvements over the original menu screens of its predecessor. Perhaps  
+    my favorite features of our current engine is the creation of clock town, whats so unique about this is that while it is 2d, it still  
+    has that 3d feel, and thus taking a great sum of deadication, and love. Sometimes fans get a lttle impatience, but I must say, by us  
+    taking the time to perfect our work, our fans are only getting the best, anyone can throw out content, but we strive to give our fans  
+    the greatness they deserve. Not yet confirmed but discussed we are planning in the future to release what we are calling "map packs"  
+    that will feature even more areas brought into this same style of epicness as the likes of clock town. As of writing this, I am  
+    currently working on a map that many will instantly identify. If you haven't had the chance, download our engine, and give it a play 
+    or two, I'm sure you won't be disapointed.
+
+- MetalZelda:
+    It is a hard question ... Because, we always improve sprites while in the same time we add more content to the PZE,
+    so, they need to fit perfectly each other, because, the game is a 640 by 480 pixel window, and RPG Maker allow bigger resolutions
+    by editing scripts, etc (but we're okay with 640x480, the fullscreen is perfect, it keeps all sprite's quality perfect).
+    Bottom line, we just want to make a engine that bring back memories of our childhood, when 2D dominated the gaming market,
+    because the Project Zelda Engine include other Zelda stuff (both 2D and 3D).And we don't calculate the time, we're a lot in the
+    team to do all the sprite stuff, and it's done nicely and the result are here.
+- Baffou:
+    It's a long time work, but we doing well. It 's still in process.
+- SilentResident:
+    Well, it is not hard at all, nor complicated. Just it is time-consuming. Because re-scaling them to HD standards, requires some
+    patience and work with your mouse and, of course, a good image editing software that makes the whole job a bit more pleasant..
+    But the result is really worth the time! Really, who couldn't enjoy that LTTP-styled HD version of Dark World map in PZE, which brings
+    back memories from Legend of Zelda: A Link to the Past, but in modern, HD resolution...
+
+==Links==
+ZFGC Thread: http://zfgc.com/forum/index.php?topic=39800.0
+
+_________________________________________________________________________________________
+'''Project Zelda Engine Community''' 2015: http://projectzeldaengine.freeforums.net/forum
+_________________________________________________________________________________________
+
+==Project Zelda Engine Features==
+The Project Zelda Engine comes with many different menus for different categories of weapons and items, that can fit different gaming styles! There are Quest Status Screen, Mask Screen, Equipment Screen, Inventory Screen, Map Screen and Save Game Screens. Each screen can be adjusted, modified, or disabled at will.
+
+[[File:PZE - Equipment - Inventory Screens.png]]
+
+
+
+The Project Zelda Engine comes with over 60+ different, eye-candy and beautifully decorated maps!
+
+[[File:PZE_-_Eyecandy_Maps.png]]
+
+
+
+Many different forms for Link - each is accessible only if certain items are obtained (such as transformation Masks) or certain conditions are met (such as visiting an alternate dimension without the necessary equipment to protect you from twisted magic.)
+
+[[File:PZE - Different Link Forms.png]]
+
+
+
+Advanced Inventory Menu with support for multi-hotkeying of the same item/weapon to A, S and D hotkeys,  given that the item contains more than one Song/Seed/Type!
+
+[[File:Multihotkeying.png]]
+
+
+
+Link at South Clock Town, by the enormous Clock Tower, playing with his Ocarina of Time.
+
+[[File:PZE - Playing with the Ocarina at Clock Town.png]]
+
+
+
+The Interface of RPG Maker XP and how it works. - an screenshot example of setting up the shop's items for sale - Item type, quantity, price, etc!
+
+[[File:PZE - RPG Maker XP Interface.png]]
+
+
+
+The Dark World can be created in Project Zelda Engine.  Entering the Dark World without the Moon Pearl in your inventory, results in Link's transformation into a Bunny Link.
+
+[[File:PZE1.png]]
+
+
+
+The improvement of the engine's graphics takes long time, but is a constant effort.
+
+[[File:PZE_Epona_Improvement.png]]
+
+<noinclude>
+[[Category:Featured Project]]
+</noinclude>

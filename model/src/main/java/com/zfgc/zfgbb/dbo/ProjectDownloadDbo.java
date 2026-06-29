@@ -1,0 +1,164 @@
+package com.zfgc.zfgbb.dbo;
+
+import jakarta.annotation.Generated;
+import java.time.OffsetDateTime;
+
+public class ProjectDownloadDbo extends AbstractDbo {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722206325-04:00", comments="Source field: zfgbb.project_download.project_download_id")
+    private Integer projectDownloadId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722226524-04:00", comments="Source field: zfgbb.project_download.content_entity_id")
+    private Integer contentEntityId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722241453-04:00", comments="Source field: zfgbb.project_download.label")
+    private String label;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722256773-04:00", comments="Source field: zfgbb.project_download.url")
+    private String url;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722270153-04:00", comments="Source field: zfgbb.project_download.content_resource_id")
+    private Integer contentResourceId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722286202-04:00", comments="Source field: zfgbb.project_download.file_size")
+    private Long fileSize;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722307641-04:00", comments="Source field: zfgbb.project_download.ordinal")
+    private Integer ordinal;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722322501-04:00", comments="Source field: zfgbb.project_download.created_ts")
+    private OffsetDateTime createdTs;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72233808-04:00", comments="Source field: zfgbb.project_download.updated_ts")
+    private OffsetDateTime updatedTs;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72235444-04:00", comments="Source field: zfgbb.project_download.migration_hash")
+    private String migrationHash;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722371539-04:00", comments="Source field: zfgbb.project_download.published_ts")
+    private OffsetDateTime publishedTs;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722215034-04:00", comments="Source field: zfgbb.project_download.project_download_id")
+    public Integer getProjectDownloadId() {
+        return projectDownloadId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722220944-04:00", comments="Source field: zfgbb.project_download.project_download_id")
+    public void setProjectDownloadId(Integer projectDownloadId) {
+        this.projectDownloadId = projectDownloadId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722231784-04:00", comments="Source field: zfgbb.project_download.content_entity_id")
+    public Integer getContentEntityId() {
+        return contentEntityId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722236684-04:00", comments="Source field: zfgbb.project_download.content_entity_id")
+    public void setContentEntityId(Integer contentEntityId) {
+        this.contentEntityId = contentEntityId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722246233-04:00", comments="Source field: zfgbb.project_download.label")
+    public String getLabel() {
+        return label;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722251933-04:00", comments="Source field: zfgbb.project_download.label")
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722261623-04:00", comments="Source field: zfgbb.project_download.url")
+    public String getUrl() {
+        return url;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722266903-04:00", comments="Source field: zfgbb.project_download.url")
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722276502-04:00", comments="Source field: zfgbb.project_download.content_resource_id")
+    public Integer getContentResourceId() {
+        return contentResourceId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722281342-04:00", comments="Source field: zfgbb.project_download.content_resource_id")
+    public void setContentResourceId(Integer contentResourceId) {
+        this.contentResourceId = contentResourceId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722290962-04:00", comments="Source field: zfgbb.project_download.file_size")
+    public Long getFileSize() {
+        return fileSize;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722303781-04:00", comments="Source field: zfgbb.project_download.file_size")
+    public void setFileSize(Long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722312821-04:00", comments="Source field: zfgbb.project_download.ordinal")
+    public Integer getOrdinal() {
+        return ordinal;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722319191-04:00", comments="Source field: zfgbb.project_download.ordinal")
+    public void setOrdinal(Integer ordinal) {
+        this.ordinal = ordinal;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722329671-04:00", comments="Source field: zfgbb.project_download.created_ts")
+    public OffsetDateTime getCreatedTs() {
+        return createdTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722334631-04:00", comments="Source field: zfgbb.project_download.created_ts")
+    public void setCreatedTs(OffsetDateTime createdTs) {
+        this.createdTs = createdTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72234512-04:00", comments="Source field: zfgbb.project_download.updated_ts")
+    public OffsetDateTime getUpdatedTs() {
+        return updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72234979-04:00", comments="Source field: zfgbb.project_download.updated_ts")
+    public void setUpdatedTs(OffsetDateTime updatedTs) {
+        this.updatedTs = updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72235923-04:00", comments="Source field: zfgbb.project_download.migration_hash")
+    public String getMigrationHash() {
+        return migrationHash;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.72236686-04:00", comments="Source field: zfgbb.project_download.migration_hash")
+    public void setMigrationHash(String migrationHash) {
+        this.migrationHash = migrationHash;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722376879-04:00", comments="Source field: zfgbb.project_download.published_ts")
+    public OffsetDateTime getPublishedTs() {
+        return publishedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.722381659-04:00", comments="Source field: zfgbb.project_download.published_ts")
+    public void setPublishedTs(OffsetDateTime publishedTs) {
+        this.publishedTs = publishedTs;
+    }
+
+    @Override
+    public Integer getPkId() {
+        return projectDownloadId;
+    }
+
+    @Override
+    public OffsetDateTime getCreatedTime() {
+        return createdTs;
+    }
+
+    @Override
+    public OffsetDateTime getUpdatedTime() {
+        return updatedTs;
+    }
+}

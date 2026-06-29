@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.migrator.converters;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +53,8 @@ public class MessageConverter extends AbstractConverter<Void> {
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageConverter.class);
 
+	private Map<Integer, Integer> messageIdMap;
+
 	@Override
 	public JobType getType() {
 		return JobType.MESSAGES;
@@ -62,6 +64,8 @@ public class MessageConverter extends AbstractConverter<Void> {
 	public Void convertToZfgbb() {
 		long total = smfMessageMapper.countByExample(new SMFMessageDbExample());
 		logger.info("Beginning conversion of {} SMF messages (batch size {})", total, batchSize);
+
+		messageIdMap = idMap.getAllForType(LegacyEntityType.MESSAGE);
 
 		Map<Integer, AtomicInteger> postInThreadCounters = new HashMap<>();
 		Integer lastId = 0;
@@ -101,20 +105,24 @@ public class MessageConverter extends AbstractConverter<Void> {
 				? null
 				: idMap.lookup(LegacyEntityType.USER, smfMember));
 		msg.setThreadId(idMap.lookup(LegacyEntityType.THREAD, smfMsg.getIdTopic()));
+		msg.setBoardId(smfMsg.getIdBoard() == null
+				? null
+				: idMap.lookup(LegacyEntityType.BOARD, smfMsg.getIdBoard().intValue()));
 		msg.setPostInThread(postInThreadCounters.get(smfMsg.getIdTopic()).getAndIncrement());
 		msg.setCreatedTs(SmfTimes.fromEpochSeconds(smfMsg.getPosterTime()));
 
-		LocalDateTime updatedTime = SmfTimes.fromEpochSeconds(smfMsg.getModifiedTime());
+		OffsetDateTime updatedTime = SmfTimes.fromEpochSeconds(smfMsg.getModifiedTime());
 		msg.setUpdatedTs(updatedTime != null ? updatedTime : msg.getCreatedTs());
 
 		msg.setMigrationHash(MigrationHasher.hash(smfMsg.getIdMsg().toString()
 				+ "" + smfMsg.getIdMember()
 				+ smfMsg.getIdTopic()
+				+ smfMsg.getIdBoard()
 				+ (msg.getPostInThread() == null ? -1 : msg.getPostInThread())
-				+ msg.getCreatedTs().toString()
+				+ (msg.getCreatedTs() == null ? "" : msg.getCreatedTs().toString())
 				+ (msg.getUpdatedTs() == null ? 0 : msg.getUpdatedTs().toString())));
 
-		Integer existingZfgbbId = idMap.lookupOrNull(LegacyEntityType.MESSAGE, smfMsg.getIdMsg());
+		Integer existingZfgbbId = messageIdMap.get(smfMsg.getIdMsg());
 		if (existingZfgbbId == null) {
 			messageMapper.insert(msg);
 			idMap.record(LegacyEntityType.MESSAGE, smfMsg.getIdMsg(), msg.getMessageId());

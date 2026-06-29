@@ -49,7 +49,7 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 	@Transactional
 	public Map<Integer, ContentResourceDbo> convertToZfgbb() {
 		SMFAttachmentsDbExample attachEx = new SMFAttachmentsDbExample();
-		attachEx.createCriteria().andIdMsgGreaterThan(0);
+		attachEx.createCriteria().andIdMsgGreaterThan(0).andAttachmentTypeNotEqualTo((byte) 3);
 
 		return smfAttachmentsDbMapper.selectByExample(attachEx).stream()
 				.map(attachment -> {
@@ -65,6 +65,7 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 
 					ContentResourceDbo resource = new ContentResourceDbo();
 					resource.setContentTypeId(2);
+					resource.setStorageDir("forum/attachments");
 					resource.setChecksum(attachment.getFileHash());
 					resource.setFileExt(attachment.getFileext());
 					resource.setFilename(attachment.getFilename());
@@ -110,7 +111,7 @@ public class AttachmentsConverter extends AbstractConverter<Map<Integer, Content
 
 					return resource;
 				})
-				.filter(r -> r != null)
+				.filter(resource -> resource != null)
 				.collect(Collectors.toMap(ContentResourceDbo::getContentResourceId, Function.identity(),
 						(a, b) -> a));
 	}

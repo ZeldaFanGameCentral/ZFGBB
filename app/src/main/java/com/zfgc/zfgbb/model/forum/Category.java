@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.model.forum;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,5 +54,17 @@ public class Category extends BaseModel {
 	}
 	public void setBoards(List<BoardSummary> boards) {
 		this.boards = boards;
+	}
+
+	@Override
+	@JsonIgnore
+	public OffsetDateTime getCreatedTs() {
+		return super.getCreatedTs();
+	}
+
+	@Override
+	@JsonIgnore
+	public OffsetDateTime getUpdatedTs() {
+		return super.getUpdatedTs();
 	}
 }

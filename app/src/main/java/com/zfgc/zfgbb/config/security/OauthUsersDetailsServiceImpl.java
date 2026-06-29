@@ -1,48 +1,44 @@
 package com.zfgc.zfgbb.config.security;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import com.zfgc.zfgbb.dao.users.EmailAddressDao;
-import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.dao.UserPermissionViewDao;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
-import com.zfgc.zfgbb.dbo.EmailAddressDboExample;
-import com.zfgc.zfgbb.dbo.UserDbo;
-import com.zfgc.zfgbb.dbo.UserDboExample;
-import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.model.users.AuthCredentials;
 
 @Service
-public class OauthUsersDetailsServiceImpl implements UserDetailsService{
-	
-	@Autowired
-	private UserDataProvider userDataProvider;
-	 
-	@Override
-	public UserDetails loadUserByUsername(String ssoKey) throws UsernameNotFoundException {
-		return userDataProvider.findUser(ssoKey)
-				.orElseThrow(() -> new UsernameNotFoundException(ssoKey));
-	}
-	
-	public String getLoginToken(AuthCredentials credentials) {
-		return "";
-	}
-	
-	
+public class OauthUsersDetailsServiceImpl implements UserDetailsService {
 
+	private final UserDataProvider userDataProvider;
+	private final long passwordMaxAgeDays;
+
+	public OauthUsersDetailsServiceImpl(UserDataProvider userDataProvider,
+			@Value("${zfgbb.auth.password.max-age-days}") long passwordMaxAgeDays) {
+		this.userDataProvider = userDataProvider;
+		this.passwordMaxAgeDays = passwordMaxAgeDays;
+	}
+
+	@Override
+	public UserDetails loadUserByUsername(String userName) throws UsernameNotFoundException {
+		User user = userDataProvider.findUserForAuthentication(userName)
+				.orElseThrow(() -> new UsernameNotFoundException(userName));
+		user.setCredentialsNonExpired(isPasswordCurrent(user));
+		return user;
+	}
+
+	private boolean isPasswordCurrent(User user) {
+		if (passwordMaxAgeDays <= 0)
+			return true;
+		OffsetDateTime passwordChanged = user.getPasswordChangedTs();
+		if (passwordChanged == null)
+			return true;
+		return !passwordChanged.plus(Duration.ofDays(passwordMaxAgeDays)).isBefore(OffsetDateTime.now(ZoneOffset.UTC));
+	}
 }

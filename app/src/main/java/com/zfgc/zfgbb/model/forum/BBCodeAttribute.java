@@ -1,12 +1,13 @@
 package com.zfgc.zfgbb.model.forum;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.zfgc.zfgbb.model.BaseModel;
+import com.zfgc.zfgbb.util.ZfgcSecurityUtils;
 
 public class BBCodeAttribute extends BaseModel {
 
@@ -25,6 +26,8 @@ public class BBCodeAttribute extends BaseModel {
     private static final Pattern IDENTIFIER = Pattern.compile("^[A-Za-z0-9_-]+$");
     private static final Pattern FONT_NAME = Pattern.compile("^[A-Za-z0-9 ,'\"_-]+$");
     private static final Pattern URL_SCHEME = Pattern.compile("^(?:https?|ftp|mailto):", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SCHEMELESS_DOMAIN = Pattern.compile(
+        "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\\.[a-z]{2,}(?:[:/?#].*)?$", Pattern.CASE_INSENSITIVE);
     private static final Set<String> LIST_TYPES = Set.of(
         "decimal","lower-roman","upper-roman","lower-alpha","upper-alpha","disc","circle","square","none"
     );
@@ -52,10 +55,27 @@ public class BBCodeAttribute extends BaseModel {
 			return FONT_NAME.matcher(trimmed).matches() ? trimmed : "";
 		case LIST_TYPE:
 			return LIST_TYPES.contains(trimmed.toLowerCase()) ? trimmed.toLowerCase() : "decimal";
+		case SIZE:
+			return sanitizeSize(trimmed);
 		case TEXT:
 		default:
 			return escapeHtml(trimmed);
 		}
+	}
+
+	private static final String[] SMF_SIZE_LEVELS = {
+		"8pt", "10pt", "12pt", "14pt", "18pt", "24pt", "36pt"
+	};
+
+	private static String sanitizeSize(String value) {
+		if (INTEGER.matcher(value).matches()) {
+			int level = Integer.parseInt(value);
+			if (level >= 1 && level <= SMF_SIZE_LEVELS.length) {
+				return SMF_SIZE_LEVELS[level - 1];
+			}
+			return value + "px";
+		}
+		return sanitizeDimension(value);
 	}
 
     private static String sanitizeColor(String value) {
@@ -74,8 +94,10 @@ public class BBCodeAttribute extends BaseModel {
 
     private static String sanitizeUrl(String value) {
 		if (value.isEmpty()) return "";
-		if (value.startsWith("/") && !value.startsWith("//")) return escapeHtml(value);
+		if (value.startsWith("#")) return escapeHtml(value);
+		if (ZfgcSecurityUtils.isSafeRelativeUrl(value)) return escapeHtml(value);
 		if (URL_SCHEME.matcher(value).find()) return escapeHtml(value);
+		if (SCHEMELESS_DOMAIN.matcher(value).matches()) return escapeHtml("http://" + value);
 		return "";
 	}
 
@@ -96,8 +118,15 @@ public class BBCodeAttribute extends BaseModel {
 	}
 
     public String createDate(String value){
-    	Long ts = Long.parseLong(value + "000");
-		return LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneOffset.UTC).toString();
+    	if (!INTEGER.matcher(value).matches()) {
+    		return "";
+    	}
+    	try {
+    		long ts = Long.parseLong(value + "000");
+    		return OffsetDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneOffset.UTC).toString();
+    	} catch (NumberFormatException e) {
+    		return "";
+    	}
 	}
 
 	public Integer getBbCodeAttributeId() {

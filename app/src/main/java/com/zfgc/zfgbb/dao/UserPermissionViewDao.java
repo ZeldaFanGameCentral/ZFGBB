@@ -21,7 +21,7 @@ public class UserPermissionViewDao extends AbstractDao<UserPermissionViewDboExam
 
 	@Override
 	public Optional<UserPermissionViewDbo> get(Integer id) {
-		return null;
+		return Optional.empty();
 	}
 
 	@Override

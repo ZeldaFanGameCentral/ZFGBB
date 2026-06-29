@@ -1,189 +1,129 @@
 package com.zfgc.zfgbb.services.core;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.config.loadoption.user.LoggedInUserLoadOptions;
-import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.UserDbo;
+import com.zfgc.zfgbb.mappers.custom.LoginLockoutMapper;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.AuthCredentials;
 import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
-import com.zfgc.zfgbb.model.users.HashedPassword;
 import com.zfgc.zfgbb.model.users.LoginResponse;
-import com.zfgc.zfgbb.model.users.PasswordAlgo;
 import com.zfgc.zfgbb.model.users.TokenPair;
 
 @Service
-// noRollbackFor: failed-login increments are intentional side effects and must
-// survive the BadCredentialsException we throw on each bad attempt. Without
-// this, every failed login would silently roll back the failed_login_count
-// update, so the lockout threshold would never be reached.
-@Transactional(noRollbackFor = { BadCredentialsException.class, LockedException.class, CredentialsExpiredException.class })
+@Transactional(noRollbackFor = { BadCredentialsException.class, LockedException.class, CredentialsExpiredException.class,
+		DisabledException.class })
 public class AuthService {
 
-	private final UserDao userDao;
 	private final UserDataProvider userDataProvider;
-	private final PasswordService passwordService;
+	private final LoginLockoutMapper loginLockoutMapper;
+	private final AuthenticationManager loginAuthenticationManager;
 	private final JwtService jwtService;
 	private final RefreshTokenService refreshTokenService;
 	private final int lockoutFailedAttempts;
 	private final long lockoutDurationMinutes;
-	private final long passwordMaxAgeDays;
+	private final long accessTokenTtlSeconds;
 
-	public AuthService(UserDao userDao,
-			UserDataProvider userDataProvider,
-			PasswordService passwordService,
+	public AuthService(UserDataProvider userDataProvider,
+			LoginLockoutMapper loginLockoutMapper,
+			@Qualifier("loginAuthenticationManager") AuthenticationManager loginAuthenticationManager,
 			JwtService jwtService,
 			RefreshTokenService refreshTokenService,
 			@Value("${zfgbb.auth.lockout.failed-attempts}") int lockoutFailedAttempts,
 			@Value("${zfgbb.auth.lockout.duration-minutes}") long lockoutDurationMinutes,
-			@Value("${zfgbb.auth.password.max-age-days}") long passwordMaxAgeDays) {
-		this.userDao = userDao;
+			@Value("${zfgbb.auth.jwt.access-ttl-minutes}") long accessTokenTtlMinutes) {
 		this.userDataProvider = userDataProvider;
-		this.passwordService = passwordService;
+		this.loginLockoutMapper = loginLockoutMapper;
+		this.loginAuthenticationManager = loginAuthenticationManager;
 		this.jwtService = jwtService;
 		this.refreshTokenService = refreshTokenService;
 		this.lockoutFailedAttempts = lockoutFailedAttempts;
 		this.lockoutDurationMinutes = lockoutDurationMinutes;
-		this.passwordMaxAgeDays = passwordMaxAgeDays;
+		this.accessTokenTtlSeconds = Duration.ofMinutes(accessTokenTtlMinutes).toSeconds();
 	}
 
 	public LoginResponse login(AuthCredentials credentials) {
-		if (credentials == null
-				|| StringUtils.isBlank(credentials.getUsername())
-				|| StringUtils.isBlank(credentials.getPassword())) {
+		if (credentials == null)
 			throw new BadCredentialsException("Username and password are required.");
-		}
 
-		UserDbo dbo = userDataProvider.findByUserName(credentials.getUsername())
-				.orElseThrow(() -> new BadCredentialsException("Invalid username or password."));
+		User principal = reauthenticate(credentials.getUsername(), credentials.getPassword());
 
-		if (!Boolean.TRUE.equals(dbo.getActiveFlag())) {
-			throw new BadCredentialsException("Account is not active.");
-		}
-
-		// Lockout check happens before password verify so locked accounts can't be
-		// brute-forced past the lockout window.
-		if (isLocked(dbo)) {
-			throw new LockedException("Account is locked due to too many failed login attempts.");
-		}
-
-		PasswordAlgo algo = parseAlgo(dbo.getPasswordAlgo());
-		boolean ok = passwordService.verify(
-				credentials.getPassword(),
-				dbo.getPasswordHash(),
-				algo,
-				dbo.getPasswordSalt());
-
-		if (!ok) {
-			recordFailedLogin(dbo);
-			throw new BadCredentialsException("Invalid username or password.");
-		}
-
-		// Password expiry check happens after a successful verify so we don't leak
-		// "password is correct but expired" info to attackers — but we still block.
-		if (isPasswordExpired(dbo)) {
-			throw new CredentialsExpiredException("Password has expired and must be reset.");
-		}
-
-		// Successful login: clear any prior lockout state.
-		clearFailedLoginState(dbo);
-
-		// Lazy upgrade legacy hashes to bcrypt on successful login.
-		if (algo == PasswordAlgo.SMF2_SHA1) {
-			HashedPassword fresh = passwordService.hash(credentials.getPassword());
-			dbo.setPasswordHash(fresh.hash());
-			dbo.setPasswordAlgo(fresh.algo().name());
-			dbo.setPasswordSalt(fresh.salt());
-			dbo.setPasswordChangedTs(LocalDateTime.now());
-			userDao.save(dbo);
-		}
-
-		User user = userDataProvider.findUser(dbo.getUserId(), new LoggedInUserLoadOptions())
+		User user = userDataProvider.findUser(principal.getUserId(), new LoggedInUserLoadOptions())
 				.orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
 		return issueLoginResponse(user, credentials.isStayLoggedIn());
+	}
+
+	public User reauthenticate(String username, String password) {
+		if (StringUtils.isBlank(username) || StringUtils.isBlank(password))
+			throw new BadCredentialsException("Username and password are required.");
+
+		Authentication authentication;
+		try {
+			authentication = loginAuthenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(username, password));
+		} catch (BadCredentialsException wrongPassword) {
+			userDataProvider.findByUserName(username).ifPresent(this::recordFailedLogin);
+			throw wrongPassword;
+		}
+
+		User principal = (User) authentication.getPrincipal();
+		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+		loginLockoutMapper.clearFailedLoginState(principal.getUserId(), now);
+		return principal;
 	}
 
 	public LoginResponse issueLoginResponse(User user, boolean stayLoggedIn) {
 		String accessToken = jwtService.issueAccessToken(user);
 		String refreshToken = refreshTokenService.issue(user.getUserId(), stayLoggedIn);
-		return new LoginResponse(accessToken, refreshToken, stayLoggedIn, user);
+		return new LoginResponse(accessToken, refreshToken, stayLoggedIn, accessTokenTtlSeconds, user);
 	}
 
 	public TokenPair refresh(String refreshToken) {
 		ConsumedRefreshToken consumed = refreshTokenService.consume(refreshToken);
 		User user = userDataProvider.findUser(consumed.userId(), new LoggedInUserLoadOptions())
 				.orElseThrow(() -> new BadCredentialsException("Refresh token references unknown user"));
+		if (!user.isEnabled())
+			throw new BadCredentialsException("Refresh token references a disabled user");
+		if (issuedBeforeTokenCutoff(consumed.issuedTs(), user.getTokensValidAfterTs()))
+			throw new BadCredentialsException("Refresh token was issued before the token validity cutoff");
 		String newAccess = jwtService.issueAccessToken(user);
-		String newRefresh = refreshTokenService.issue(user.getUserId(), consumed.stayLoggedIn());
-		return new TokenPair(newAccess, newRefresh, consumed.stayLoggedIn());
+		String newRefresh = consumed.existingSuccessorRaw() != null
+				? consumed.existingSuccessorRaw()
+				: refreshTokenService.issueSuccessor(user.getUserId(), consumed.stayLoggedIn(), consumed.familyId(),
+						consumed.parentTokenId());
+		return new TokenPair(newAccess, newRefresh, consumed.stayLoggedIn(), accessTokenTtlSeconds);
+	}
+
+	private boolean issuedBeforeTokenCutoff(OffsetDateTime issuedTs, OffsetDateTime tokensValidAfterTs) {
+		if (tokensValidAfterTs == null)
+			return false;
+		return issuedTs == null || issuedTs.isBefore(tokensValidAfterTs);
 	}
 
 	public void logout(String refreshToken) {
 		refreshTokenService.revoke(refreshToken);
 	}
 
-	private boolean isLocked(UserDbo dbo) {
-		LocalDateTime until = dbo.getLockedUntilTs();
-		return until != null && until.isAfter(LocalDateTime.now());
-	}
-
-	private boolean isPasswordExpired(UserDbo dbo) {
-		if (passwordMaxAgeDays <= 0) {
-			return false;
-		}
-		LocalDateTime changed = dbo.getPasswordChangedTs();
-		if (changed == null) {
-			// Account predates expiry tracking; treat as not-expired so we don't lock
-			// out legacy users on day one of the policy taking effect.
-			return false;
-		}
-		return changed.plus(Duration.ofDays(passwordMaxAgeDays)).isBefore(LocalDateTime.now());
-	}
-
 	private void recordFailedLogin(UserDbo dbo) {
-		int current = dbo.getFailedLoginCount() == null ? 0 : dbo.getFailedLoginCount();
-		int next = current + 1;
-		dbo.setFailedLoginCount(next);
-		if (next >= lockoutFailedAttempts) {
-			dbo.setLockedUntilTs(LocalDateTime.now().plus(Duration.ofMinutes(lockoutDurationMinutes)));
-		}
-		userDao.save(dbo);
-	}
-
-	private void clearFailedLoginState(UserDbo dbo) {
-		boolean dirty = false;
-		if (dbo.getFailedLoginCount() != null && dbo.getFailedLoginCount() > 0) {
-			dbo.setFailedLoginCount(0);
-			dirty = true;
-		}
-		if (dbo.getLockedUntilTs() != null) {
-			dbo.setLockedUntilTs(null);
-			dirty = true;
-		}
-		if (dirty) {
-			userDao.save(dbo);
-		}
-	}
-
-	private PasswordAlgo parseAlgo(String algo) {
-		if (algo == null) {
-			return PasswordAlgo.BCRYPT;
-		}
-		try {
-			return PasswordAlgo.valueOf(algo);
-		} catch (IllegalArgumentException e) {
-			throw new BadCredentialsException("Unknown password algorithm.");
-		}
+		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+		OffsetDateTime lockUntil = now.plus(Duration.ofMinutes(lockoutDurationMinutes));
+		loginLockoutMapper.recordFailedLoginAttempt(dbo.getUserId(), now, lockoutFailedAttempts, lockUntil);
 	}
 }

@@ -12,15 +12,23 @@ public class BasicUserLoadOptions extends BaseLoadOption {
 		return true;
 	}
 	
-	public boolean loadKarma() {
+	public boolean loadReactions() {
+		return true;
+	}
+
+	public boolean loadAwards() {
 		return false;
 	}
-	
+
 	public boolean loadPermissions() {
 		return false;
 	}
-	
+
 	public boolean loadContactInfo() {
-		return true;
+		return false;
+	}
+
+	public boolean loadSettings() {
+		return false;
 	}
 }

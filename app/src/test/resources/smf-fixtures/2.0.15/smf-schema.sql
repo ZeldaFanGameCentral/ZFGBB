@@ -697,6 +697,8 @@ CREATE TABLE smf_1membergroups (
   group_type tinyint(3) NOT NULL default '0',
   hidden tinyint(3) NOT NULL default '0',
   id_parent smallint(5) NOT NULL default '-2',
+  GroupModOptions varchar(8) NOT NULL default '',
+  monitorGroup tinyint(3) unsigned default '0',
   PRIMARY KEY (id_group),
   KEY min_posts (min_posts)
 ) ENGINE=MyISAM;

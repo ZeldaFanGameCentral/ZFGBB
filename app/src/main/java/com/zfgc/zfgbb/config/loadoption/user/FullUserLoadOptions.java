@@ -2,17 +2,22 @@ package com.zfgc.zfgbb.config.loadoption.user;
 
 public class FullUserLoadOptions extends BasicUserLoadOptions {
 	@Override
-	public boolean loadBio() {
-		return true;
-	}
-	
-	@Override
 	public boolean loadPermissions() {
 		return true;
 	}
-	
+
 	@Override
-	public boolean loadKarma() {
+	public boolean loadAwards() {
+		return true;
+	}
+
+	@Override
+	public boolean loadContactInfo() {
+		return true;
+	}
+
+	@Override
+	public boolean loadSettings() {
 		return true;
 	}
 }

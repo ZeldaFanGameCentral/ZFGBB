@@ -36,6 +36,15 @@ public final class LegacyUrlRewriter {
 	private static final Pattern QUOTE_LINK_TOPIC_MSG = Pattern.compile(
 			"\\blink=topic=(\\d+)\\.msg(\\d+)(?:#msg\\d+)?", Pattern.CASE_INSENSITIVE);
 
+	private static final Pattern WIKI_URL = Pattern.compile(
+			"https?://wiki\\.zfgc\\.com/(?:index\\.php\\?title=|index\\.php/)?([^\\s\\[\\]\"'<>?#&]+)",
+			Pattern.CASE_INSENSITIVE);
+	private static final Pattern WIKI_IMAGE_PATH = Pattern.compile(
+			"^images/(?:thumb/)?[0-9a-f]/[0-9a-f]{2}/([^/]+)(?:/.*)?$", Pattern.CASE_INSENSITIVE);
+	private static final Pattern BARE_WIKI_URL = Pattern.compile(
+			"(?<![\\w\\]])(?<!\\[url=)(?<!\\[iurl=)https?://wiki\\.zfgc\\.com/[^\\s\\[\\]\"'<>]+",
+			Pattern.CASE_INSENSITIVE);
+
 	private static final LegacyUrlRewriter DEFAULT = new LegacyUrlRewriter(null, null);
 
 	private final Pattern hostPattern;
@@ -48,7 +57,7 @@ public final class LegacyUrlRewriter {
 				"https?://" + hostAlternation,
 				Pattern.CASE_INSENSITIVE);
 		this.bareUrlPattern = Pattern.compile(
-				"(?<![=\\w\\]>])https?://" + hostAlternation
+				"(?<![\\w\\]>])(?<!\\[url=)(?<!\\[iurl=)https?://" + hostAlternation
 						+ "(?:/forum)?/?index\\.php(?:#\\??|\\?)[^\\s\\[\\]\"'<>]+",
 				Pattern.CASE_INSENSITIVE);
 		this.appBaseUrl = normalizeAppBaseUrl(appBaseUrl);
@@ -79,24 +88,28 @@ public final class LegacyUrlRewriter {
 		result = rewriteUrlBbcodes(result, maps);
 		result = rewriteQuoteLink(result, maps);
 		result = rewriteBareUrls(result, maps);
+		result = rewriteBareWikiUrls(result);
 		result = rewriteAttachRefs(result, maps.attachmentMap());
 		return result;
 	}
 
 	String rewriteUrlBbcodes(String body, LegacyIdMaps maps) {
-		Matcher m = URL_BBCODE.matcher(body);
+		Matcher urlMatcher = URL_BBCODE.matcher(body);
 		StringBuilder out = new StringBuilder();
-		while (m.find()) {
-			String url = m.group(2).trim();
-			String label = m.group(3);
+		while (urlMatcher.find()) {
+			String url = urlMatcher.group(2).trim();
+			String label = urlMatcher.group(3);
 			String replacement = mapSmfUrlToBbcode(url, label, maps);
+			if (replacement == null) {
+				replacement = mapWikiUrlToBbcode(url, label);
+			}
 			if (replacement != null) {
-				m.appendReplacement(out, Matcher.quoteReplacement(replacement));
+				urlMatcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
 			} else {
-				m.appendReplacement(out, Matcher.quoteReplacement(m.group()));
+				urlMatcher.appendReplacement(out, Matcher.quoteReplacement(urlMatcher.group()));
 			}
 		}
-		m.appendTail(out);
+		urlMatcher.appendTail(out);
 		return out.toString();
 	}
 
@@ -129,18 +142,18 @@ public final class LegacyUrlRewriter {
 	}
 
 	String rewriteBareUrls(String body, LegacyIdMaps maps) {
-		Matcher m = bareUrlPattern.matcher(body);
+		Matcher bareUrlMatcher = bareUrlPattern.matcher(body);
 		StringBuilder out = new StringBuilder();
-		while (m.find()) {
-			String url = m.group();
+		while (bareUrlMatcher.find()) {
+			String url = bareUrlMatcher.group();
 			String replacement = mapSmfUrlToBbcode(url, url, maps);
 			if (replacement != null) {
-				m.appendReplacement(out, Matcher.quoteReplacement(replacement));
+				bareUrlMatcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
 			} else {
-				m.appendReplacement(out, Matcher.quoteReplacement(url));
+				bareUrlMatcher.appendReplacement(out, Matcher.quoteReplacement(url));
 			}
 		}
-		m.appendTail(out);
+		bareUrlMatcher.appendTail(out);
 		return out.toString();
 	}
 
@@ -148,20 +161,25 @@ public final class LegacyUrlRewriter {
 		if (attachmentMap == null || attachmentMap.isEmpty()) {
 			return body;
 		}
-		Set<Integer> alreadyMapped = new HashSet<>(attachmentMap.values());
-		Matcher m = ATTACH_REF.matcher(body);
+		Set<Integer> alreadyRewritten = new HashSet<>(attachmentMap.values());
+		alreadyRewritten.removeAll(attachmentMap.keySet());
+		Matcher attachMatcher = ATTACH_REF.matcher(body);
 		StringBuilder out = new StringBuilder();
-		while (m.find()) {
-			int id = Integer.parseInt(m.group(1));
-			if (alreadyMapped.contains(id)) {
-				m.appendReplacement(out, Matcher.quoteReplacement(m.group()));
+		while (attachMatcher.find()) {
+			Integer id = parseIntOrNull(attachMatcher.group(1));
+			if (id == null) {
+				attachMatcher.appendReplacement(out, Matcher.quoteReplacement(attachMatcher.group()));
+				continue;
+			}
+			if (alreadyRewritten.contains(id)) {
+				attachMatcher.appendReplacement(out, Matcher.quoteReplacement(attachMatcher.group()));
 				continue;
 			}
 			Integer zfgbbId = attachmentMap.get(id);
-			String replacement = zfgbbId != null ? "[attach=" + zfgbbId + "]" : m.group();
-			m.appendReplacement(out, Matcher.quoteReplacement(replacement));
+			String replacement = zfgbbId != null ? "[attach=" + zfgbbId + "]" : attachMatcher.group();
+			attachMatcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
 		}
-		m.appendTail(out);
+		attachMatcher.appendTail(out);
 		return out.toString();
 	}
 
@@ -175,8 +193,13 @@ public final class LegacyUrlRewriter {
 		if (topicMsg.find()) {
 			Integer threadId = remap(maps.threadMap(), topicMsg.group(1));
 			Integer msgId = remap(maps.messageMap(), topicMsg.group(2));
-			if (threadId == null || msgId == null) {
+			if (threadId == null) {
 				return null;
+			}
+			if (msgId == null) {
+				return "[thread=" + threadId + "]"
+						+ cleanLabel(label, url, origin + "/forum/thread/" + threadId + "/1")
+						+ "[/thread]";
 			}
 			return "[thread=" + threadId + " msg=" + msgId + "]"
 					+ cleanLabel(label, url, origin + "/forum/thread/" + threadId + "/1#msg" + msgId)
@@ -229,6 +252,54 @@ public final class LegacyUrlRewriter {
 		return null;
 	}
 
+	String rewriteBareWikiUrls(String body) {
+		Matcher bareMatcher = BARE_WIKI_URL.matcher(body);
+		StringBuilder out = new StringBuilder();
+		while (bareMatcher.find()) {
+			String url = bareMatcher.group();
+			String trimmedUrl = trimTrailingPunctuation(url);
+			String tail = url.substring(trimmedUrl.length());
+			String replacement = mapWikiUrlToBbcode(trimmedUrl, trimmedUrl);
+			bareMatcher.appendReplacement(out,
+					Matcher.quoteReplacement(replacement != null ? replacement + tail : url));
+		}
+		bareMatcher.appendTail(out);
+		return out.toString();
+	}
+
+	static String mapWikiUrlToBbcode(String url, String label) {
+		Matcher wikiMatcher = WIKI_URL.matcher(url.trim());
+		if (!wikiMatcher.find()) {
+			return null;
+		}
+		String slug = trimTrailingPunctuation(wikiMatcher.group(1));
+		if (slug.isEmpty()) {
+			return null;
+		}
+		Matcher image = WIKI_IMAGE_PATH.matcher(slug);
+		if (image.matches()) {
+			slug = "File:" + image.group(1);
+		}
+		return "[wiki=" + slug + "]"
+				+ cleanLabel(label, url, slug.replace('_', ' '))
+				+ "[/wiki]";
+	}
+
+	private static String trimTrailingPunctuation(String value) {
+		int end = value.length();
+		while (end > 0) {
+			char c = value.charAt(end - 1);
+			if (c == '.' || c == ',' || c == ';' || c == '!' || c == '?') {
+				end--;
+			} else if (c == ')' && value.lastIndexOf('(', end - 1) < 0) {
+				end--;
+			} else {
+				break;
+			}
+		}
+		return value.substring(0, end);
+	}
+
 	private static String cleanLabel(String label, String url, String fallback) {
 		if (label == null) {
 			return fallback;
@@ -247,7 +318,16 @@ public final class LegacyUrlRewriter {
 		if (map == null) {
 			return null;
 		}
-		return map.get(Integer.parseInt(legacyId));
+		Integer parsed = parseIntOrNull(legacyId);
+		return parsed == null ? null : map.get(parsed);
+	}
+
+	private static Integer parseIntOrNull(String value) {
+		try {
+			return Integer.parseInt(value);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	private static String buildHostAlternation(String legacyHost) {

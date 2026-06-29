@@ -20,16 +20,14 @@
     <sqlMapGenerator targetPackage="com.zfgc.zfgbb.mappers" targetProject="src/main/resources"/>
     <javaClientGenerator targetPackage="com.zfgc.zfgbb.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
 
-    <table schema="zfgbb" tableName="user_karma_view" domainObjectName="UserKarmaViewDbo">
-      <generatedKey column="karma_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="karma_given_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
-    </table>
+    <table schema="zfgbb" tableName="user_reaction_summary_view" domainObjectName="UserReactionSummaryViewDbo"/>
 
     <!-- ===== users ===== -->
 
     <table schema="zfgbb" tableName="permission" domainObjectName="PermissionDbo">
       <generatedKey column="permission_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="br_user_permission" domainObjectName="BrUserPermissionDbo">
@@ -42,190 +40,418 @@
 
     <table schema="zfgbb" tableName="user" domainObjectName="UserDbo">
       <generatedKey column="user_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="locked_until_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
-      <columnOverride column="password_changed_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="locked_until_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="password_changed_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="tokens_valid_after_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
 
     <table schema="zfgbb" tableName="user_bio_info" domainObjectName="UserBioInfoDbo">
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
       <columnOverride column="birth_date" jdbcType="DATE" javaType="java.time.LocalDate"/>
-      <columnOverride column="date_registered" jdbcType="DATE" javaType="java.time.LocalDate"/>
+      <columnOverride column="date_registered" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_login" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
 
     <table schema="zfgbb" tableName="user_contact_info" domainObjectName="UserContactInfoDbo">
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="email_address" domainObjectName="EmailAddressDbo">
       <generatedKey column="email_address_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="avatar" domainObjectName="AvatarDbo">
       <generatedKey column="avatar_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="user_refresh_token" domainObjectName="UserRefreshTokenDbo">
       <generatedKey column="user_refresh_token_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="issued_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
-      <columnOverride column="expires_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="issued_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="expires_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="rotated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
       <columnOverride column="revoked_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table schema="zfgbb" tableName="account_deletion_request" domainObjectName="AccountDeletionRequestDbo">
+      <generatedKey column="account_deletion_request_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="requested_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="expires_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="confirmed_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_sent_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="account_deletion_audit" domainObjectName="AccountDeletionAuditDbo">
+      <generatedKey column="deletion_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="requested_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="confirmed_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="executed_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
 
     <!-- ===== forum ===== -->
 
     <table schema="zfgbb" tableName="category" domainObjectName="CategoryDbo">
       <generatedKey column="category_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="board" domainObjectName="BoardDbo">
       <generatedKey column="board_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="thread" domainObjectName="ThreadDbo">
       <generatedKey column="thread_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="message" domainObjectName="MessageDbo">
       <generatedKey column="message_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="message_history" domainObjectName="MessageHistoryDbo">
       <generatedKey column="message_history_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="file_attachments" domainObjectName="FileAttachmentDbo">
       <generatedKey column="file_attachment_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <!-- ===== polls ===== -->
 
     <table schema="zfgbb" tableName="poll" domainObjectName="PollDbo">
       <generatedKey column="poll_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="expire_time" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="expire_time" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
       <columnOverride column="guest_vote_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table>
 
     <table schema="zfgbb" tableName="poll_question" domainObjectName="PollQuestionDbo">
       <generatedKey column="poll_question_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="poll_choice" domainObjectName="PollChoiceDbo">
       <generatedKey column="poll_choice_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
       <columnOverride column="active_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table>
 
     <table schema="zfgbb" tableName="user_poll_choice" domainObjectName="UserPollChoiceDbo">
       <generatedKey column="user_poll_choice_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <!-- ===== system ===== -->
 
     <table schema="zfgbb" tableName="system_config" domainObjectName="SystemConfigDbo">
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="install_run" domainObjectName="InstallRunDbo">
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <!-- ===== content / misc ===== -->
 
     <table schema="zfgbb" tableName="content_resource" domainObjectName="ContentResourceDbo">
       <generatedKey column="content_resource_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="ip_address" domainObjectName="IpAddressDbo">
       <generatedKey column="ip_address_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
-    <table schema="zfgbb" tableName="karma" domainObjectName="KarmaDbo">
-      <generatedKey column="karma_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    <table schema="zfgbb" tableName="reaction_type" domainObjectName="ReactionTypeDbo">
+      <generatedKey column="reaction_type_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="reaction" domainObjectName="ReactionDbo">
+      <generatedKey column="reaction_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="award" domainObjectName="AwardDbo">
+      <generatedKey column="award_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="user_award" domainObjectName="UserAwardDbo">
+      <generatedKey column="user_award_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="granted_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
 
     <table schema="zfgbb" tableName="gender_lkup" domainObjectName="GenderLkupDbo">
       <generatedKey column="gender_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <!-- ===== bbcode ===== -->
 
     <table schema="zfgbb" tableName="attribute_data_type" domainObjectName="AttributeDataTypeDbo">
       <generatedKey column="attribute_data_type_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="bb_code_attribute" domainObjectName="BBCodeAttributeDbo">
       <generatedKey column="bb_code_attribute_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="bb_code_attribute_mode" domainObjectName="BBCodeAttributeModeDbo">
       <generatedKey column="bb_code_attribute_mode_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="bb_code_config" domainObjectName="BBCodeConfigDbo">
       <generatedKey column="bb_code_config_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <!-- ===== cms (wiki / projects / resources) ===== -->
+
+    <table schema="zfgbb" tableName="wiki_page" domainObjectName="WikiPageDbo">
+      <generatedKey column="wiki_page_id" sqlStatement="JDBC" identity="true"/>
+	  <ignoreColumn column="canonical_title_key"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="wiki_page_revision" domainObjectName="WikiPageRevisionDbo">
+      <generatedKey column="wiki_page_revision_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="authored_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="current_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table schema="zfgbb" tableName="content_entity" domainObjectName="ContentEntityDbo">
+      <generatedKey column="content_entity_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="published_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="project" domainObjectName="ProjectDbo"/>
+
+    <table schema="zfgbb" tableName="resource" domainObjectName="ResourceDbo"/>
+
+    <table schema="zfgbb" tableName="project_view" domainObjectName="ProjectViewDbo">
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="published_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="resource_view" domainObjectName="ResourceViewDbo">
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="published_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="project_screenshot" domainObjectName="ProjectScreenshotDbo">
+      <generatedKey column="project_screenshot_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="project_download" domainObjectName="ProjectDownloadDbo">
+      <generatedKey column="project_download_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="published_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="content_collection" domainObjectName="ContentCollectionDbo">
+      <generatedKey column="content_collection_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="wiki_page_category" domainObjectName="WikiPageCategoryDbo">
+      <generatedKey column="wiki_page_category_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="team" domainObjectName="TeamDbo">
+      <generatedKey column="team_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="team_member" domainObjectName="TeamMemberDbo">
+      <generatedKey column="team_member_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="tag" domainObjectName="TagDbo">
+      <generatedKey column="tag_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="project_tag" domainObjectName="ProjectTagDbo">
+      <generatedKey column="project_tag_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="project_news" domainObjectName="ProjectNewsDbo">
+      <generatedKey column="project_news_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="published_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="content_collection_item" domainObjectName="ContentCollectionItemDbo">
+      <generatedKey column="content_collection_item_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="awarded_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="migration_conflict" domainObjectName="MigrationConflictDbo">
+      <generatedKey column="migration_conflict_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="resolved_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+
+    <table schema="zfgbb" tableName="migrator_id_map" domainObjectName="MigratorIdMapDbo">
+      <generatedKey column="migrator_id_map_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="content_template" domainObjectName="ContentTemplateDbo">
+      <generatedKey column="content_template_id" sqlStatement="JDBC" identity="true"/>
+	  <ignoreColumn column="source_code"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="personal_message_conversation" domainObjectName="PersonalMessageConversationDbo">
+      <generatedKey column="personal_message_conversation_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="started_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="personal_message" domainObjectName="PersonalMessageDbo">
+      <generatedKey column="personal_message_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="sent_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="personal_message_recipient" domainObjectName="PersonalMessageRecipientDbo">
+      <generatedKey column="personal_message_recipient_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="notification_subscription" domainObjectName="NotificationSubscriptionDbo">
+      <generatedKey column="notification_subscription_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="last_notified_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="user_warning" domainObjectName="UserWarningDbo">
+      <generatedKey column="user_warning_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="issued_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="moderation_log" domainObjectName="ModerationLogDbo">
+      <generatedKey column="moderation_log_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="logged_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
+    <table schema="zfgbb" tableName="permission_group" domainObjectName="PermissionGroupDbo">
+      <generatedKey column="permission_group_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="permission_group_assoc" domainObjectName="PermissionGroupAssocDbo">
+      <generatedKey column="permission_group_assoc_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+    <table schema="zfgbb" tableName="user_permission_group_assoc" domainObjectName="UserPermissionGroupAssocDbo">
+      <generatedKey column="user_permission_group_assoc_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <!-- ===== views (no PK / read-only) ===== -->
 
     <table schema="zfgbb" tableName="board_permission_view" domainObjectName="BoardPermissionViewDbo"/>
     <table schema="zfgbb" tableName="user_permission_view" domainObjectName="UserPermissionViewDbo"/>
+    <table schema="zfgbb" tableName="attachment_board_view" domainObjectName="AttachmentBoardViewDbo"/>
+    <table schema="zfgbb" tableName="recent_activity_view" domainObjectName="RecentActivityViewDbo">
+      <columnOverride column="last_post_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
     <table schema="zfgbb" tableName="current_message_view" domainObjectName="CurrentMessageDbo">
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="latest_message_in_thread_view" domainObjectName="LatestMessageInThreadViewDbo">
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
-      <columnOverride column="last_post_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="last_post_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="all_messages_in_thread_view" domainObjectName="AllMessagesInThreadViewDbo">
-      <columnOverride column="post_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="post_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="board_summary" domainObjectName="BoardSummaryViewDbo">
-      <columnOverride column="latest_message_created_ts" jdbcType="TIMESTAMP" javaType="java.time.LocalDateTime"/>
+      <columnOverride column="latest_message_created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="child_board_view" domainObjectName="ChildBoardViewDbo"/>
+    <table schema="zfgbb" tableName="wiki_revision_ref" domainObjectName="WikiRevisionRefDbo">
+      <columnOverride column="authored_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="current_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table schema="zfgbb" tableName="smiley_set" domainObjectName="SmileySetDbo">
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="smiley" domainObjectName="SmileyDbo">
+      <generatedKey column="smiley_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="user_settings" domainObjectName="UserSettingsDbo">
+      <columnOverride column="theme" jdbcType="VARCHAR" javaType="java.lang.String" typeHandler="com.zfgc.zfgbb.typehandler.PgEnumTypeHandler"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
 
   </context>
 </generatorConfiguration>

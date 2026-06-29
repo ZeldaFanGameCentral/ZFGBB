@@ -17,6 +17,7 @@ import com.zfgc.zfgbb.dbo.PermissionDboExample;
 import com.zfgc.zfgbb.mappers.BrBoardPermissionDboMapper;
 import com.zfgc.zfgbb.mappers.BrUserPermissionDboMapper;
 import com.zfgc.zfgbb.mappers.PermissionDboMapper;
+import com.zfgc.zfgbb.migrator.web.PermissionCodeSummary;
 
 @Service
 public class MigratorPermissionService {
@@ -46,6 +47,14 @@ public class MigratorPermissionService {
 		ex.createCriteria().andPermissionCodeEqualTo(code);
 		List<PermissionDbo> matches = permissionMapper.selectByExample(ex);
 		return matches.isEmpty() ? null : matches.get(0).getPermissionId();
+	}
+
+	public List<PermissionCodeSummary> listPermissionCodes() {
+		PermissionDboExample ex = new PermissionDboExample();
+		ex.setOrderByClause("permission_id");
+		return permissionMapper.selectByExample(ex).stream()
+				.map(dbo -> new PermissionCodeSummary(dbo.getPermissionCode(), dbo.getPermissionName()))
+				.toList();
 	}
 
 	public void grantBoardPermission(Integer boardId, String code) {
@@ -110,6 +119,14 @@ public class MigratorPermissionService {
 		if (smfGroupId == null) {
 			return Set.of();
 		}
+		List<String> operatorMappedCodes = JobContextHolder.getGroupPermissionCodes(smfGroupId);
+		if (operatorMappedCodes != null) {
+			return new LinkedHashSet<>(operatorMappedCodes);
+		}
+		return reservedSmfGroupCodes(smfGroupId);
+	}
+
+	private Set<String> reservedSmfGroupCodes(Integer smfGroupId) {
 		switch (smfGroupId) {
 			case -1:
 				return Set.of(CODE_GUEST);
@@ -120,15 +137,8 @@ public class MigratorPermissionService {
 			case 2:
 			case 3:
 				return Set.of(CODE_SITE_MODERATOR);
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-			case 8:
-				return Set.of(CODE_USER);
 			default:
-				// FIXME: custom SMF groups currently fall back to ZFGC_USER. Add real mapping support.
-				return Set.of(CODE_USER);
+				return Set.of();
 		}
 	}
 

@@ -4,26 +4,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDbo;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.mappers.MigratorIdMapDboMapper;
+import com.zfgc.zfgbb.mappers.MigratorIdMapMapper;
 
 @Service
 public class MigratorIdMapService {
 
-	private final JdbcTemplate jdbc;
+	@Autowired
+	private MigratorIdMapDboMapper migratorIdMapDboMapper;
 
-	public MigratorIdMapService(@Qualifier("dataSource") DataSource dataSource) {
-		this.jdbc = new JdbcTemplate(dataSource);
-	}
+	@Autowired
+	private MigratorIdMapMapper migratorIdMapMapper;
 
 	public void record(LegacyEntityType type, Integer legacyId, Integer zfgbbId) {
-		jdbc.update(
-				"insert into zfgbb.migrator_id_map (entity_type, legacy_id, zfgbb_id) values (?, ?, ?) "
-						+ "on conflict (entity_type, legacy_id) do update set zfgbb_id = excluded.zfgbb_id",
-				type.name(), legacyId, zfgbbId);
+		migratorIdMapMapper.upsert(type.name(), legacyId, zfgbbId);
 	}
 
 	public Integer lookup(LegacyEntityType type, Integer legacyId) {
@@ -40,18 +39,18 @@ public class MigratorIdMapService {
 		if (legacyId == null) {
 			return null;
 		}
-		List<Integer> rows = jdbc.queryForList(
-				"select zfgbb_id from zfgbb.migrator_id_map where entity_type = ? and legacy_id = ?",
-				Integer.class, type.name(), legacyId);
-		return rows.isEmpty() ? null : rows.get(0);
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(type.name()).andLegacyIdEqualTo(legacyId);
+		List<MigratorIdMapDbo> rows = migratorIdMapDboMapper.selectByExample(example);
+		return rows.isEmpty() ? null : rows.get(0).getZfgbbId();
 	}
 
 	public Map<Integer, Integer> getAllForType(LegacyEntityType type) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(type.name());
 		Map<Integer, Integer> result = new HashMap<>();
-		jdbc.query(
-				"select legacy_id, zfgbb_id from zfgbb.migrator_id_map where entity_type = ?",
-				rs -> { result.put(rs.getInt(1), rs.getInt(2)); },
-				type.name());
+		for (MigratorIdMapDbo row : migratorIdMapDboMapper.selectByExample(example))
+			result.put(row.getLegacyId(), row.getZfgbbId());
 		return result;
 	}
 }

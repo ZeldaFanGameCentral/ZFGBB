@@ -21,7 +21,7 @@ public class BoardPermissionViewDao extends AbstractDao<BoardPermissionViewDboEx
 
 	@Override
 	public Optional<BoardPermissionViewDbo> get(Integer id) {
-		return null;
+		return Optional.empty();
 	}
 
 	@Override

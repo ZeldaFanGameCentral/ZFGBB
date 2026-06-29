@@ -13,11 +13,11 @@ import lombok.NoArgsConstructor;
 public class Job {
 	private UUID id;
 	private JobType type;
-	private JobState state;
-	private Instant submittedAt;
-	private Instant startedAt;
-	private Instant finishedAt;
-	private String error;
+	private volatile JobState state;
+	private volatile Instant submittedAt;
+	private volatile Instant startedAt;
+	private volatile Instant finishedAt;
+	private volatile String error;
 
 	@JsonIgnore private String smfJdbcUrl;
 	@JsonIgnore private String smfUser;
@@ -28,5 +28,15 @@ public class Job {
 	@JsonIgnore private String attachmentsSourcePath;
 	@JsonIgnore private String attachmentsTargetPath;
 	@JsonIgnore private String avatarsSourcePath;
+	@JsonIgnore private String cmsFilesSourcePath;
+	@JsonIgnore private String wikiImagesSourcePath;
 	@JsonIgnore private boolean force;
+	@JsonIgnore private boolean createMemberWikiPages;
+	@JsonIgnore private Integer discussionBoardId;
+	@JsonIgnore private Integer resourcesBoardId;
+	@JsonIgnore private java.util.Map<String, Integer> talkBoardIds;
+	@JsonIgnore private java.util.Map<Integer, java.util.List<String>> groupPermissionMap;
+	private java.util.Map<String, String> wikiNamespaceCaseModes;
+	private java.util.Map<String, String> wikiNamespaceAliases;
+	private java.util.Map<Integer, String> wikiNamespaceIds;
 }

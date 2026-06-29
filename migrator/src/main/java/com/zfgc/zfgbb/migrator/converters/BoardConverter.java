@@ -20,14 +20,13 @@ import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDb;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFBoardDbExample;
-import com.zfgc.zfgbb.migrator.smf.mappers.SMFBoardDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
 @Component
 public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 
 	@Autowired
-	private SMFBoardDbMapper smfBoardMapper;
+	private SmfResilientReadMapper resilientReads;
 
 	@Autowired
 	private BoardDboMapper boardMapper;
@@ -46,10 +45,10 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 	@Override
 	@Transactional
 	public Map<Integer, BoardDbo> convertToZfgbb() {
-		List<SMFBoardDb> SMFBoards = smfBoardMapper.selectByExample(new SMFBoardDbExample());
+		List<SMFBoardDb> smfBoards = resilientReads.selectAllBoards();
 		Map<Integer, BoardDbo> result = new HashMap<>();
 
-		SMFBoards.forEach((smfBoard) -> {
+		smfBoards.forEach((smfBoard) -> {
 			Cancellable.check();
 			BoardDbo board = new BoardDbo();
 
@@ -85,7 +84,7 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 		});
 
 		// Second pass: set parent_board_id (now that all boards have ZFGBB ids)
-		SMFBoards.forEach(smfBoard -> {
+		smfBoards.forEach(smfBoard -> {
 			BoardDbo board = result.get(smfBoard.getIdBoard());
 			Integer smfParent = smfBoard.getIdParent();
 			if (smfParent == null) {
@@ -100,7 +99,7 @@ public class BoardConverter extends AbstractConverter<Map<Integer, BoardDbo>> {
 			}
 		});
 
-		SMFBoards.forEach(smfBoard -> {
+		smfBoards.forEach(smfBoard -> {
 			BoardDbo board = result.get(smfBoard.getIdBoard());
 			if (board == null) {
 				return;

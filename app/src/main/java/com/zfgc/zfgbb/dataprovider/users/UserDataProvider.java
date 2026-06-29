@@ -1,9 +1,13 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -18,40 +22,42 @@ import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
 import com.zfgc.zfgbb.config.loadoption.user.FullUserLoadOptions;
 import com.zfgc.zfgbb.config.loadoption.user.LoggedInUserLoadOptions;
 import com.zfgc.zfgbb.dao.UserPermissionViewDao;
-import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
-import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dbo.AvatarDbo;
 import com.zfgc.zfgbb.dbo.AvatarDboExample;
+import com.zfgc.zfgbb.dbo.AwardDbo;
+import com.zfgc.zfgbb.dbo.AwardDboExample;
+import com.zfgc.zfgbb.dbo.UserAwardDbo;
+import com.zfgc.zfgbb.dbo.UserAwardDboExample;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
 import com.zfgc.zfgbb.dbo.EmailAddressDbo;
 import com.zfgc.zfgbb.dbo.EmailAddressDboExample;
-import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
+import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
-import com.zfgc.zfgbb.dbo.UserKarmaViewDbo;
-import com.zfgc.zfgbb.dbo.UserKarmaViewDboExample;
-import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
-import com.zfgc.zfgbb.mappers.UserKarmaViewDboMapper;
+import com.zfgc.zfgbb.dbo.UserSettingsDbo;
+import com.zfgc.zfgbb.mappers.AwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserSettingsDboMapper;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
-import com.zfgc.zfgbb.mapstruct.users.KarmaMap;
-import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
+import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.Avatar;
+import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
-import com.zfgc.zfgbb.model.users.UserKarmaView;
-import com.zfgc.zfgbb.services.forum.BBCodeService;
+import com.zfgc.zfgbb.model.users.UserSettings;
+import com.zfgc.zfgbb.content.ContentFormat;
+import com.zfgc.zfgbb.content.renderer.ContentRenderer;
 
 @Repository
-public class UserDataProvider extends AbstractDataProvider {
+public class UserDataProvider {
 
 	private static final Integer ZFGC_USER_PERMISSION_ID = 1;
 
@@ -77,7 +83,7 @@ public class UserDataProvider extends AbstractDataProvider {
 	private UserContactInfoDao contactInfoDao;
 
 	@Autowired
-	private BBCodeService bbcodeService;
+	private ContentRenderer contentRenderer;
 
 	@Autowired
 	private UserMap userMap;
@@ -85,23 +91,22 @@ public class UserDataProvider extends AbstractDataProvider {
 	@Autowired
 	private UserBioInfoMap userBioInfoMap;
 
-	@Autowired
-	private MessageDboMapper messageDboMapper;
+
 
 	@Autowired
-	private UserKarmaViewDboMapper karmaViewDboMapper;
+	private EmailAddressMap emailAddressMap;
 
 	@Autowired
-	private KarmaMap karmaMap;
+	private UserSettingsDboMapper userSettingsMapper;
 
 	@Autowired
-	private UserContactInfoMap userContactInfoMap;
+	private AwardDboMapper awardMapper;
 
 	@Autowired
-	private AvatarMap avatarMap;
+	private UserAwardDboMapper userAwardMapper;
 
 	@Autowired
-	private PermissionMap permissionMap;
+	private UserProfileFacade userProfileFacade;
 
 	public Optional<User> findUser(String userName) {
 		if (userName == null || userName.isBlank()) {
@@ -111,6 +116,15 @@ public class UserDataProvider extends AbstractDataProvider {
 		ex.createCriteria().andUserNameEqualTo(userName).andActiveFlagEqualTo(true);
 		return userDao.get(ex).stream().findFirst()
 				.flatMap(dbo -> findUser(dbo.getUserId(), new LoggedInUserLoadOptions()));
+	}
+
+	public Optional<User> findUserForAuthentication(String userName) {
+		if (userName == null || userName.isBlank())
+			return Optional.empty();
+		UserDboExample ex = new UserDboExample();
+		ex.createCriteria().andUserNameEqualTo(userName);
+		return userDao.get(ex).stream().findFirst()
+				.map(dbo -> hydrateUser(dbo, new LoggedInUserLoadOptions()));
 	}
 
 	public Optional<User> findUser(Integer userId) {
@@ -128,75 +142,70 @@ public class UserDataProvider extends AbstractDataProvider {
 	}
 
 	private User hydrateUser(UserDbo userDb, BasicUserLoadOptions loadOptions) {
-		Integer userId = userDb.getUserId();
+		Map<Integer, User> users = userProfileFacade.loadUsersByIds(List.of(userDb.getUserId()), loadOptions);
+		return users.get(userDb.getUserId());
+	}
 
-		// todo: setup guest permissions
-		UserPermissionViewDboExample upEx = new UserPermissionViewDboExample();
-		upEx.createCriteria().andUserIdEqualTo(userId);
-		List<Permission> permissions = Boolean.TRUE.equals(loadOptions.loadPermissions())
-				? userPermissionDao.get(upEx).stream().map(permissionMap::toModel).toList()
-				: Collections.emptyList();
 
-		Optional<UserBioInfo> bioInfo = Boolean.TRUE.equals(loadOptions.loadBio()) ? bioInfoDao.get(userId)
-				.map(bioInfoDbo -> {
-					MessageDboExample msgEx = new MessageDboExample();
-					msgEx.createCriteria().andOwnerIdEqualTo(userId);
 
-					Integer postCount = (int) messageDboMapper.countByExample(msgEx);
+	public Map<Integer, User> findPublicAuthorsByIds(Collection<Integer> requestedUserIds) {
+		BasicUserLoadOptions loadOptions = new BasicUserLoadOptions();
+		Map<Integer, User> users = userProfileFacade.loadUsersByIds(requestedUserIds, loadOptions);
+		for (User author : users.values()) {
+			author.retainPublicRankPermissions();
+			if (author.getBioInfo() != null)
+				author.getBioInfo().setSignature(null);
+		}
+		return users;
+	}
 
-					String signatureParsed = "";
-					signatureParsed = bbcodeService.parseText(bioInfoDbo.getSignature());
-
-					// load avatar
-					AvatarDboExample avatarEx = new AvatarDboExample();
-					if (bioInfoDbo.getAvatarId() != null) {
-						avatarEx.createCriteria().andAvatarIdEqualTo(bioInfoDbo.getAvatarId())
-								.andActiveFlagEqualTo(true);
-					}
-					Optional<Avatar> avatar = Boolean.TRUE.equals(loadOptions.loadAvatar())
-							&& bioInfoDbo.getAvatarId() != null
-									? avatarDao.get(avatarEx).stream()
-											.findFirst()
-											.map(avatarMap::toModel)
-									: Optional.empty();
-
-					// load karma
-					UserKarmaViewDboExample karmaEx = new UserKarmaViewDboExample();
-					karmaEx.createCriteria().andReceivingUserIdEqualTo(userId);
-					List<UserKarmaView> karmaList = Boolean.TRUE.equals(loadOptions.loadKarma())
-							? karmaViewDboMapper.selectByExample(karmaEx).stream().map(karmaMap::toViewModel).toList()
-							: Collections.emptyList();
-
-					return userBioInfoMap.toModel(bioInfoDbo)
-							.toBuilder()
-							.postCount(postCount)
-							.signatureParsed(signatureParsed)
-							.karma(karmaList)
-							.avatar(avatar.orElse(null))
-							.build();
-				}) : Optional.empty();
-
-		Optional<UserContactInfo> contactInfo = Boolean.TRUE.equals(loadOptions.loadContactInfo())
-				? contactInfoDao.get(userId)
-						.map(ci -> {
-							EmailAddressDbo email = emailDao.get(ci.getEmailAddressId()).get();
-							return userContactInfoMap.toModel(ci, email);
-						})
-				: Optional.empty();
-
-		return userMap.toModel(userDb)
-				.toBuilder()
-				.bioInfo(bioInfo.orElse(null))
-				.contactInfo(contactInfo.orElse(null))
-				.permissions(permissions)
+	private UserSettings toSettings(UserSettingsDbo dbo) {
+		if (dbo == null) {
+			return new UserSettings();
+		}
+		return UserSettings.builder()
+				.userId(dbo.getUserId())
+				.theme(dbo.getTheme())
+				.smileySet(dbo.getSmileySet())
+				.notifyAnnouncementsFlag(dbo.getNotifyAnnouncementsFlag())
+				.notifySendBodyFlag(dbo.getNotifySendBodyFlag())
+				.sendHappyBirthdayFlag(dbo.getSendHappyBirthdayFlag())
 				.build();
 	}
 
+	public UserSettings saveUserSettings(Integer userId, UserSettings settings) {
+		UserSettingsDbo dbo = new UserSettingsDbo();
+		dbo.setUserId(userId);
+		dbo.setTheme(settings.getTheme());
+		dbo.setSmileySet(settings.getSmileySet());
+		dbo.setNotifyAnnouncementsFlag(settings.getNotifyAnnouncementsFlag());
+		dbo.setNotifySendBodyFlag(settings.getNotifySendBodyFlag());
+		dbo.setSendHappyBirthdayFlag(settings.getSendHappyBirthdayFlag());
+
+		UserSettingsDbo existing = userSettingsMapper.selectByPrimaryKey(userId);
+		if (existing == null) {
+			userSettingsMapper.insertSelective(dbo);
+		} else {
+			dbo.setMigrationHash(existing.getMigrationHash());
+			if (dbo.getNotifyAnnouncementsFlag() == null) {
+				dbo.setNotifyAnnouncementsFlag(existing.getNotifyAnnouncementsFlag());
+			}
+			if (dbo.getNotifySendBodyFlag() == null) {
+				dbo.setNotifySendBodyFlag(existing.getNotifySendBodyFlag());
+			}
+			if (dbo.getSendHappyBirthdayFlag() == null) {
+				dbo.setSendHappyBirthdayFlag(existing.getSendHappyBirthdayFlag());
+			}
+			userSettingsMapper.updateByPrimaryKey(dbo);
+		}
+		return toSettings(userSettingsMapper.selectByPrimaryKey(userId));
+	}
+
 	public User createUser(User user) {
-		UserDbo userDbo = mapper.map(user, UserDbo.class);
+		UserDbo userDbo = userMap.toDbo(user);
 		userDao.save(userDbo);
 
-		EmailAddressDbo emailDbo = mapper.map(user.getEmail(), EmailAddressDbo.class);
+		EmailAddressDbo emailDbo = emailAddressMap.toDbo(user.getEmail());
 		emailDao.save(emailDbo);
 		UserContactInfoDbo contactInfo = new UserContactInfoDbo();
 		contactInfo.setUserId(userDbo.getUserId());
@@ -206,7 +215,7 @@ public class UserDataProvider extends AbstractDataProvider {
 		contactInfoDao.getMapper().insertSelective(contactInfo);
 
 		UserBioInfoDbo bioInfo = user.getBioInfo() != null
-				? mapper.map(user.getBioInfo(), UserBioInfoDbo.class)
+				? userBioInfoMap.toDbo(user.getBioInfo())
 				: new UserBioInfoDbo();
 		bioInfo.setUserId(userDbo.getUserId());
 		bioInfoDao.getMapper().insertSelective(bioInfo);
@@ -233,11 +242,11 @@ public class UserDataProvider extends AbstractDataProvider {
 	}
 
 	public User saveUserProfile(User user) {
-		UserDbo userDbo = mapper.map(user, UserDbo.class);
+		UserDbo userDbo = userMap.toDbo(user);
 		userDbo = userDao.save(userDbo);
 
 		if (user.getBioInfo() != null) {
-			UserBioInfoDbo bioInfoDbo = mapper.map(user.getBioInfo(), UserBioInfoDbo.class);
+			UserBioInfoDbo bioInfoDbo = userBioInfoMap.toDbo(user.getBioInfo());
 			bioInfoDao.save(bioInfoDbo);
 		}
 
@@ -245,4 +254,34 @@ public class UserDataProvider extends AbstractDataProvider {
 				.orElseThrow(() -> new IllegalStateException("user disappeared after saveUserProfile"));
 	}
 
+
+
+	public List<Award> getAwardCatalog() {
+		AwardDboExample awardEx = new AwardDboExample();
+		awardEx.setOrderByClause("award_id");
+		return awardMapper.selectByExample(awardEx).stream()
+				.map(awardDbo -> {
+					Award model = new Award();
+					model.setAwardId(awardDbo.getAwardId());
+					model.setCode(awardDbo.getCode());
+					model.setName(awardDbo.getName());
+					model.setDescription(awardDbo.getDescription());
+					model.setIcon(awardDbo.getIcon());
+					return model;
+				})
+				.toList();
+	}
+
+	public User grantAward(Integer userId, Integer awardId, String reason, Integer contentEntityId,
+			Integer grantedByUserId) {
+		UserAwardDbo dbo = new UserAwardDbo();
+		dbo.setUserId(userId);
+		dbo.setAwardId(awardId);
+		dbo.setReason(reason);
+		dbo.setContentEntityId(contentEntityId);
+		dbo.setGrantedByUserId(grantedByUserId);
+		userAwardMapper.insertSelective(dbo);
+		return findUser(userId, new FullUserLoadOptions())
+				.orElseThrow(() -> new IllegalStateException("user disappeared after grantAward"));
+	}
 }

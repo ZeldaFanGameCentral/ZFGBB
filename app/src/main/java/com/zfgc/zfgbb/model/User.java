@@ -1,9 +1,10 @@
 package com.zfgc.zfgbb.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -16,11 +17,15 @@ import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 import com.zfgc.zfgbb.model.users.Avatar;
+import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
+import com.zfgc.zfgbb.model.users.EncodedPassword;
 import com.zfgc.zfgbb.model.users.PasswordAlgo;
 import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.model.users.ReactionSummary;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
+import com.zfgc.zfgbb.model.users.UserSettings;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,9 +43,12 @@ public class User extends BaseModel implements UserDetails {
 	@JsonIgnore
 	private Integer userId;
 	private String displayName;
+	@JsonIgnore
 	private String userName;
 	private Boolean activeFlag;
+	@JsonIgnore
 	private EmailAddress email;
+	@JsonIgnore
 	private String ssoKey;
 	@JsonIgnore
 	private String passwordHash;
@@ -49,23 +57,49 @@ public class User extends BaseModel implements UserDetails {
 	@JsonIgnore
 	private String passwordSalt;
 	@JsonIgnore
-	private LocalDateTime lockedUntilTs;
+	private OffsetDateTime lockedUntilTs;
 	@JsonIgnore
 	private Integer failedLoginCount;
 	@JsonIgnore
-	private LocalDateTime passwordChangedTs;
+	private OffsetDateTime passwordChangedTs;
+	@JsonIgnore
+	private OffsetDateTime tokensValidAfterTs;
+	@JsonIgnore
+	private Boolean credentialsNonExpired;
 	private List<Permission> permissions = new ArrayList<>();
 	
 	private IpAddress currentIpAddress;
 	private List<IpAddress> allKnownIpAddresses = new ArrayList<>();
 	private UserBioInfo bioInfo;
 	private UserContactInfo contactInfo;
+	private ReactionSummary reactionSummary;
+	private List<Award> awards;
+	private UserSettings settings;
 	
 	public static User orphaned() {
 		return User.builder()
 				.displayName("ORPHANED")
 				.permissions(new ArrayList<>())
 				.build();
+	}
+
+	public static User guest() {
+		User guest = new User();
+		guest.setDisplayName("Friend");
+		guest.setUserId(-1);
+
+		Permission guestPerm = new Permission();
+		guestPerm.setId(2);
+		guestPerm.setPermissionCode("ZFGC_GUEST");
+
+		Permission readPerm = new Permission();
+		readPerm.setId(9);
+		readPerm.setPermissionCode("ZFGC_READ_ONLY");
+
+		guest.getPermissions().add(guestPerm);
+		guest.getPermissions().add(readPerm);
+
+		return guest;
 	}
 
 	public List<Permission> getPermissions() {
@@ -76,8 +110,20 @@ public class User extends BaseModel implements UserDetails {
 		this.permissions = permissions;
 	}
 
+	public static final Set<String> PUBLIC_RANK_PERMISSIONS = Set.of(
+			"ZFGC_SITE_ADMIN", "ZFGC_SITE_MODERATOR", "ZFGC_WIKI_MODERATOR");
+
+	public void retainPublicRankPermissions() {
+		this.permissions = permissions == null ? new ArrayList<>() : permissions.stream()
+				.filter(permission -> PUBLIC_RANK_PERMISSIONS.contains(permission.getPermissionCode()))
+				.collect(Collectors.toList());
+	}
+
+	@JsonIgnore
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
+		if (permissions == null)
+			return List.of();
 		return permissions.stream()
 					      .map(perm -> {
 					    	  return new SimpleGrantedAuthority("ROLE_" + perm.getPermissionCode());
@@ -86,31 +132,31 @@ public class User extends BaseModel implements UserDetails {
 	}
 
 
+	@JsonIgnore
 	@Override
 	public String getUsername() {
 		return userName;
 	}
 
+	@JsonIgnore
 	@Override
 	public boolean isAccountNonExpired() {
-		// No account-expiry policy yet (no use case). Reserved for future use; if/when
-		// added, store an account_expires_ts column and compare against now() here.
 		return true;
 	}
 
+	@JsonIgnore
 	@Override
 	public boolean isAccountNonLocked() {
-		return lockedUntilTs == null || lockedUntilTs.isBefore(LocalDateTime.now());
+		return lockedUntilTs == null || !lockedUntilTs.isAfter(OffsetDateTime.now(java.time.ZoneOffset.UTC));
 	}
 
+	@JsonIgnore
 	@Override
 	public boolean isCredentialsNonExpired() {
-		// The configurable max-age policy is enforced server-side in AuthService.login()
-		// (where we have @Value access). This default keeps the UserDetails contract
-		// satisfied for code paths that consult UserDetails directly.
-		return true;
+		return credentialsNonExpired == null || credentialsNonExpired;
 	}
 
+	@JsonIgnore
 	@Override
 	public boolean isEnabled() {
 		return Boolean.TRUE.equals(activeFlag);
@@ -193,7 +239,10 @@ public class User extends BaseModel implements UserDetails {
 	@Override
 	@JsonIgnore
 	public String getPassword() {
-		return passwordHash;
+		if (passwordHash == null)
+			return null;
+		return new EncodedPassword(passwordAlgo == null ? PasswordAlgo.BCRYPT : passwordAlgo, passwordSalt, passwordHash)
+				.toEncoded();
 	}
 
 	public UserBioInfo getBioInfo() {
@@ -207,7 +256,7 @@ public class User extends BaseModel implements UserDetails {
 	@JsonIgnore
 	public boolean hasPermission(String permission) {
 		if(permissions != null) {
-			return permissions.stream().anyMatch(pr -> pr.getPermissionCode().equals(permission));
+			return permissions.stream().anyMatch(pr -> permission.equals(pr.getPermissionCode()));
 		}
 		
 		return false;

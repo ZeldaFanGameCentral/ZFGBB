@@ -7,37 +7,37 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface ContentResourceDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247179576-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697127485-04:00", comments="Source Table: zfgbb.content_resource")
     long countByExample(ContentResourceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247216094-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697145435-04:00", comments="Source Table: zfgbb.content_resource")
     int deleteByExample(ContentResourceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247241934-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697160404-04:00", comments="Source Table: zfgbb.content_resource")
     int deleteByPrimaryKey(Integer contentResourceId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247296932-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697174134-04:00", comments="Source Table: zfgbb.content_resource")
     int insert(ContentResourceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247322471-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697188493-04:00", comments="Source Table: zfgbb.content_resource")
     int insertSelective(ContentResourceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.24735933-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697213092-04:00", comments="Source Table: zfgbb.content_resource")
     List<ContentResourceDbo> selectByExample(ContentResourceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247382879-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697231822-04:00", comments="Source Table: zfgbb.content_resource")
     ContentResourceDbo selectByPrimaryKey(Integer contentResourceId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247405658-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697248281-04:00", comments="Source Table: zfgbb.content_resource")
     int updateByExampleSelective(@Param("row") ContentResourceDbo row, @Param("example") ContentResourceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247428518-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697268781-04:00", comments="Source Table: zfgbb.content_resource")
     int updateByExample(@Param("row") ContentResourceDbo row, @Param("example") ContentResourceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247492046-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697309909-04:00", comments="Source Table: zfgbb.content_resource")
     int updateByPrimaryKeySelective(ContentResourceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.247523735-04:00", comments="Source Table: zfgbb.content_resource")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.697337229-04:00", comments="Source Table: zfgbb.content_resource")
     int updateByPrimaryKey(ContentResourceDbo row);
 
     List<ContentResourceDbo> selectByExampleWithLimits(ContentResourceDboExample example);

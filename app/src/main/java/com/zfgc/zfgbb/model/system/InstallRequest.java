@@ -6,6 +6,7 @@ public record InstallRequest(
 		String adminEmail,
 		String adminPassword,
 		String siteName,
-		Boolean applySampleData,
-		Boolean useTokens) {
+		String contentPack,
+		Boolean useTokens,
+		Boolean provisionRecycleBin) {
 }

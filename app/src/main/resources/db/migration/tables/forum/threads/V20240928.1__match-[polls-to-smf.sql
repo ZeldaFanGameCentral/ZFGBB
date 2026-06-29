@@ -1,7 +1,7 @@
 alter table zfgbb.poll
 add column voting_locked_flag boolean not null default false,
 add column max_votes boolean not null default true,
-add column expire_time timestamp not null,
+add column expire_time timestamptz not null,
 add column hide_results_flag boolean not null default false,
 add column change_vote_flag boolean not null default false,
 add column created_user_id integer not null references zfgbb.user,

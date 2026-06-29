@@ -2,23 +2,31 @@ package com.zfgc.zfgbb.exception.handlers;
 
 import java.util.ConcurrentModificationException;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+@RestControllerAdvice
 public class RuntimeExceptionHandler {
-	
-	/*@ExceptionHandler(value=RuntimeException.class)
-	public ResponseEntity defaultErrorHandler(HttpServletRequest req, Exception e) {
-		//LOGGER.error("An unexpected error occured.", e);
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occured. Please contact an administrator for assistance.");
+
+	@ExceptionHandler(value = AuthenticationException.class)
+	public ResponseEntity<String> handleAuthenticationFailure(HttpServletRequest request, AuthenticationException exception) {
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password.");
 	}
-	
-	@ExceptionHandler(value=ConcurrentModificationException.class)
-	public ResponseEntity concurrentErrorHandler(HttpServletRequest req, ConcurrentModificationException e) {
-		//LOGGER.error("An unexpected error occured.", e);
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("A concurrent modification error occured. Please refresh the page and try again.");
-	}*/
-	
+
+	@ExceptionHandler(value = DataIntegrityViolationException.class)
+	public ResponseEntity<String> handleDataIntegrityViolation(HttpServletRequest request, DataIntegrityViolationException exception) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The request could not be completed due to invalid or conflicting data.");
+	}
+
+	@ExceptionHandler(value = ConcurrentModificationException.class)
+	public ResponseEntity<String> handleConcurrentModification(HttpServletRequest request, ConcurrentModificationException exception) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body("The record was modified concurrently. Please retry.");
+	}
+
 }

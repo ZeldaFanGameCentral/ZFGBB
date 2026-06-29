@@ -25,6 +25,8 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 @MapperScans({
 		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
 		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.smf.queries", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
+		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.ci.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
+		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.wiki.mappers", sqlSessionTemplateRef = "smfSqlSessionTemplate"),
 		@MapperScan(basePackages = "com.zfgc.zfgbb.migrator.mappers")
 })
 public class MigratorAutoConfiguration {
@@ -71,8 +73,15 @@ public class MigratorAutoConfiguration {
 	public SqlSessionFactory smfSqlSessionFactory(@Qualifier("smfDataSource") DataSource smfDataSource) throws Exception {
 		SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
 		factory.setDataSource(smfDataSource);
-		factory.setMapperLocations(new PathMatchingResourcePatternResolver()
-				.getResources("classpath:com/zfgc/zfgbb/migrator/smf/mappers/*.xml"));
+		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+		var smf = resolver.getResources("classpath:com/zfgc/zfgbb/migrator/smf/mappers/*.xml");
+		var ci = resolver.getResources("classpath:com/zfgc/zfgbb/migrator/ci/mappers/*.xml");
+		var wiki = resolver.getResources("classpath:com/zfgc/zfgbb/migrator/wiki/mappers/*.xml");
+		var combined = new org.springframework.core.io.Resource[smf.length + ci.length + wiki.length];
+		System.arraycopy(smf, 0, combined, 0, smf.length);
+		System.arraycopy(ci, 0, combined, smf.length, ci.length);
+		System.arraycopy(wiki, 0, combined, smf.length + ci.length, wiki.length);
+		factory.setMapperLocations(combined);
 		return factory.getObject();
 	}
 

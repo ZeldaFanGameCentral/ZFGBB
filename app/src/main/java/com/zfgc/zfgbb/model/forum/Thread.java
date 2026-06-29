@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +22,9 @@ public class Thread extends BaseModel implements Securable {
     private Integer boardId;
     private String boardName;
     private Integer createdUserId;
+    private Integer recycledFromBoardId;
+    private Integer recycledFromThreadId;
+    private Boolean recycleBinEnabled;
 
     private User createdUser;
     private Integer postCount;

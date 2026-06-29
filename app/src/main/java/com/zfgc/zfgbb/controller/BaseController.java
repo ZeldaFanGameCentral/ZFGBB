@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 
 import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.model.users.Permission;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -16,31 +15,11 @@ public class BaseController {
 	
 	protected User zfgcUser(){
 		Principal userPrincipal = request.getUserPrincipal();
-		
+
 		if(userPrincipal == null) {
-			return createGuest();
+			return User.guest();
 		}
-		
-		
-		
+
 		return (User) ((Authentication) userPrincipal).getPrincipal();
-	}
-	
-	private User createGuest() {
-		User guest = new User();
-		Permission guestPerm = new Permission();
-		guest.setDisplayName("Friend");
-		guest.setUserId(-1);
-		guestPerm.setId(2);
-		guestPerm.setPermissionCode("ZFGC_GUEST");
-		
-		Permission readPerm = new Permission();
-		readPerm.setId(9);
-		readPerm.setPermissionCode("ZFGC_READ_ONLY");
-		
-		guest.getPermissions().add(guestPerm);
-		guest.getPermissions().add(readPerm);
-		
-		return guest;
 	}
 }

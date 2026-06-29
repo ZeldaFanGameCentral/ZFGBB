@@ -1,7 +1,7 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
@@ -23,10 +23,9 @@ import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFPollsDb;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFPollsDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFTopicDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFTopicDbExample;
-import com.zfgc.zfgbb.migrator.smf.mappers.SMFPollsDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFTopicDbMapper;
 
 @Component
@@ -38,7 +37,7 @@ public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
 	}
 
 	@Autowired
-	private SMFPollsDbMapper smfPollsMapper;
+	private SmfResilientReadMapper resilientReads;
 
 	@Autowired
 	private PollDboMapper pollMapper;
@@ -52,7 +51,7 @@ public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
 	@Override
 	@Transactional
 	public Map<Integer, PollDbo> convertToZfgbb() {
-		List<SMFPollsDb> smfPolls = smfPollsMapper.selectByExample(new SMFPollsDbExample());
+		List<SMFPollsDb> smfPolls = resilientReads.selectAllPolls();
 		SMFTopicDbExample threadEx = new SMFTopicDbExample();
 		threadEx.createCriteria().andIdPollIsNotNull().andIdPollNotEqualTo(0);
 		Map<Integer, Integer> smfPollToTopicMap = threadMapper.selectByExample(threadEx).stream()
@@ -78,10 +77,10 @@ public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
 			PollDbo poll = new PollDbo();
 
 			Instant instant = Instant.ofEpochMilli(TimeUnit.SECONDS.toMillis(smfPoll.getExpireTime()));
-			LocalDateTime expireTime = LocalDateTime.ofInstant(instant, ZoneId.of("UTC"));
+			OffsetDateTime expireTime = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
 
 			poll.setChangeVoteFlag(smfPoll.getChangeVote());
-			poll.setCreatedTs(LocalDateTime.now());
+			poll.setCreatedTs(OffsetDateTime.now());
 			poll.setCreatedUserId(zfgbbUserId);
 			poll.setExpireTime(smfPoll.getExpireTime() == 0 ? null : expireTime);
 			poll.setGuestVoteCount(smfPoll.getNumGuestVoters());
@@ -98,7 +97,7 @@ public class PollConverter extends AbstractConverter<Map<Integer, PollDbo>> {
 					+ poll.getGuestVoteCount().toString()
 					+ smfPoll.getIdPoll().toString()
 					+ poll.getResetPoll().toString()
-					+ smfPoll.getIdTopic().toString()
+					+ String.valueOf(smfPoll.getIdTopic())
 					+ poll.getChangeVoteFlag().toString()
 					+ (poll.getExpireTime() == null ? "0" : poll.getExpireTime().toString())
 					+ poll.getGuestVoteFlag().toString()

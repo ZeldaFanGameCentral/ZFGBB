@@ -4,15 +4,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dao.core.IpAddressDao;
-import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
+import com.zfgc.zfgbb.mapstruct.meta.IpAddressMap;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 
 @Repository
-public class IpDataProvider extends AbstractDataProvider {
+public class IpDataProvider {
 	@Autowired
 	private IpAddressDao ipDao;
+
+	@Autowired
+	private IpAddressMap ipAddressMap;
 	
 	public IpAddress createOrRetrieveIp(String ip) {
 		IpAddressDboExample ex = new IpAddressDboExample();
@@ -30,6 +33,6 @@ public class IpDataProvider extends AbstractDataProvider {
 			ipDao.save(result);
 		}
 		
-		return mapper.map(result, IpAddress.class);
+		return ipAddressMap.toModel(result);
 	}
 }

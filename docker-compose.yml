@@ -50,8 +50,11 @@ services:
       - .env.local
       - .env.docker
 
+    environment:
+      ZFGBB_AUTH_JWT_SECRET: "${ZFGBB_AUTH_JWT_SECRET:?Set ZFGBB_AUTH_JWT_SECRET to a random value of at least 32 characters}"
+
     ports:
-      - "${ZFGBB_BACKEND_PORT:-8080}:8080"
+      - "127.0.0.1:${ZFGBB_BACKEND_PORT:-8080}:8080"
 
     volumes:
       - content:/usr/local/tomcat/webapps/content

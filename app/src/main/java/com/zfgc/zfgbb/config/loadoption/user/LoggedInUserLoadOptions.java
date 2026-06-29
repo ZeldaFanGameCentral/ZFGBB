@@ -13,4 +13,13 @@ public class LoggedInUserLoadOptions extends BasicUserLoadOptions {
 	public boolean loadPermissions() {
 		return true;
 	}
+
+	public boolean loadReactions() {
+		return false;
+	}
+
+	@Override
+	public boolean loadSettings() {
+		return true;
+	}
 }

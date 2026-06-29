@@ -59,12 +59,12 @@ public class PollChoiceConverter extends AbstractConverter<Map<Integer, PollChoi
 							+ pollChoice.getVotes().toString()
 							+ pollChoice.getActiveFlag().toString()));
 
-					PollChoiceDboExample pollEx = new PollChoiceDboExample();
-					pollEx.createCriteria().andMigrationHashEqualTo(pollChoice.getMigrationHash());
+					PollChoiceDboExample choiceEx = new PollChoiceDboExample();
+					choiceEx.createCriteria().andMigrationHashEqualTo(pollChoice.getMigrationHash());
 
-					pollChoiceMapper.selectByExample(pollEx).stream().findFirst().ifPresentOrElse(
-							poll -> {
-								pollChoice.setPollChoiceId(poll.getPollChoiceId());
+					pollChoiceMapper.selectByExample(choiceEx).stream().findFirst().ifPresentOrElse(
+							existingChoice -> {
+								pollChoice.setPollChoiceId(existingChoice.getPollChoiceId());
 								pollChoiceMapper.updateByPrimaryKey(pollChoice);
 							},
 							() -> pollChoiceMapper.insert(pollChoice));

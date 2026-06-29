@@ -13,8 +13,8 @@ create table zfgbb.poll_choice (
 	votes integer not null default 0,
 	migration_hash text,
 	seqno integer not null default 0,
-	created_ts timestamp not null default current_timestamp,
-	updated_ts timestamp not null default current_timestamp
+	created_ts timestamptz not null default current_timestamp,
+	updated_ts timestamptz not null default current_timestamp
 );
 
 

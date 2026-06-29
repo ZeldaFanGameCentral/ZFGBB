@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.model.forum;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.zfgc.zfgbb.model.BaseModel;
 
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ public class MessageHistory extends BaseModel {
 	private Integer messageHistoryId;
 	private Integer messageId;
 	private String messageText;
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String unparsedText;
 	@Builder.Default
 	private Boolean currentFlag = true;

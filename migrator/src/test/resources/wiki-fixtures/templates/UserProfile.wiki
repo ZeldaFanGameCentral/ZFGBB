@@ -1,0 +1,31 @@
+{| cellpadding=0 cellspacing=0 border=1 align="right" style="font-family: verdana, sans-serif; margin: 0 0 1em 1em; float:right; font-size: 10px; background-color: #DDE3EB; border:1px solid #8888AA; border-collapse: collapse; width: 256px"
+|- bgcolor=#4B73AA
+| colspan="2" style="text-align: center" |<span style="font-size: larger"><font color="#DDE3EB">'''''User Information'''''
+|-
+| colspan="2" style="text-align: center" |About {{#if:{{{username|}}}|{{{username}}}|{{PAGENAME}}}}:
+|-
+{{#if:{{{avatar|}}}|{{!}}style="padding: 0px 5px"{{!}} Avatar:
+{{!}}style="padding: 0px 5px"{{!}}[[Image:{{{avatar}}}|center]]}}
+|-
+{{#if:{{{userid|}}}|{{!}}style="padding: 0px 5px"{{!}} Profile:
+{{!}}style="padding: 0px 5px"{{!}} [http://zfgc.com/forum/index.php?action=profile;u={{{userid|{{{1}}}}}}  Profile] [http://zfgc.com/forum/index.php?action=profile;area=statistics;u={{{userid|{{{1}}}}}}  Stats] }}
+|-
+{{#if:{{{age|}}}|{{!}}style="padding: 0px 5px"{{!}} Age:
+{{!}}style="padding: 0px 5px"{{!}}{{{age}}}}}
+|-
+{{#if:{{{gender|}}}|{{!}}style="padding: 0px 5px"{{!}} Gender:
+{{!}}style="padding: 0px 5px"{{!}}{{{gender}}}}}
+|-
+{{#if:{{{location|}}}|{{!}}style="padding: 0px 5px"{{!}} Location:
+{{!}}style="padding: 0px 5px"{{!}}{{{location}}}}}
+|-
+{{#if:{{{website|}}}|{{!}}style="padding: 0px 5px"{{!}} Website:
+{{!}}style="padding: 0px 5px"{{!}}{{{website}}}}}
+|-
+{{#if:{{{notes|}}}|{{!}}style="padding: 0px 5px"{{!}} Notes:
+{{!}}style="padding: 0px 5px"{{!}}{{{notes}}}}}
+{{#if:{{{include|}}}||<includeonly>[[Category:Members]]</includeonly>}}
+|}<noinclude>
+This template will categorize articles that include it into [[:Category:Members]].
+
+For instructions on how to use this template, see [[Help:CustomTemplates#User_Badge_Templates|this article]].</noinclude>

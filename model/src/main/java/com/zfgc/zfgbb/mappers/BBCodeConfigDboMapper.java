@@ -7,37 +7,37 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface BBCodeConfigDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256305036-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709572038-04:00", comments="Source Table: zfgbb.bb_code_config")
     long countByExample(BBCodeConfigDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256325555-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709585787-04:00", comments="Source Table: zfgbb.bb_code_config")
     int deleteByExample(BBCodeConfigDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256350475-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709598357-04:00", comments="Source Table: zfgbb.bb_code_config")
     int deleteByPrimaryKey(Integer bbCodeConfigId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256364344-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709608197-04:00", comments="Source Table: zfgbb.bb_code_config")
     int insert(BBCodeConfigDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256375204-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709619356-04:00", comments="Source Table: zfgbb.bb_code_config")
     int insertSelective(BBCodeConfigDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256389073-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709632556-04:00", comments="Source Table: zfgbb.bb_code_config")
     List<BBCodeConfigDbo> selectByExample(BBCodeConfigDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256404703-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709648275-04:00", comments="Source Table: zfgbb.bb_code_config")
     BBCodeConfigDbo selectByPrimaryKey(Integer bbCodeConfigId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256419432-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709719753-04:00", comments="Source Table: zfgbb.bb_code_config")
     int updateByExampleSelective(@Param("row") BBCodeConfigDbo row, @Param("example") BBCodeConfigDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256446012-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709739852-04:00", comments="Source Table: zfgbb.bb_code_config")
     int updateByExample(@Param("row") BBCodeConfigDbo row, @Param("example") BBCodeConfigDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.256477021-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709760872-04:00", comments="Source Table: zfgbb.bb_code_config")
     int updateByPrimaryKeySelective(BBCodeConfigDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.25650393-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.709781431-04:00", comments="Source Table: zfgbb.bb_code_config")
     int updateByPrimaryKey(BBCodeConfigDbo row);
 
     List<BBCodeConfigDbo> selectByExampleWithLimits(BBCodeConfigDboExample example);

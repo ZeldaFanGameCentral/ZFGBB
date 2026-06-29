@@ -14,7 +14,7 @@ public abstract class AbstractService {
 		Set<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).collect(Collectors.toSet());
 
 		secureThis.getPermissions().stream()
-				.filter(x -> userPerms.contains(x.getPermissionId()))
+				.filter(perm -> userPerms.contains(perm.getPermissionId()))
 				.findAny()
 				.orElseThrow(() -> new ZfgcUnauthorizedException("Insufficient permissions for resource.", zfgcUser));
 	}

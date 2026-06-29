@@ -39,42 +39,42 @@ public class CategoryConverter extends AbstractConverter<Map<Integer, CategoryDb
 	@Override
 	@Transactional
 	public Map<Integer, CategoryDbo> convertToZfgbb() {
-		List<SMFCategoryDb> SMFCategories = smfCategoryMapper.selectByExample(new SMFCategoryDbExample());
+		List<SMFCategoryDb> smfCategories = smfCategoryMapper.selectByExample(new SMFCategoryDbExample());
 		Map<Integer, CategoryDbo> result = new HashMap<>();
 
-		SMFCategories.forEach((smfCategory) -> {
+		smfCategories.forEach((smfCategory) -> {
 			Cancellable.check();
-			CategoryDbo cat = new CategoryDbo();
+			CategoryDbo category = new CategoryDbo();
 
-			cat.setCategoryName(smfCategory.getName());
-			cat.setCategoryOrder(smfCategory.getCatOrder() != null
+			category.setCategoryName(smfCategory.getName());
+			category.setCategoryOrder(smfCategory.getCatOrder() != null
 					? smfCategory.getCatOrder().shortValue()
 					: 0);
 
-			cat.setMigrationHash(MigrationHasher.hash(smfCategory.getIdCat().toString()
-					+ cat.getCategoryName()
-					+ cat.getCategoryOrder()
-					+ (cat.getDescription() == null ? "" : cat.getDescription())
-					+ (cat.getParentBoardId() == null ? "" : cat.getParentBoardId())));
+			category.setMigrationHash(MigrationHasher.hash(smfCategory.getIdCat().toString()
+					+ category.getCategoryName()
+					+ category.getCategoryOrder()
+					+ (category.getDescription() == null ? "" : category.getDescription())
+					+ (category.getParentBoardId() == null ? "" : category.getParentBoardId())));
 
 			Integer existingZfgbbId = idMap.lookupOrNull(LegacyEntityType.CATEGORY, smfCategory.getIdCat());
 			if (existingZfgbbId == null) {
-				categoryDboMapper.insert(cat);
-				idMap.record(LegacyEntityType.CATEGORY, smfCategory.getIdCat(), cat.getCategoryId());
+				categoryDboMapper.insert(category);
+				idMap.record(LegacyEntityType.CATEGORY, smfCategory.getIdCat(), category.getCategoryId());
 			} else {
 				CategoryDbo existing = categoryDboMapper.selectByPrimaryKey(existingZfgbbId);
 				if (existing == null) {
-					cat.setCategoryId(existingZfgbbId);
-					categoryDboMapper.insert(cat);
-				} else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), cat.getMigrationHash())) {
-					cat.setCategoryId(existingZfgbbId);
-					categoryDboMapper.updateByPrimaryKey(cat);
+					category.setCategoryId(existingZfgbbId);
+					categoryDboMapper.insert(category);
+				} else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), category.getMigrationHash())) {
+					category.setCategoryId(existingZfgbbId);
+					categoryDboMapper.updateByPrimaryKey(category);
 				} else {
-					cat.setCategoryId(existingZfgbbId);
+					category.setCategoryId(existingZfgbbId);
 				}
 			}
 
-			result.put(smfCategory.getIdCat(), cat);
+			result.put(smfCategory.getIdCat(), category);
 		});
 
 		return result;

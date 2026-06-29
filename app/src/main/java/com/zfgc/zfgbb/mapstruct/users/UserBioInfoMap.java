@@ -15,7 +15,6 @@ public interface UserBioInfoMap {
 	@Mapping(target="avatar", ignore=true)
 	@Mapping(target="signatureParsed", ignore=true)
 	@Mapping(target="dateFormat", ignore=true)
-	@Mapping(target="karma", ignore=true)
 	UserBioInfo toModel(UserBioInfoDbo dbo);
 	
 	@Mapping(target="migrationHash", ignore=true)

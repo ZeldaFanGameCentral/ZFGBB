@@ -7,37 +7,37 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface PollChoiceDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242525993-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692706383-04:00", comments="Source Table: zfgbb.poll_choice")
     long countByExample(PollChoiceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242547703-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692725352-04:00", comments="Source Table: zfgbb.poll_choice")
     int deleteByExample(PollChoiceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242573612-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692741152-04:00", comments="Source Table: zfgbb.poll_choice")
     int deleteByPrimaryKey(Integer pollChoiceId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242587422-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692754541-04:00", comments="Source Table: zfgbb.poll_choice")
     int insert(PollChoiceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242601621-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692768631-04:00", comments="Source Table: zfgbb.poll_choice")
     int insertSelective(PollChoiceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242617801-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.69278524-04:00", comments="Source Table: zfgbb.poll_choice")
     List<PollChoiceDbo> selectByExample(PollChoiceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242634-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.69280212-04:00", comments="Source Table: zfgbb.poll_choice")
     PollChoiceDbo selectByPrimaryKey(Integer pollChoiceId);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242654619-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692820839-04:00", comments="Source Table: zfgbb.poll_choice")
     int updateByExampleSelective(@Param("row") PollChoiceDbo row, @Param("example") PollChoiceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242673219-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692840958-04:00", comments="Source Table: zfgbb.poll_choice")
     int updateByExample(@Param("row") PollChoiceDbo row, @Param("example") PollChoiceDboExample example);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242694948-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692862888-04:00", comments="Source Table: zfgbb.poll_choice")
     int updateByPrimaryKeySelective(PollChoiceDbo row);
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.242717137-04:00", comments="Source Table: zfgbb.poll_choice")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.692886257-04:00", comments="Source Table: zfgbb.poll_choice")
     int updateByPrimaryKey(PollChoiceDbo row);
 
     List<PollChoiceDbo> selectByExampleWithLimits(PollChoiceDboExample example);

@@ -51,12 +51,12 @@ public class ThreadConverter extends AbstractConverter<Map<Integer, ThreadDbo>> 
 	@Override
 	@Transactional
 	public Map<Integer, ThreadDbo> convertToZfgbb() {
-		List<SMFTopicDb> SMFTopics = smfTopicMapper.selectByExample(new SMFTopicDbExample());
+		List<SMFTopicDb> smfTopics = smfTopicMapper.selectByExample(new SMFTopicDbExample());
 		Map<Integer, ThreadDbo> result = new HashMap<>();
 
 		logger.info("Beginning conversion of SMF Topic to ZFGBB Thread");
-		logger.info(SMFTopics.size() + " records found");
-		SMFTopics.forEach((smfTopic) -> {
+		logger.info(smfTopics.size() + " records found");
+		smfTopics.forEach((smfTopic) -> {
 			Cancellable.check();
 
 			SMFMessageDbExample ex = new SMFMessageDbExample();
@@ -73,9 +73,12 @@ public class ThreadConverter extends AbstractConverter<Map<Integer, ThreadDbo>> 
 			ThreadDbo thread = new ThreadDbo();
 			thread.setBoardId(idMap.lookup(LegacyEntityType.BOARD, smfTopic.getIdBoard().intValue()));
 			Integer smfMemberStarted = smfTopic.getIdMemberStarted();
+			if (smfMemberStarted == null || smfMemberStarted == 0) {
+				smfMemberStarted = msg.getIdMember();
+			}
 			thread.setCreatedUserId(smfMemberStarted == null || smfMemberStarted == 0
 					? null
-					: idMap.lookup(LegacyEntityType.USER, smfMemberStarted));
+					: idMap.lookupOrNull(LegacyEntityType.USER, smfMemberStarted));
 			thread.setLockedFlag(smfTopic.getLocked().intValue() > 0);
 			thread.setPinnedFlag(smfTopic.getIsSticky().intValue() > 0);
 			thread.setThreadName(HtmlUtils.htmlUnescape(msg.getSubject()));

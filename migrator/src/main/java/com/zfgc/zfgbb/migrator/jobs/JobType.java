@@ -1,4 +1,5 @@
 package com.zfgc.zfgbb.migrator.jobs;
+import java.util.List;
 
 public enum JobType {
 	USERS,
@@ -16,10 +17,19 @@ public enum JobType {
 	POLLS,
 	POLL_CHOICES,
 	USER_POLL_CHOICES,
-	KARMA,
-	MIGRATE_SMF_INSTALLATION;
+	REACTIONS,
+	MEMBER_GROUPS,
+	PERSONAL_MESSAGES,
+	SUBSCRIPTIONS,
+	MODERATION_LOGS,
+	WIKI_PAGES,
+	PROJECTS,
+	RESOURCES,
+	CMS_COMMENTS,
+	MIGRATE_SMF_INSTALLATION,
+	MIGRATE_CMS_INSTALLATION;
 
-	public static final java.util.List<JobType> SMF_INSTALLATION_PIPELINE = java.util.List.of(
+	public static final List<JobType> SMF_INSTALLATION_PIPELINE = List.of(
 			USERS,
 			CATEGORIES,
 			BOARDS,
@@ -35,5 +45,15 @@ public enum JobType {
 			POLLS,
 			POLL_CHOICES,
 			USER_POLL_CHOICES,
-			KARMA);
+			REACTIONS,
+			MEMBER_GROUPS,
+			PERSONAL_MESSAGES,
+			SUBSCRIPTIONS,
+			MODERATION_LOGS);
+
+	public static final List<JobType> CMS_INSTALLATION_PIPELINE = List.of(
+			PROJECTS,
+			RESOURCES,
+			CMS_COMMENTS,
+			WIKI_PAGES);
 }

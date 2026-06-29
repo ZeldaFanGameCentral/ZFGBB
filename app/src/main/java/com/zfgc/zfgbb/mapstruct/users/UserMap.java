@@ -13,8 +13,15 @@ public interface UserMap {
 	@Mapping(target = "allKnownIpAddresses", ignore = true)
 	@Mapping(target = "bioInfo", ignore = true)
 	@Mapping(target = "contactInfo", ignore = true)
+	@Mapping(target = "reactionSummary", ignore = true)
+	@Mapping(target = "awards", ignore = true)
 	@Mapping(target = "currentIpAddress", ignore = true)
 	@Mapping(target = "email", ignore = true)
 	@Mapping(target = "permissions", ignore = true)
+	@Mapping(target = "settings", ignore = true)
+	@Mapping(target = "credentialsNonExpired", ignore = true)
 	User toModel(UserDbo dbo);
+
+	@Mapping(target="migrationHash", ignore=true)
+	UserDbo toDbo(User user);
 }

@@ -1,2 +1,2 @@
-create unique index on zfgbb.contact_types_lookup(upper(contact_type_code));
-create unique index on zfgbb.content_resource_type(upper(content_code));
+create unique index ux_contact_types_lookup_code on zfgbb.contact_types_lookup(upper(contact_type_code));
+create unique index ux_content_resource_type_code on zfgbb.content_resource_type(upper(content_code));

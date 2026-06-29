@@ -55,18 +55,18 @@ public class AttachmentFilesConverter extends AbstractConverter<Void> {
 
 		Map<String, ContentResourceDbo> resourceByChecksum = contentResourceMapper
 				.selectByExample(new ContentResourceDboExample()).stream()
-				.filter(cr -> cr.getChecksum() != null && !cr.getChecksum().isEmpty())
+				.filter(resource -> resource.getChecksum() != null && !resource.getChecksum().isEmpty())
 				.collect(Collectors.toMap(ContentResourceDbo::getChecksum, Function.identity(), (a, b) -> a));
 
 		Map<String, ContentResourceDbo> resourceByFilename = contentResourceMapper
 				.selectByExample(new ContentResourceDboExample()).stream()
-				.filter(cr -> cr.getChecksum() == null || cr.getChecksum().isEmpty())
+				.filter(resource -> resource.getChecksum() == null || resource.getChecksum().isEmpty())
 				.collect(Collectors.toMap(ContentResourceDbo::getFilename, Function.identity(), (a, b) -> a));
 
 		try (Stream<Path> files = Files.walk(source)) {
 			files.filter(Files::isRegularFile)
-					.filter(p -> {
-						String name = p.getFileName().toString();
+					.filter(path -> {
+						String name = path.getFileName().toString();
 						return !name.equals("attachments") && !name.equals(".gitignore");
 					})
 					.forEach(filePath -> {
@@ -79,8 +79,19 @@ public class AttachmentFilesConverter extends AbstractConverter<Void> {
 							return;
 						}
 
-						Path destination = target.resolve(String.valueOf(resource.getContentResourceId()));
+						Path destination = com.zfgc.zfgbb.migrator.converters.cms.CmsSupport.confinedResolve(
+								target, "forum/attachments",
+								String.valueOf(resource.getContentResourceId()), resource.getFilename());
+						if (destination == null) {
+							logger.warn("skipping attachment with unsafe filename: {}", resource.getFilename());
+							return;
+						}
+						if (!"forum/attachments".equals(resource.getStorageDir())) {
+							resource.setStorageDir("forum/attachments");
+							contentResourceMapper.updateByPrimaryKeySelective(resource);
+						}
 						try {
+							Files.createDirectories(destination.getParent());
 							Files.copy(filePath, destination, StandardCopyOption.REPLACE_EXISTING);
 							logger.info("wrote {} -> {}", fileName, destination);
 						} catch (IOException e) {

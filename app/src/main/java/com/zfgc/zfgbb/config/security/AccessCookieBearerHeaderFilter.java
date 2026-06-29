@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Optional;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -36,12 +37,12 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 			chain.doFilter(request, response);
 			return;
 		}
-		String token = cookieService.readAccessCookie(request);
-		if (token == null || isExpired(token)) {
+		Optional<String> token = cookieService.readAccessCookie(request);
+		if (token.isEmpty() || isExpired(token.get())) {
 			chain.doFilter(request, response);
 			return;
 		}
-		chain.doFilter(new AuthHeaderRequest(request, "Bearer " + token), response);
+		chain.doFilter(new AuthHeaderRequest(request, "Bearer " + token.get()), response);
 	}
 
 	private static boolean isExpired(String token) {

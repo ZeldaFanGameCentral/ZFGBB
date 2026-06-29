@@ -1,22 +1,18 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.OffsetDateTime;
 
 public class LatestMessage {
 	private Integer threadId;
     private String threadName;
-    @JsonIgnore
-    private LocalDateTime lastPostTs;
+    private OffsetDateTime lastPostTs;
     private Integer ownerId;
     private String ownerName;
 
-	public LocalDateTime getLastPostTs() {
+	public OffsetDateTime getLastPostTs() {
 		return lastPostTs;
 	}
-	public void setLastPostTs(LocalDateTime lastPostTs) {
+	public void setLastPostTs(OffsetDateTime lastPostTs) {
 		this.lastPostTs = lastPostTs;
 	}
 	public Integer getThreadId() {
@@ -42,11 +38,5 @@ public class LatestMessage {
 	}
 	public void setOwnerName(String ownerName) {
 		this.ownerName = ownerName;
-	}
-	public String getLastPostTsAsString() {
-		if(lastPostTs != null) {
-			return lastPostTs.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-		}
-		return "";
 	}
 }

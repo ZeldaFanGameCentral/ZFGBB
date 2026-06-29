@@ -76,5 +76,108 @@
       <columnOverride column="id_cat" jdbcType="TINYINT" javaType="java.lang.Integer"/>
     </table>
 
+    <table tableName="smf_1games" domainObjectName="SMFGameDb"/>
+
+    <table tableName="smf_1resources_main" domainObjectName="SMFResourceMainDb"/>
+
+    <table tableName="smf_1game_comments" domainObjectName="SMFGameCommentDb"/>
+
+    <table tableName="smf_1resource_comments" domainObjectName="SMFResourceCommentDb"/>
+
+    <table tableName="smf_1personal_messages" domainObjectName="SMFPersonalMessageDb">
+      <columnOverride column="deleted_by_sender" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table tableName="smf_1pm_recipients" domainObjectName="SMFPmRecipientDb">
+      <columnOverride column="bcc" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+      <columnOverride column="is_read" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="is_new" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="deleted" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table tableName="smf_1membergroups" domainObjectName="SMFMembergroupDb">
+      <columnOverride column="id_group" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="min_posts" jdbcType="INTEGER" javaType="java.lang.Integer"/>
+      <columnOverride column="id_parent" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="group_type" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="hidden" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="max_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1log_notify" domainObjectName="SMFLogNotifyDb">
+      <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="sent" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table tableName="smf_1log_comments" domainObjectName="SMFLogCommentDb">
+      <columnOverride column="counter" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="smf_1log_actions" domainObjectName="SMFLogActionDb">
+      <columnOverride column="id_log" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+  </context>
+
+  <context id="ci_context" targetRuntime="MyBatis3">
+
+    <jdbcConnection connectionURL="${ZFGBB_MIGRATOR_SMF_GENERATOR_URL}"
+                    driverClass="com.mysql.cj.jdbc.Driver"
+                    password="${ZFGBB_MIGRATOR_SMF_GENERATOR_PASSWORD}"
+                    userId="${ZFGBB_MIGRATOR_SMF_GENERATOR_USERNAME}"/>
+
+    <javaModelGenerator targetPackage="com.zfgc.zfgbb.migrator.ci.dbo" targetProject="src/main/java"/>
+    <sqlMapGenerator targetPackage="com.zfgc.zfgbb.migrator.ci.mappers" targetProject="src/main/resources"/>
+    <javaClientGenerator targetPackage="com.zfgc.zfgbb.migrator.ci.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
+
+    <table tableName="ci_projects" domainObjectName="CiProjectDb">
+      <columnOverride column="status" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="progress" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="views" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="downloads" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="ci_project_screenshots" domainObjectName="CiProjectScreenshotDb"/>
+
+    <table tableName="ci_project_downloads" domainObjectName="CiProjectDownloadDb"/>
+
+    <table tableName="ci_resources_backup" domainObjectName="CiResourceDb">
+      <columnOverride column="views" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+      <columnOverride column="downloads" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="ci_potms" domainObjectName="CiPotmDb"/>
+
+  </context>
+
+  <context id="wiki_context" targetRuntime="MyBatis3">
+
+    <jdbcConnection connectionURL="${ZFGBB_MIGRATOR_WIKI_GENERATOR_URL}"
+                    driverClass="com.mysql.cj.jdbc.Driver"
+                    password="${ZFGBB_MIGRATOR_SMF_GENERATOR_PASSWORD}"
+                    userId="${ZFGBB_MIGRATOR_SMF_GENERATOR_USERNAME}"/>
+
+    <javaModelGenerator targetPackage="com.zfgc.zfgbb.migrator.wiki.dbo" targetProject="src/main/java"/>
+    <sqlMapGenerator targetPackage="com.zfgc.zfgbb.migrator.wiki.mappers" targetProject="src/main/resources"/>
+    <javaClientGenerator targetPackage="com.zfgc.zfgbb.migrator.wiki.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
+
+    <table tableName="zfgc_wikipage" domainObjectName="MwPageDb">
+      <columnOverride column="page_is_redirect" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="page_is_new" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="page_touched" jdbcType="CHAR" javaType="java.lang.String"/>
+    </table>
+
+    <table tableName="zfgc_wikirevision" domainObjectName="MwRevisionDb">
+      <columnOverride column="rev_timestamp" jdbcType="CHAR" javaType="java.lang.String"/>
+      <columnOverride column="rev_minor_edit" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+      <columnOverride column="rev_deleted" jdbcType="TINYINT" javaType="java.lang.Integer"/>
+    </table>
+
+    <table tableName="zfgc_wikitext" domainObjectName="MwTextDb">
+      <columnOverride column="old_text" jdbcType="LONGVARCHAR" javaType="java.lang.String"/>
+      <columnOverride column="old_flags" jdbcType="VARCHAR" javaType="java.lang.String"/>
+    </table>
+
   </context>
 </generatorConfiguration>

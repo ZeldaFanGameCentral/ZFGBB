@@ -35,7 +35,7 @@ public class UserPollChoiceConverter extends AbstractConverter<Map<Integer, User
 	private UserPollChoiceDboMapper userPollChoiceMapper;
 
 	@Autowired
-	private PollChoiceDboMapper pollQuestionMapper;
+	private PollChoiceDboMapper pollChoiceMapper;
 
 	@Autowired
 	private SMFLogPollsDbMapper smfLogPollsMapper;
@@ -47,23 +47,23 @@ public class UserPollChoiceConverter extends AbstractConverter<Map<Integer, User
 	@Transactional
 	public Map<Integer, UserPollChoiceDbo> convertToZfgbb() {
 		// keyed by (zfgbbPollId, seqno) → poll_choice_id
-		Map<String, Integer> pollChoiceMap = pollQuestionMapper.selectByExample(new PollChoiceDboExample())
+		Map<String, Integer> pollChoiceMap = pollChoiceMapper.selectByExample(new PollChoiceDboExample())
 				.stream()
 				.collect(Collectors.toMap(
-						q -> q.getPollId() + "," + q.getSeqno(),
+						choice -> choice.getPollId() + "," + choice.getSeqno(),
 						PollChoiceDbo::getPollChoiceId));
 
 		SMFLogPollsDbExample logEx = new SMFLogPollsDbExample();
 		logEx.createCriteria().andIdMemberNotEqualTo(0);
 		return smfLogPollsMapper.selectByExample(logEx).stream()
-				.map(l -> {
+				.map(logPoll -> {
 					Cancellable.check();
-					Integer zfgbbPollId = idMap.lookupOrNull(LegacyEntityType.POLL, l.getIdPoll());
-					Integer zfgbbUserId = idMap.lookupOrNull(LegacyEntityType.USER, l.getIdMember());
+					Integer zfgbbPollId = idMap.lookupOrNull(LegacyEntityType.POLL, logPoll.getIdPoll());
+					Integer zfgbbUserId = idMap.lookupOrNull(LegacyEntityType.USER, logPoll.getIdMember());
 					if (zfgbbPollId == null || zfgbbUserId == null) {
 						return null;
 					}
-					Integer choiceId = pollChoiceMap.get(zfgbbPollId + "," + l.getIdChoice());
+					Integer choiceId = pollChoiceMap.get(zfgbbPollId + "," + logPoll.getIdChoice());
 					if (choiceId == null) {
 						return null;
 					}
@@ -81,8 +81,8 @@ public class UserPollChoiceConverter extends AbstractConverter<Map<Integer, User
 
 					userPollChoiceMapper.selectByExample(ex).stream().findFirst()
 							.ifPresentOrElse(
-									upc -> {
-										pollChoiceDbo.setUserPollChoiceId(upc.getUserPollChoiceId());
+									existing -> {
+										pollChoiceDbo.setUserPollChoiceId(existing.getUserPollChoiceId());
 										userPollChoiceMapper.updateByPrimaryKey(pollChoiceDbo);
 									},
 									() -> userPollChoiceMapper.insert(pollChoiceDbo));

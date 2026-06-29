@@ -1,0 +1,2 @@
+<noinclude>''This template will categorize articles that include it into [[:Category:ZFGC Projects]].''</noinclude>
+<includeonly>[[Category:ZFGC Projects]]</includeonly>

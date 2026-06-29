@@ -3,20 +3,25 @@ package com.zfgc.zfgbb.config.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import java.util.Set;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+
+import com.zfgc.zfgbb.services.core.AuthCookieService;
 
 @Configuration
 @EnableWebSecurity
@@ -27,6 +32,15 @@ public class SecurityConfig {
 
 	@Autowired
 	private AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
+
+	@Autowired
+	private PartialInstallGateFilter partialInstallGateFilter;
+
+	@Autowired
+	private AllowAnonymousRequestMatcher allowAnonymous;
+
+	@Autowired
+	private AuthCookieService authCookieService;
 	private final PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
 
 	private static final Set<String> CSRF_SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
@@ -39,51 +53,40 @@ public class SecurityConfig {
 		CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
 		csrfTokenRepository.setCookieCustomizer(c -> c.path("/"));
 
-		RequestMatcher csrfIgnored = new OrRequestMatcher(
-			mvc.matcher("/users/auth/login"),
-			mvc.matcher("/users/register"),
-			mvc.matcher("/system/install/**"));
-		RequestMatcher requireCsrf = request ->
-			!CSRF_SAFE_METHODS.contains(request.getMethod()) && !csrfIgnored.matches(request);
+		RequestMatcher refreshEndpoint = mvc.matcher(HttpMethod.POST, "/users/auth/refresh");
+		RequestMatcher requireCsrf = request -> !CSRF_SAFE_METHODS.contains(request.getMethod())
+				&& !refreshEndpoint.matches(request)
+				&& request.getHeader(HttpHeaders.AUTHORIZATION) == null
+				&& authCookieService.readAccessCookie(request).isPresent();
 
 		http
-			.cors(Customizer.withDefaults())
-			.csrf(csrf -> csrf
-				.csrfTokenRepository(csrfTokenRepository)
-				.csrfTokenRequestHandler(csrfHandler)
-				.requireCsrfProtectionMatcher(requireCsrf))
-			.addFilterBefore(accessCookieBearerHeaderFilter, BearerTokenAuthenticationFilter.class)
-			.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.authorizeHttpRequests(auth -> auth
-				// Actuator health endpoints — reachable anonymously so K8s probes succeed.
-				.requestMatchers(mvc.matcher("/actuator/health/**")).permitAll()
-				.requestMatchers(mvc.matcher("/error")).permitAll()
-				// CORS preflight
-				.requestMatchers(mvc.matcher(HttpMethod.OPTIONS, "/**")).permitAll()
-				// auth endpoints (login/refresh/logout/register) reachable without a token
-				.requestMatchers(
-					mvc.matcher("/users/auth/**"),
-					mvc.matcher("/users/register")
-				).permitAll()
-				// first-run install endpoints. Token check + installed-marker check live
-				// inside SystemController; SecurityConfig just lets the request reach it.
-				.requestMatchers(mvc.matcher("/system/install/**")).permitAll()
-				// Default rule: every read is public; every write requires auth.
-				// Finer-grained role checks live on individual handlers via @PreAuthorize.
-				.requestMatchers(
-					mvc.matcher(HttpMethod.GET, "/"),
-					mvc.matcher(HttpMethod.GET, "/board/**"),
-					mvc.matcher(HttpMethod.GET, "/thread/**"),
-					mvc.matcher(HttpMethod.GET, "/message/**"),
-					mvc.matcher(HttpMethod.GET, "/content/**"),
-					mvc.matcher(HttpMethod.GET, "/resources/**"),
-					mvc.matcher(HttpMethod.GET, "/user-profile/**"),
-					mvc.matcher(HttpMethod.GET, "/users/loggedInUser")
-				).permitAll()
-				.anyRequest().authenticated())
-			.oauth2ResourceServer(oauth -> oauth
-				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
+				.cors(Customizer.withDefaults())
+				.csrf(csrf -> csrf
+						.csrfTokenRepository(csrfTokenRepository)
+						.csrfTokenRequestHandler(csrfHandler)
+						.requireCsrfProtectionMatcher(requireCsrf))
+					.addFilterBefore(accessCookieBearerHeaderFilter, BearerTokenAuthenticationFilter.class)
+					.addFilterBefore(partialInstallGateFilter, AccessCookieBearerHeaderFilter.class)
+				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(mvc.matcher("/actuator/health/**")).permitAll()
+						.requestMatchers(mvc.matcher("/error")).permitAll()
+						.requestMatchers(mvc.matcher(HttpMethod.OPTIONS, "/**")).permitAll()
+						.requestMatchers(allowAnonymous).permitAll()
+						.anyRequest().authenticated())
+				.oauth2ResourceServer(oauth -> oauth
+						.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtUserAuthenticationConverter)));
 
 		return http.build();
+	}
+
+	@Bean
+	public AuthenticationManager loginAuthenticationManager(OauthUsersDetailsServiceImpl userDetailsService,
+			ZfgcPasswordEncoder passwordEncoder,
+			ZfgcUserDetailsPasswordService userDetailsPasswordService) {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+		provider.setPasswordEncoder(passwordEncoder);
+		provider.setUserDetailsPasswordService(userDetailsPasswordService);
+		return new ProviderManager(provider);
 	}
 }

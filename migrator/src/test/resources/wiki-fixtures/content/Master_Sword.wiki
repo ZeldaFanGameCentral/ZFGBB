@@ -1,0 +1,14 @@
+{{ItemInfobox
+|img1 = [[File:KoT Master Sword.jpg|200px|frameless]]
+}}
+{{ItemInfobox
+|title = Master Sword
+|type = Weapon (Sword)
+|obtained = Final dungeon
+|damagerate = 2x Noble Sword
+}}
+The '''Master Sword''' is found in the final dungeon. Twice as much damage as the [[KOT:Noble Sword|Noble Sword]]. Capable of shooting beams and smashing rocks.
+<noinclude>
+[[Category:King Of Thieves]]
+[[Category:KOT Items]]
+</noinclude>

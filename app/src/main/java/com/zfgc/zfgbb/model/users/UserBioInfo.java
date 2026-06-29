@@ -1,7 +1,7 @@
 package com.zfgc.zfgbb.model.users;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
@@ -34,14 +34,12 @@ public class UserBioInfo extends BaseModel {
 	private String location;
 	
 	private String birthDate;
-	private String lastLogin;
-	private String dateRegistered;
+	private OffsetDateTime lastLogin;
+	private OffsetDateTime dateRegistered;
 	private String dateFormat;
 	private String timeFormat;
 	private String preferredTimezone;
 	private Integer genderId;
-	private Integer karmaBad;
-	private Integer karmaGood;
 	private String websiteTitle;
 	private String websiteUrl;
 	private String realName;
@@ -50,7 +48,6 @@ public class UserBioInfo extends BaseModel {
 	private Integer postCount;
 	
 	private Avatar avatar;
-	private List<UserKarmaView> karma;
 
 	@Override
 	public Integer getId() {

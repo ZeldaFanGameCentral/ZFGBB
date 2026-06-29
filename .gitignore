@@ -39,3 +39,5 @@ dist/
 *.env.secret
 !.env.docker
 !.env.local
+
+backend-assets/*

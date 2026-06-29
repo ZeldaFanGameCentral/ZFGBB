@@ -1,7 +1,7 @@
 package com.zfgc.zfgbb.model.forum;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +26,8 @@ public class Message extends BaseModel {
 	private Integer messageId;
 	private Integer ownerId;
 	private Integer threadId;
+	@JsonIgnore
+	private Integer boardId;
 	private Integer postInThread;
 	
 	private User createdUser;
@@ -47,7 +49,7 @@ public class Message extends BaseModel {
 	}
 	
 	@JsonIgnore
-	public LocalDateTime getLatestMessageTs() {
+	public OffsetDateTime getLatestMessageTs() {
 		return currentMessage.getCreatedTs();
 	}
 	

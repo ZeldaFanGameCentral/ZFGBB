@@ -1,11 +1,8 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -29,8 +26,7 @@ public class BoardSummary {
     @JsonIgnore
     private List<Permission> boardPerms = new ArrayList<>();
     
-    @JsonIgnore
-    private LocalDateTime latestMessageCreatedTs;
+    private OffsetDateTime latestMessageCreatedTs;
     
 	public Integer getBoardId() {
 		return boardId;
@@ -86,24 +82,11 @@ public class BoardSummary {
 	public void setLatestMessageUserName(String latestMessageUserName) {
 		this.latestMessageUserName = latestMessageUserName;
 	}
-	public LocalDateTime getLatestMessageCreatedTs() {
+	public OffsetDateTime getLatestMessageCreatedTs() {
 		return latestMessageCreatedTs;
 	}
-	public void setLatestMessageCreatedTs(LocalDateTime latestMessageCreatedTs) {
+	public void setLatestMessageCreatedTs(OffsetDateTime latestMessageCreatedTs) {
 		this.latestMessageCreatedTs = latestMessageCreatedTs;
-	}
-	public String getLatestMessageCreatedTsAsString() {
-		if(latestMessageCreatedTs != null) {
-			return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(latestMessageCreatedTs);
-		}
-
-		return null;
-	}
-
-	public void setLatestMessageCreatedTsAsString(String latestMessageCreatedTsAsString) {
-		if(!StringUtils.isEmpty(latestMessageCreatedTsAsString)) {
-			latestMessageCreatedTs = LocalDateTime.parse(latestMessageCreatedTsAsString, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-		}
 	}
 	public Integer getParentBoardId() {
 		return parentBoardId;

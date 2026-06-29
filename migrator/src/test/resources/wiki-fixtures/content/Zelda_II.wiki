@@ -1,0 +1,20 @@
+{| class="wikitable sortable" border="1" cellspacing="0" cellpadding="5" align="center"
+! Address
+! Size (in bytes)
+! Content
+! Purpose
+|- 
+| 0x0000
+| 0x80
+| ['''00-06''']
+| Current sprite of Link
+|-
+| 0x0000
+| 0x5a
+| 00-??
+| Handles the x coordinate of the sword beam
+|-
+|}
+
+[[Category:File Formats]]
+[[Category:Zelda II]]

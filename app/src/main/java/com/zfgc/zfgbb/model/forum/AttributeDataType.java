@@ -9,5 +9,6 @@ public enum AttributeDataType {
 	IDENTIFIER,
 	FONT_NAME,
 	LIST_TYPE,
-	DIMENSION
+	DIMENSION,
+	SIZE
 }

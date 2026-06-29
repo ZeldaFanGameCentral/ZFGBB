@@ -1,83 +1,83 @@
 package com.zfgc.zfgbb.dbo;
 
 import jakarta.annotation.Generated;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class EmailAddressDbo extends AbstractDbo {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224575473-04:00", comments="Source field: zfgbb.email_address.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674126881-04:00", comments="Source field: zfgbb.email_address.email_address_id")
     private Integer emailAddressId;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224645941-04:00", comments="Source field: zfgbb.email_address.email_address")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.67416628-04:00", comments="Source field: zfgbb.email_address.email_address")
     private String emailAddress;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224691549-04:00", comments="Source field: zfgbb.email_address.created_ts")
-    private LocalDateTime createdTs;
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674200299-04:00", comments="Source field: zfgbb.email_address.created_ts")
+    private OffsetDateTime createdTs;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224726898-04:00", comments="Source field: zfgbb.email_address.updated_ts")
-    private LocalDateTime updatedTs;
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674229538-04:00", comments="Source field: zfgbb.email_address.updated_ts")
+    private OffsetDateTime updatedTs;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224768227-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674257727-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
     private Boolean spammerFlag;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224794426-04:00", comments="Source field: zfgbb.email_address.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674284496-04:00", comments="Source field: zfgbb.email_address.migration_hash")
     private String migrationHash;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224601952-04:00", comments="Source field: zfgbb.email_address.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.67414434-04:00", comments="Source field: zfgbb.email_address.email_address_id")
     public Integer getEmailAddressId() {
         return emailAddressId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224627711-04:00", comments="Source field: zfgbb.email_address.email_address_id")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.67415742-04:00", comments="Source field: zfgbb.email_address.email_address_id")
     public void setEmailAddressId(Integer emailAddressId) {
         this.emailAddressId = emailAddressId;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22466369-04:00", comments="Source field: zfgbb.email_address.email_address")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674178159-04:00", comments="Source field: zfgbb.email_address.email_address")
     public String getEmailAddress() {
         return emailAddress;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.22467926-04:00", comments="Source field: zfgbb.email_address.email_address")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674191599-04:00", comments="Source field: zfgbb.email_address.email_address")
     public void setEmailAddress(String emailAddress) {
         this.emailAddress = emailAddress;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224707069-04:00", comments="Source field: zfgbb.email_address.created_ts")
-    public LocalDateTime getCreatedTs() {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674211788-04:00", comments="Source field: zfgbb.email_address.created_ts")
+    public OffsetDateTime getCreatedTs() {
         return createdTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224716979-04:00", comments="Source field: zfgbb.email_address.created_ts")
-    public void setCreatedTs(LocalDateTime createdTs) {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674221828-04:00", comments="Source field: zfgbb.email_address.created_ts")
+    public void setCreatedTs(OffsetDateTime createdTs) {
         this.createdTs = createdTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224750378-04:00", comments="Source field: zfgbb.email_address.updated_ts")
-    public LocalDateTime getUpdatedTs() {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674239707-04:00", comments="Source field: zfgbb.email_address.updated_ts")
+    public OffsetDateTime getUpdatedTs() {
         return updatedTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224760847-04:00", comments="Source field: zfgbb.email_address.updated_ts")
-    public void setUpdatedTs(LocalDateTime updatedTs) {
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674251637-04:00", comments="Source field: zfgbb.email_address.updated_ts")
+    public void setUpdatedTs(OffsetDateTime updatedTs) {
         this.updatedTs = updatedTs;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224777317-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674267306-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
     public Boolean getSpammerFlag() {
         return spammerFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224786046-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674276846-04:00", comments="Source field: zfgbb.email_address.spammer_flag")
     public void setSpammerFlag(Boolean spammerFlag) {
         this.spammerFlag = spammerFlag;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224804366-04:00", comments="Source field: zfgbb.email_address.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674293876-04:00", comments="Source field: zfgbb.email_address.migration_hash")
     public String getMigrationHash() {
         return migrationHash;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-05-05T08:54:46.224817515-04:00", comments="Source field: zfgbb.email_address.migration_hash")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.674313995-04:00", comments="Source field: zfgbb.email_address.migration_hash")
     public void setMigrationHash(String migrationHash) {
         this.migrationHash = migrationHash;
     }
@@ -88,12 +88,12 @@ public class EmailAddressDbo extends AbstractDbo {
     }
 
     @Override
-    public LocalDateTime getCreatedTime() {
+    public OffsetDateTime getCreatedTime() {
         return createdTs;
     }
 
     @Override
-    public LocalDateTime getUpdatedTime() {
+    public OffsetDateTime getUpdatedTime() {
         return updatedTs;
     }
 }

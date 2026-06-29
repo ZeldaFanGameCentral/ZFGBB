@@ -21,8 +21,7 @@ import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
-import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbExample;
-import com.zfgc.zfgbb.migrator.smf.mappers.SMFMembersDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
 @Component
 public class UserContactInfoConverter extends AbstractConverter<Map<Integer, UserContactInfoDbo>> {
@@ -35,7 +34,7 @@ public class UserContactInfoConverter extends AbstractConverter<Map<Integer, Use
 	Logger logger = LoggerFactory.getLogger(UserContactInfoConverter.class);
 
 	@Autowired
-	private SMFMembersDbMapper membersMapper;
+	private SmfResilientReadMapper resilientReads;
 
 	@Autowired
 	private UserContactInfoDboMapper contactInfoMapper;
@@ -49,7 +48,7 @@ public class UserContactInfoConverter extends AbstractConverter<Map<Integer, Use
 	@Override
 	@Transactional
 	public Map<Integer, UserContactInfoDbo> convertToZfgbb() {
-		return membersMapper.selectByExample(new SMFMembersDbExample())
+		return resilientReads.selectAllMembers()
 					 .stream()
 					 .map(member -> {
 						 Cancellable.check();
@@ -57,7 +56,7 @@ public class UserContactInfoConverter extends AbstractConverter<Map<Integer, Use
 
 						 EmailAddressDbo email = new EmailAddressDbo();
 						 email.setEmailAddress(member.getEmailAddress());
-						 email.setSpammerFlag(member.getIsSpammer() == 1);
+						 email.setSpammerFlag(member.getIsSpammer() != null && member.getIsSpammer() == 1);
 						 email.setMigrationHash(MigrationHasher.hash(email.getEmailAddress()
 								+ email.getSpammerFlag().toString()));
 
@@ -68,24 +67,24 @@ public class UserContactInfoConverter extends AbstractConverter<Map<Integer, Use
 								 existing -> email.setEmailAddressId(existing.getEmailAddressId()),
 								 () -> emailMapper.insert(email));
 
-						 UserContactInfoDbo dbo = new UserContactInfoDbo();
-						 dbo.setAllowEmailFlag(Boolean.FALSE.equals(member.getHideEmail()));
-						 dbo.setAllowPmFlag(true);
-						 dbo.setEmailAddressId(email.getEmailAddressId());
-						 dbo.setUserId(zfgbbUserId);
-						 dbo.setMigrationHash(MigrationHasher.hash(member.getIdMember().toString()
-								+ dbo.getEmailAddressId().toString()
-								+ dbo.getAllowEmailFlag().toString()
-								+ dbo.getAllowPmFlag().toString()));
+						 UserContactInfoDbo contactInfo = new UserContactInfoDbo();
+						 contactInfo.setAllowEmailFlag(Boolean.FALSE.equals(member.getHideEmail()));
+						 contactInfo.setAllowPmFlag(true);
+						 contactInfo.setEmailAddressId(email.getEmailAddressId());
+						 contactInfo.setUserId(zfgbbUserId);
+						 contactInfo.setMigrationHash(MigrationHasher.hash(member.getIdMember().toString()
+								+ contactInfo.getEmailAddressId().toString()
+								+ contactInfo.getAllowEmailFlag().toString()
+								+ contactInfo.getAllowPmFlag().toString()));
 
 						 UserContactInfoDbo existing = contactInfoMapper.selectByPrimaryKey(zfgbbUserId);
 						 if (existing == null) {
-							 contactInfoMapper.insert(dbo);
-						 } else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), dbo.getMigrationHash())) {
-							 contactInfoMapper.updateByPrimaryKey(dbo);
+							 contactInfoMapper.insert(contactInfo);
+						 } else if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), contactInfo.getMigrationHash())) {
+							 contactInfoMapper.updateByPrimaryKey(contactInfo);
 						 }
 
-						 return dbo;
+						 return contactInfo;
 					 })
 					 .collect(Collectors.toMap(UserContactInfoDbo::getUserId, Function.identity()));
 	}

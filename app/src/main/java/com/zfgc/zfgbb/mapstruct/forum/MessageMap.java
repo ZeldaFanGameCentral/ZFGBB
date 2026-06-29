@@ -24,5 +24,13 @@ public interface MessageMap {
 	@Mapping(target="createdTs", source="dbo.createdTs")
 	@Mapping(target="updatedTs", source="dbo.updatedTs")
 	Message toModel(CurrentMessageDbo dbo, User createdUser);
-	
+
+	@Mapping(target = "currentMessage", ignore = true)
+	@Mapping(target = "fileAttachments", ignore = true)
+	@Mapping(target = "createdUser", ignore = true)
+	Message toModel(MessageDbo dbo);
+
+	@Mapping(target = "migrationHash", ignore = true)
+	MessageDbo toDbo(Message message);
+
 }

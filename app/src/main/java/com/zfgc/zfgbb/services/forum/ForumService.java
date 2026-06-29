@@ -1,38 +1,130 @@
 package com.zfgc.zfgbb.services.forum;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.zfgc.zfgbb.content.ContentFormat;
+import com.zfgc.zfgbb.content.renderer.BBCodeService;
+import com.zfgc.zfgbb.content.renderer.ContentRenderer;
 import com.zfgc.zfgbb.dataprovider.forum.ForumDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ThreadDataProvider;
+import com.zfgc.zfgbb.dao.BoardDao;
+import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
+import com.zfgc.zfgbb.dbo.BoardDboExample;
+import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
+import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
+import com.zfgc.zfgbb.dbo.MessageDbo;
+import com.zfgc.zfgbb.dbo.MessageDboExample;
+import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
+import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
+import com.zfgc.zfgbb.dbo.ModerationLogDbo;
+import com.zfgc.zfgbb.dbo.RecentActivityViewDbo;
+import com.zfgc.zfgbb.dbo.RecentActivityViewDboExample;
+import com.zfgc.zfgbb.dbo.ThreadDboExample;
+import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
+import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
+import com.zfgc.zfgbb.authorization.AuthorityTiers;
+import com.zfgc.zfgbb.mappers.custom.ForumLockMapper;
+import com.zfgc.zfgbb.mappers.ModerationLogDboMapper;
+import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
+import com.zfgc.zfgbb.mappers.RecentActivityViewDboMapper;
+import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.forum.Board;
+import com.zfgc.zfgbb.model.forum.Category;
+import com.zfgc.zfgbb.model.forum.CreateThreadRequest;
 import com.zfgc.zfgbb.model.forum.BoardSummary;
 import com.zfgc.zfgbb.model.forum.Forum;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.services.AbstractService;
 import com.zfgc.zfgbb.services.core.IpService;
+import com.zfgc.zfgbb.services.core.UserDeletionService;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
+import com.zfgc.zfgbb.content.renderer.TemplateDataService;
+import com.zfgc.zfgbb.content.renderer.TemplateSource;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 
 @Service
 @Transactional
-public class ForumService extends AbstractService {
+public class ForumService extends AbstractService implements TemplateDataService {
+
+	private static final Logger LOG = LoggerFactory.getLogger(ForumService.class);
+
+	public static final String DELETION_OUTCOME_RECYCLED = "RECYCLED";
+	public static final String DELETION_OUTCOME_PURGED = "PURGED";
+	public static final String RESTORE_MODE_MERGED_INTO_ORIGIN = "MERGED_INTO_ORIGIN";
+	public static final String RESTORE_MODE_THREAD_RESTORED = "THREAD_RESTORED";
+	public static final String RESTORE_REASON_NOT_RECYCLED = "NOT_RECYCLED";
+	public static final String RESTORE_REASON_RESTORE_THREAD_INSTEAD = "RESTORE_THREAD_INSTEAD";
+	public static final String RESTORE_REASON_RESTORE_TARGET_MISSING = "RESTORE_TARGET_MISSING";
+	public static final String RESTORE_REASON_STATE_CHANGED = "RESTORE_STATE_CHANGED";
+	public static final String SAVE_REASON_THREAD_RECYCLED = "THREAD_RECYCLED";
+
+	private static final String ACTION_MESSAGE_RECYCLED = "MESSAGE_RECYCLED";
+	private static final String ACTION_THREAD_RECYCLED = "THREAD_RECYCLED";
+	private static final String ACTION_MESSAGE_RESTORED = "MESSAGE_RESTORED";
+	private static final String ACTION_THREAD_RESTORED = "THREAD_RESTORED";
+	private static final String ACTION_MESSAGE_PURGED = "MESSAGE_PURGED";
+	private static final String ACTION_THREAD_PURGED = "THREAD_PURGED";
+	private static final String ACTION_THREAD_SPLIT = "THREAD_SPLIT";
+
+	private static final String ROLE_ZFGC_FORUM_WRITE = "ROLE_ZFGC_FORUM_WRITE";
+
+	private static final int THREAD_PURGE_CHUNK_SIZE = 500;
+	private static final int THREAD_PAGE_SIZE = 10;
+
+	public record MessageDeletionResponse(String outcome, boolean originThreadRecycled, boolean originThreadDeleted,
+			Integer threadId, Integer boardId, Integer recycleThreadId, Integer pageCount) {}
+
+	public record ThreadDeletionResponse(String outcome, Integer boardId, Integer recycleThreadId) {}
+
+	public record RestoreResponse(String mode, Integer threadId, Integer boardId, Integer postInThread) {}
+
+	public record MessagePosition(Integer messageId, Integer ownerId, Integer threadId, Integer postInThread) {}
 
 	@Autowired
 	private ForumDataProvider forumDataProvider;
+
+	@Autowired
+	private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+
+	@Autowired
+	private RecentActivityViewDboMapper recentActivityViewDboMapper;
+
+	@Autowired
+	private ContentRenderer contentRenderer;
 
 	@Autowired
 	private BBCodeService bbCodeService;
@@ -49,50 +141,179 @@ public class ForumService extends AbstractService {
 	@Autowired
 	private SystemConfigService systemConfigService;
 
-	public Forum getForum(User zfgcUser) {
-		Forum forum = forumDataProvider.getForum();
-		forum.setBoardName(StringUtils.defaultIfBlank(
-				systemConfigService.get(SystemConfigService.Keys.SITE_NAME), "ZFGBB"));
-		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
+	@Autowired
+	private ThreadDao threadDao;
 
-		forum.getCategories().stream().filter(c -> c.getBoards() != null).forEach(c -> {
-			List<BoardSummary> remove = new ArrayList<>();
-			c.getBoards().forEach(b -> {
-				AtomicBoolean found = new AtomicBoolean(false);
-				if (b.getBoardPerms() != null) {
-					b.getBoardPerms().forEach(bp -> {
-						if (userPerms.contains(bp.getPermissionId())) {
-							found.set(true);
-						}
-					});
-				}
+	@Autowired
+	private BoardDao boardDao;
 
-				if (found.get() == false) {
-					remove.add(b);
-				}
-			});
-			c.getBoards().removeAll(remove);
-		});
-		// super.secureObject(forum, zfgcUser);
+	@Autowired
+	private MessageDao messageDao;
 
-		forum.setCategories(forum.getCategories().stream()
-				.filter(c -> c.getBoards() != null && !c.getBoards().isEmpty()).toList());
+	@Autowired
+	private MessageHistoryDao messageHistoryDao;
 
-		return forum;
+	@Autowired
+	private AuthorityTiers authorityTiers;
+
+	@Autowired
+	private UserDeletionService userDeletionService;
+
+	@Autowired
+	private com.zfgc.zfgbb.services.core.deletion.ForumUserDataHandler forumUserDataHandler;
+
+	@Autowired
+	private UserDeletionMapper userDeletionMapper;
+
+	@Autowired
+	private ModerationLogDboMapper moderationLogMapper;
+
+	@Autowired
+	private ForumAccessRules forumAccessRules;
+
+	@Autowired
+	private ForumLockMapper forumLockMapper;
+
+	private static final long UNFILTERED_FORUM_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(30);
+
+	private record CachedUnfilteredForum(Forum forum, long cachedAtNanos) {
 	}
 
-	public Board getBoard(Integer boardId, Integer pageNo, User zfgcUser) {
-		Board board = forumDataProvider.getBoard(boardId, pageNo, 10);
-		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
-		AtomicBoolean found = new AtomicBoolean(false);
-		board.getBoardPerms().forEach(bp -> {
-			if (userPerms.contains(bp.getPermissionId())) {
-				found.set(true);
-			}
-		});
+	private final AtomicReference<CachedUnfilteredForum> unfilteredForumCache = new AtomicReference<>();
 
-		if (found.get() == false) {
+	private final Object unfilteredForumRebuildLock = new Object();
+
+	private Forum loadUnfilteredForum() {
+		CachedUnfilteredForum cached = unfilteredForumCache.get();
+		if (cached != null && System.nanoTime() - cached.cachedAtNanos() < UNFILTERED_FORUM_CACHE_TTL_NANOS)
+			return cached.forum();
+		synchronized (unfilteredForumRebuildLock) {
+			CachedUnfilteredForum recheckedCache = unfilteredForumCache.get();
+			if (recheckedCache != null
+					&& System.nanoTime() - recheckedCache.cachedAtNanos() < UNFILTERED_FORUM_CACHE_TTL_NANOS)
+				return recheckedCache.forum();
+			Forum freshForum = forumDataProvider.getForum();
+			unfilteredForumCache.set(new CachedUnfilteredForum(freshForum, System.nanoTime()));
+			return freshForum;
+		}
+	}
+
+	public void evictUnfilteredForumCache() {
+		unfilteredForumCache.set(null);
+	}
+
+	@Transactional(readOnly = true)
+	public Forum getForum(User zfgcUser) {
+		Forum cachedForum = loadUnfilteredForum();
+		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
+
+		Forum visibleForum = new Forum();
+		visibleForum.setBoardName(StringUtils.defaultIfBlank(
+				systemConfigService.get(SystemConfigService.Keys.SITE_NAME), "ZFGBB"));
+
+		List<Category> visibleCategories = new ArrayList<>();
+		for (Category cachedCategory : cachedForum.getCategories()) {
+			List<BoardSummary> cachedBoards = cachedCategory.getBoards();
+			if (cachedBoards == null)
+				continue;
+			List<BoardSummary> visibleBoards = new ArrayList<>();
+			for (BoardSummary cachedBoard : cachedBoards)
+				if (cachedBoard.getBoardPerms() != null && cachedBoard.getBoardPerms().stream()
+						.anyMatch(bp -> userPerms.contains(bp.getPermissionId())))
+					visibleBoards.add(cachedBoard);
+			if (visibleBoards.isEmpty())
+				continue;
+			Category visibleCategory = new Category();
+			visibleCategory.setCategoryId(cachedCategory.getCategoryId());
+			visibleCategory.setCategoryName(cachedCategory.getCategoryName());
+			visibleCategory.setDescription(cachedCategory.getDescription());
+			visibleCategory.setParentCategoryId(cachedCategory.getParentCategoryId());
+			visibleCategory.setBoards(visibleBoards);
+			visibleCategories.add(visibleCategory);
+		}
+		visibleForum.setCategories(visibleCategories);
+
+		return visibleForum;
+	}
+
+	@TemplateSource("/board/recent-activity")
+	public List<RecentActivityViewDbo> getRecentActivity(String boardId,
+			Integer limit, User zfgcUser) {
+		if (boardId != null && !boardId.matches("\\d{1,9}"))
+			return List.of();
+		return getRecentActivity(boardId == null ? null : Integer.valueOf(boardId), limit, zfgcUser);
+	}
+
+	public List<RecentActivityViewDbo> getRecentActivity(Integer boardId,
+			Integer limit, User zfgcUser) {
+		int capped = limit == null ? 5 : Math.max(1, Math.min(limit, 25));
+		Set<Integer> visibleBoards = visibleBoardIds(zfgcUser);
+		if (visibleBoards.isEmpty()) {
+			return List.of();
+		}
+		if (boardId != null && !visibleBoards.contains(boardId)) {
+			return List.of();
+		}
+		RecentActivityViewDboExample ex = new RecentActivityViewDboExample();
+		if (boardId != null) {
+			ex.createCriteria().andBoardIdEqualTo(boardId);
+		} else {
+			ex.createCriteria().andBoardIdIn(new ArrayList<>(visibleBoards));
+		}
+		ex.setOrderByClause("last_post_ts desc");
+		ex.setLimit(capped);
+		ex.setOffset(0);
+		return recentActivityViewDboMapper.selectByExampleWithLimits(ex);
+	}
+
+	private Set<Integer> visibleBoardIds(User zfgcUser) {
+		return visibleBoardIds(zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList());
+	}
+
+	public Set<Integer> visibleBoardIds(List<Integer> permissionIds) {
+		if (permissionIds == null || permissionIds.isEmpty()) {
+			return Set.of();
+		}
+		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
+		ex.createCriteria().andPermissionIdIn(permissionIds);
+		return boardPermissionViewDboMapper.selectByExample(ex).stream()
+				.map(BoardPermissionViewDbo::getBoardId)
+				.collect(Collectors.toSet());
+	}
+
+	private static final int MESSAGE_ID_QUERY_CHUNK_SIZE = 10000;
+
+	private Map<Integer, OffsetDateTime> currentRevisionCreatedTsByMessageId(List<Integer> messageIds) {
+		List<Integer> ids = messageIds.stream().filter(Objects::nonNull).distinct().toList();
+		Map<Integer, OffsetDateTime> createdTsByMessageId = new HashMap<>();
+		for (List<Integer> chunk : partition(ids, MESSAGE_ID_QUERY_CHUNK_SIZE)) {
+			MessageHistoryDboExample example = new MessageHistoryDboExample();
+			example.createCriteria().andCurrentFlagEqualTo(true).andMessageIdIn(chunk);
+			for (MessageHistoryDbo revision : messageHistoryDao.get(example))
+				createdTsByMessageId.put(revision.getMessageId(), revision.getCreatedTs());
+		}
+		return createdTsByMessageId;
+	}
+
+	public static List<List<Integer>> partition(List<Integer> ids, int chunkSize) {
+		List<List<Integer>> chunks = new ArrayList<>();
+		for (int start = 0; start < ids.size(); start += chunkSize)
+			chunks.add(ids.subList(start, Math.min(start + chunkSize, ids.size())));
+		return chunks;
+	}
+
+	public Board getBoard(Integer boardId, Integer page, User zfgcUser) {
+		Board board = forumDataProvider.getBoard(boardId, page, 10);
+		List<Integer> userPerms = zfgcUser.getPermissions().stream().map(Permission::getPermissionId).toList();
+		if (board.getBoardPerms().stream().noneMatch(bp -> userPerms.contains(bp.getPermissionId())))
 			throw new ZfgcNotFoundException();
+		Set<Integer> readableBoardIds = visibleBoardIds(userPerms);
+		if (board.getChildBoards() != null) {
+			board.getChildBoards().removeIf(childSummary -> !readableBoardIds.contains(childSummary.getBoardId()));
+			for (BoardSummary childSummary : board.getChildBoards())
+				if (childSummary.getChildBoards() != null)
+					childSummary.getChildBoards()
+							.removeIf(grandchild -> !readableBoardIds.contains(grandchild.getBoardId()));
 		}
 		return board;
 	}
@@ -111,12 +332,6 @@ public class ForumService extends AbstractService {
 	}
 
 	public Message getMessageTemplate(Integer boardId, Integer threadId, Integer messageId, User zfgcUser) {
-		/*
-		 * Thread permissionCheck = new Thread();
-		 * permissionCheck.setBoardPermissions(forumDataProvider.getBoardPermissions(
-		 * boardId));
-		 * super.secureObject(permissionCheck, zfgcUser);
-		 */
 
 		Message message = null;
 		message = new Message();
@@ -128,63 +343,107 @@ public class ForumService extends AbstractService {
 
 	}
 
-	public Thread saveThread(Thread thread, User zfgcUser) {
-		// first, lets make sure the user actually can post to this board
-		thread.setBoardPermissions(forumDataProvider.getBoardPermissions(thread.getBoardId()));
+	public Thread createThread(Integer boardId, CreateThreadRequest request, User zfgcUser) {
+		if (request == null || StringUtils.isBlank(request.title()) || StringUtils.isBlank(request.body()))
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thread title and body are required.");
+		if (authorityTiers.isReadOnly(zfgcUser) || !authorityTiers.hasRole(zfgcUser, ROLE_ZFGC_FORUM_WRITE))
+			throw new ZfgcUnauthorizedException("Thread creation requires forum write access.", zfgcUser);
+		Thread thread = new Thread();
+		thread.setBoardId(boardId);
+		thread.setBoardPermissions(forumDataProvider.getBoardPermissions(boardId));
 		super.secureObject(thread, zfgcUser);
-
-		Thread saved = thread.getThreadId() != null
-				? threadDataProvider.getThread(thread.getThreadId(), 1, 1)
-				: null;
-
-		// then ensure the user didn't fuck with the owner of the thread template
-		if (saved == null) {
-			thread.setCreatedUserId(zfgcUser.getUserId());
-		} else {
-			thread.setCreatedUserId(saved.getCreatedUserId());
-		}
-
-		// finally, save the thread
-		Message firstMessage = (saved == null && thread.getMessages() != null && !thread.getMessages().isEmpty())
-				? thread.getMessages().get(0)
-				: null;
-
+		thread.setThreadName(StringUtils.abbreviate(request.title().trim(), 64));
+		thread.setCreatedUserId(zfgcUser.getUserId());
+		thread.setPinnedFlag(false);
+		thread.setLockedFlag(false);
+		thread.setRecycledFromBoardId(null);
+		thread.setRecycledFromThreadId(null);
 		thread = threadDataProvider.saveThread(thread);
-		if (saved == null && firstMessage != null) {
-			firstMessage.setThreadId(thread.getThreadId());
-			saveMessage(firstMessage, zfgcUser);
+		saveMessage(thread.getThreadId(), request.body(), zfgcUser);
+		evictUnfilteredForumCache();
+		return thread;
+	}
+
+	public Integer createDiscussionThread(String title, String body, User zfgcUser) {
+		String boardId = systemConfigService.get(SystemConfigService.Keys.CMS_DISCUSSION_BOARD_ID);
+		if (boardId == null || boardId.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"No discussion board configured (cms_discussion_board_id)");
+		}
+		int discussionBoardId;
+		try {
+			discussionBoardId = Integer.parseInt(boardId.trim());
+		} catch (NumberFormatException ex) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Invalid discussion board configured (cms_discussion_board_id)");
+		}
+		return createThread(discussionBoardId, new CreateThreadRequest(title, body), zfgcUser).getThreadId();
+	}
+
+	@TemplateSource("/thread/{threadId}")
+	public Thread getThread(Integer threadId, Integer page, Integer pageSize, User zfgcUser) {
+		Thread thread = threadDataProvider.getThread(threadId, page, pageSize);
+
+		requireReadableThreadElseNotFound(thread, zfgcUser);
+		thread.setRecycleBinEnabled(resolveRecycleBoardId(false).isPresent());
+
+		Map<Integer, OffsetDateTime> quotingTsByMessageId = currentRevisionCreatedTsByMessageId(
+				thread.getMessages().stream().map(Message::getMessageId).toList());
+		bbCodeService.openQuoteScope(thread.getMessages().stream()
+				.map(message -> new BBCodeService.QuotingPost(message.getCurrentMessage().getMessageText(),
+						quotingTsByMessageId.get(message.getMessageId())))
+				.toList(), visibleBoardIds(zfgcUser));
+		try {
+			thread.getMessages().forEach(message -> {
+				String parsed = contentRenderer.render(message.getCurrentMessage().getMessageText(),
+						ContentFormat.BBCODE, quotingTsByMessageId.get(message.getMessageId()));
+				message.getCurrentMessage().setMessageText(parsed);
+			});
+		} finally {
+			bbCodeService.closeQuoteScope();
 		}
 
 		return thread;
 	}
 
-	public Thread getThread(Integer threadId, Integer page, Integer count, User zfgcUser) {
-		Thread thread = threadDataProvider.getThread(threadId, page, count);
+	public Set<String> threadAllowedActions(Integer threadId, User user) {
+		Thread thread = threadDataProvider.getThread(threadId);
+		requireReadableThreadElseNotFound(thread, user);
+		return forumAccessRules.permittedThreadActions(user, threadId);
+	}
 
-		super.secureObject(thread, zfgcUser);
+	public Set<String> messageAllowedActions(Integer messageId, User user) {
+		MessagePosition message = findMessagePosition(messageId).orElseThrow(ZfgcNotFoundException::new);
+		Thread thread = threadDataProvider.getThread(message.threadId());
+		requireReadableThreadElseNotFound(thread, user);
+		return forumAccessRules.permittedMessageActions(user, messageId);
+	}
 
-		// parse messages
-		thread.getMessages().forEach(message -> {
-			String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
-			message.getCurrentMessage().setMessageText(parsed);
+	private void requireReadableThreadElseNotFound(Thread thread, User zfgcUser) {
+		List<Integer> callerPermissionIds = zfgcUser.getPermissions().stream()
+				.map(Permission::getPermissionId).toList();
+		if (thread.getBoardPermissions().stream()
+				.noneMatch(boardPermission -> callerPermissionIds.contains(boardPermission.getPermissionId())))
+			throw new ZfgcNotFoundException();
+	}
 
-			if (message.getCreatedUser().getBioInfo() != null
-					&& !StringUtils.isEmpty(message.getCreatedUser().getBioInfo().getSignature())) {
-				String parsedSignature = bbCodeService.parseText(message.getCreatedUser().getBioInfo().getSignature());
-				message.getCreatedUser().getBioInfo().setSignature(parsedSignature);
-			}
-		});
-
-		return thread;
+	public Message saveMessage(Integer threadId, String body, User user) {
+		if (StringUtils.isBlank(body))
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message body is required.");
+		Message message = new Message();
+		message.setThreadId(threadId);
+		message.getCurrentMessage().setUnparsedText(body);
+		message.getCurrentMessage().setCurrentFlag(true);
+		return saveMessage(message, user);
 	}
 
 	public Message saveMessage(Message message, User user) {
+		lockThreadRows(List.of(message.getThreadId()));
 		Thread thread = threadDataProvider.getThread(message.getThreadId());
-		Long postCount = messageDataProvider.getTotalPostsInThread(thread.getThreadId());
-		message.setPostInThread(postCount.intValue());
 		super.secureObject(thread, user);
+		message.setPostInThread(nextPostInThread(thread.getThreadId()));
+		message.setBoardId(thread.getBoardId());
 
-		// always stamp owner from the authenticated user — never trust the request >: O
 		message.setOwnerId(user.getUserId());
 
 		IpAddress ip = ipService.getClientIp();
@@ -192,68 +451,123 @@ public class ForumService extends AbstractService {
 			message.getCurrentMessage().setIpAddressId(ip.getId());
 		}
 
-		return messageDataProvider.saveMessage(message);
+		Message savedMessage = messageDataProvider.saveMessage(message);
+		evictUnfilteredForumCache();
+		return savedMessage;
 	}
 
-	public void deleteThread(Integer threadId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		super.secureObject(thread, user);
 
-		threadDataProvider.deleteThread(threadId);
+
+
+
+
+
+	public List<Message> getMessagesByUserId(Integer userId, Integer page, Integer count, List<Integer> permissionIds) {
+		List<Message> messages = messageDataProvider.getMessagesByUser(userId, page, count, permissionIds);
+		Map<Integer, OffsetDateTime> quotingTsByMessageId = currentRevisionCreatedTsByMessageId(
+				messages.stream().map(Message::getMessageId).toList());
+		bbCodeService.openQuoteScope(messages.stream()
+				.map(message -> new BBCodeService.QuotingPost(message.getCurrentMessage().getMessageText(),
+						quotingTsByMessageId.get(message.getMessageId())))
+				.toList(), visibleBoardIds(permissionIds));
+		try {
+			return messages.stream()
+					.map(message -> {
+						String parsed = contentRenderer.render(message.getCurrentMessage().getMessageText(),
+								ContentFormat.BBCODE, quotingTsByMessageId.get(message.getMessageId()));
+						message.getCurrentMessage().setMessageText(parsed);
+						return message;
+
+					}).toList();
+		} finally {
+			bbCodeService.closeQuoteScope();
+		}
 	}
 
-	public Thread moveThread(Integer threadId, Integer boardId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		super.secureObject(thread, user);
-
-		thread.setBoardId(boardId);
-		return threadDataProvider.saveThread(thread);
+	public Integer nextPostInThread(Integer threadId) {
+		forumLockMapper.lockThread(threadId);
+		return forumLockMapper.maxPostInThread(threadId) + 1;
 	}
 
-	public Thread toggleLocked(Integer threadId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		super.secureObject(thread, user);
-
-		thread.setLockedFlag(!thread.getLockedFlag());
-		return threadDataProvider.saveThread(thread);
+	public boolean isThreadModerator(User user) {
+		return forumAccessRules.isForumModerator(user);
 	}
 
-	public Thread toggleSticky(Integer threadId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		super.secureObject(thread, user);
 
-		thread.setPinnedFlag(!thread.getPinnedFlag());
-		return threadDataProvider.saveThread(thread);
+
+
+
+
+
+	public Optional<Integer> resolveRecycleBoardId(boolean failWhenMisconfigured) {
+		String configuredValue = systemConfigService.get(SystemConfigService.Keys.RECYCLE_BOARD_ID);
+		if (configuredValue == null || configuredValue.isBlank())
+			return Optional.empty();
+		Integer recycleBoardId = null;
+		try {
+			recycleBoardId = Integer.valueOf(configuredValue.trim());
+		} catch (NumberFormatException notNumeric) {
+		}
+		if (recycleBoardId == null || !boardExists(recycleBoardId)) {
+			LOG.warn("recycle_board_id is misconfigured (value '{}' does not name an existing board)",
+					configuredValue);
+			if (failWhenMisconfigured)
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+						"recycle_board_id misconfigured");
+			return Optional.empty();
+		}
+		return Optional.of(recycleBoardId);
 	}
 
-	public ThreadSplit getSplitTemplate(Integer threadId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		super.secureObject(thread, user);
-
-		ThreadSplit template = new ThreadSplit();
-		template.setThreadId(threadId);
-		template.setBoardId(thread.getBoardId());
-
-		return template;
+	public Optional<MessagePosition> findMessagePosition(Integer messageId) {
+		return messageDao.get(messageId).map(message -> new MessagePosition(message.getMessageId(),
+				message.getOwnerId(), message.getThreadId(), message.getPostInThread()));
 	}
 
-	public Thread splitThread(ThreadSplit split, User user) {
-		Thread thread = threadDataProvider.getThread(split.getThreadId());
-		super.secureObject(thread, user);
 
-		Thread newThread = getThreadTemplate(split.getBoardId(), user);
-		return threadDataProvider.splitThread(split, newThread);
+	public void lockThreadRows(List<Integer> threadIds) {
+		List<Integer> orderedThreadIds = orderedDistinctIds(threadIds);
+		for (Integer threadId : orderedThreadIds) {
+			if (forumLockMapper.lockThread(threadId) == null)
+				throw new ZfgcNotFoundException();
+		}
 	}
 
-	public List<Message> getMessagesByUserId(Integer userId, Integer pageNo, Integer count) {
-		// todo: permissions from thread
-		return messageDataProvider.getMessagesByUser(userId, pageNo, count)
-				.stream()
-				.map(message -> {
-					String parsed = bbCodeService.parseText(message.getCurrentMessage().getMessageText());
-					message.getCurrentMessage().setMessageText(parsed);
-					return message;
-
-				}).toList();
+	public static List<Integer> orderedDistinctIds(List<Integer> ids) {
+		return ids.stream().filter(Objects::nonNull).distinct().sorted().toList();
 	}
+
+	public static boolean restoreProvenanceMatches(Thread wrapper, Thread origin, Integer recycleBoardId) {
+		return wrapper != null && origin != null && Objects.equals(wrapper.getBoardId(), recycleBoardId)
+				&& Objects.equals(wrapper.getRecycledFromThreadId(), origin.getThreadId());
+	}
+
+	public void lockBoardRows(List<Integer> boardIds) {
+		List<Integer> orderedBoardIds = boardIds.stream().filter(Objects::nonNull).distinct().sorted().toList();
+		for (Integer boardId : orderedBoardIds) {
+			if (forumLockMapper.lockBoard(boardId) == null)
+				throw new ZfgcNotFoundException();
+		}
+	}
+
+	public void requireBoardAction(Integer boardId, User user) {
+		if (!visibleBoardIds(user).contains(boardId))
+			throw new ZfgcNotFoundException();
+	}
+
+	public boolean threadExists(Integer threadId) {
+		ThreadDboExample example = new ThreadDboExample();
+		example.createCriteria().andThreadIdEqualTo(threadId);
+		return threadDao.getMapper().countByExample(example) > 0;
+	}
+
+	public boolean boardExists(Integer boardId) {
+		BoardDboExample example = new BoardDboExample();
+		example.createCriteria().andBoardIdEqualTo(boardId);
+		return boardDao.getMapper().countByExample(example) > 0;
+	}
+
+
+
+
 }

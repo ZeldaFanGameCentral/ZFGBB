@@ -39,7 +39,14 @@ public class IpAddressConverter extends AbstractConverter<Void> {
 
 	@Override
 	public Void convertToZfgbb() {
-		List<String> ips = smfDistinctIpsMapper.selectDistinctPosterIps();
+		java.util.LinkedHashSet<String> ipSet = new java.util.LinkedHashSet<>(smfDistinctIpsMapper.selectDistinctPosterIps());
+		if (smfDistinctIpsMapper.gameCommentsTableExists() > 0) {
+			ipSet.addAll(smfDistinctIpsMapper.selectDistinctGameCommentIps());
+		}
+		if (smfDistinctIpsMapper.resourceCommentsTableExists() > 0) {
+			ipSet.addAll(smfDistinctIpsMapper.selectDistinctResourceCommentIps());
+		}
+		List<String> ips = new java.util.ArrayList<>(ipSet);
 		logger.info("Beginning conversion of {} distinct IPs", ips.size());
 
 		for (int from = 0; from < ips.size(); from += batchSize) {

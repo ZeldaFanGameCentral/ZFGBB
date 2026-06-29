@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.controller.forum;
 
+import com.zfgc.zfgbb.config.security.AllowAnonymous;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,12 +23,21 @@ public class BoardController extends BaseController {
 	private ForumService forumService;
 	
 	@GetMapping("/{boardId}")
-	public ResponseEntity getBoard(@PathVariable("boardId") Integer boardId, @RequestParam(name="pageNo",required=false) Integer pageNo) {
-		return ResponseEntity.ok(forumService.getBoard(boardId, pageNo, super.zfgcUser()));
+	@AllowAnonymous
+	public ResponseEntity getBoard(@PathVariable("boardId") Integer boardId, @RequestParam(name="page",required=false) Integer page) {
+		return ResponseEntity.ok(forumService.getBoard(boardId, page, super.zfgcUser()));
 	}
 	
 	@GetMapping("/forum")
+	@AllowAnonymous
 	public ResponseEntity getForum() {
 		return ResponseEntity.ok(forumService.getForum(super.zfgcUser()));
+	}
+
+	@GetMapping("/recent-activity")
+	@AllowAnonymous
+	public ResponseEntity getRecentActivity(@RequestParam(name = "boardId", required = false) String boardId,
+			@RequestParam(name = "limit", required = false) Integer limit) {
+		return ResponseEntity.ok(forumService.getRecentActivity(boardId, limit, super.zfgcUser()));
 	}
 }

@@ -11,9 +11,7 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbWithBLOBs;
 public interface SmfMessageStreamMapper {
 
 	@Select("""
-			select id_msg, id_topic, id_board, poster_time, id_member, id_msg_modified,
-			       subject, poster_name, poster_email, poster_ip, smileys_enabled,
-			       modified_time, modified_name, icon, approved, body, description
+			select *
 			from ${@com.zfgc.zfgbb.migrator.jobs.JobContextHolder@getTablePrefix()}messages
 			where id_msg > #{lastId}
 			order by id_msg asc

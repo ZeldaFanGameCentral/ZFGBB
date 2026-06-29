@@ -28,4 +28,4 @@ EXPOSE ${ZFGBB_BACKEND_PORT:-8080}
 CMD ["catalina.sh", "run"]
 
 
-FROM postgres:16-alpine AS database
+FROM postgres:18-alpine AS database

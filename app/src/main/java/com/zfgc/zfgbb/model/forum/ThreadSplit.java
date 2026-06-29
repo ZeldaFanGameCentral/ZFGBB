@@ -8,8 +8,7 @@ public class ThreadSplit {
 	private Integer boardId;
 	private List<Integer> messageIdsToMove = new ArrayList<>();
 	private String newThreadTitle;
-	private Boolean moveAllAfterSpecifiedFlg = false;
-	
+
 	public Integer getThreadId() {
 		return threadId;
 	}
@@ -33,11 +32,5 @@ public class ThreadSplit {
 	}
 	public void setNewThreadTitle(String newThreadTitle) {
 		this.newThreadTitle = newThreadTitle;
-	}
-	public Boolean getMoveAllAfterSpecifiedFlg() {
-		return moveAllAfterSpecifiedFlg;
-	}
-	public void setMoveAllAfterSpecifiedFlg(Boolean moveAllAfterSpecifiedFlg) {
-		this.moveAllAfterSpecifiedFlg = moveAllAfterSpecifiedFlg;
 	}
 }

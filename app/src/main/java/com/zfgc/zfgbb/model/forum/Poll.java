@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,15 +19,16 @@ public class Poll extends BaseModel {
 	private Integer threadId;
 	private Boolean votingLockedFlag;
 	
-	@JsonIgnore
-	private LocalDateTime expireTime;
+	private OffsetDateTime expireTime;
 	private Boolean hideResultsFlag;
 	private Boolean changeVoteFlag;
 	private Integer createdUserId;
 	private Boolean guestVoteFlag;
 	private Integer guestVoteCount;
+	@JsonIgnore
 	private Integer resetPoll;
 	private Integer maxVotes;
+	@JsonIgnore
 	private String migrationHash;
     
     @Builder.Default
@@ -43,6 +44,6 @@ public class Poll extends BaseModel {
 	}
 	
 	public Integer getVotes() {
-		return answers.stream().mapToInt(ans -> ans.getVotes()).sum() + guestVoteCount;
+		return answers.stream().mapToInt(ans -> ans.getVotes()).sum();
 	}
 }

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import com.zfgc.zfgbb.dao.AbstractDao;
 import com.zfgc.zfgbb.dbo.BBCodeAttributeDbo;
 import com.zfgc.zfgbb.dbo.BBCodeAttributeDboExample;
-import com.zfgc.zfgbb.mappers.AttributeDataTypeDboMapper;
 import com.zfgc.zfgbb.mappers.BBCodeAttributeDboMapper;
 
 @Repository
