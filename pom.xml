@@ -43,8 +43,8 @@
     <mybatis-spring.version>4.1.0</mybatis-spring.version>
     <mybatis.version>3.5.19</mybatis.version>
     <mysql-connector.version>9.7.0</mysql-connector.version>
-    <postgresql.version>42.7.12</postgresql.version>
-    <flyway.version>12.10.0</flyway.version>
+    <postgresql.version>42.7.13</postgresql.version>
+    <flyway.version>12.11.0</flyway.version>
     <jsoup.version>1.22.2</jsoup.version>
 
     <testcontainers.version>2.0.5</testcontainers.version>
