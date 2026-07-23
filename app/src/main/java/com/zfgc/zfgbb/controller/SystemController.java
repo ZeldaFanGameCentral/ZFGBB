@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import com.zfgc.zfgbb.services.system.SystemConfigService;
 
 import org.springframework.http.HttpStatus;
 
+@Slf4j
 @RestController
 @RequestMapping("/system/install")
 @AllowAnonymous
@@ -53,6 +55,7 @@ public class SystemController {
 
 	@GetMapping("/status")
 	public ResponseEntity<InstallStatusResponse> status() {
+     log.info("Executing status");
 		boolean installed = systemConfigService.isInstalled();
 		String siteName = installed ? systemConfigService.get(SystemConfigService.Keys.SITE_NAME) : null;
 		InstallRunRepository.Run run = installRun.get();
@@ -64,9 +67,9 @@ public class SystemController {
 			@RequestBody InstallRequest request,
 			@RequestHeader(value = "X-Install-Token", required = false) String presentedToken) {
 		if (StringUtils.isBlank(installToken)) {
-			// Endpoint disabled: pretend it doesn't exist.
 			throw notFound();
 		}
+
 		if (!constantTimeEquals(presentedToken, installToken)) {
 			throw notFound();
 		}
@@ -102,12 +105,11 @@ public class SystemController {
 		if (presented == null) {
 			return false;
 		}
-		// Constant-time comparison to avoid timing-side-channel leaks of token length /
-		// prefix.
 		return java.security.MessageDigest.isEqual(
 				presented.getBytes(java.nio.charset.StandardCharsets.UTF_8),
 				expected.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
+
 
 	private static ResponseStatusException notFound() {
 		return new ResponseStatusException(HttpStatus.NOT_FOUND);

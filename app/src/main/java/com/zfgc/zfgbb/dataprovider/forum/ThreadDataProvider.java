@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.dataprovider.forum;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,6 +34,7 @@ import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mapstruct.forum.PollMap;
 import com.zfgc.zfgbb.mapstruct.forum.ThreadMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
@@ -78,6 +80,9 @@ public class ThreadDataProvider {
 	
 	@Autowired
 	private MessageDboMapper messageMapper;
+
+	@Autowired
+	private MessagePostCountMapper messagePostCountMapper;
 	
 	@Autowired
 	private PollMap pollMap;
@@ -101,19 +106,16 @@ public class ThreadDataProvider {
 			ex.createCriteria().andThreadIdEqualTo(threadId);
 			long msgCount = messageMapper.countByExample(ex);
 
-			//get messages
 			List<Message> messages = (page == null || page <= 0)
 					? messageDataProvider.getMessagesFrom(threadId, (int) Math.max(1, msgCount - pageSize + 1), pageSize)
 					: messageDataProvider.getMessagesForThread(threadId, page, pageSize);
 			result.setMessages(messages);
 
-			//get permissions for the parent board
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
 
 			boardDao.get(result.getBoardId())
 					.ifPresent(board -> result.setBoardName(board.getBoardName()));
 
-			//get poll info
 			result.setPollInfo(getPollInfo(threadId));
 
 			result.setPageCount((int)Math.ceil((double)msgCount / (double)pageSize));
@@ -159,14 +161,20 @@ public class ThreadDataProvider {
 																					  .collect(Collectors.toMap(LatestMessageInThreadViewDbo::getThreadId, Function.identity()));
 		latestMessages.clear();
 
-		Map<Integer, List<AllMessagesInThreadViewDbo>> mappedMessageDetails = new HashMap<>();
-		if(!result.isEmpty()) {
-			AllMessagesInThreadViewDboExample allMessagesEx = new AllMessagesInThreadViewDboExample();
-			allMessagesEx.createCriteria().andThreadIdIn(result.stream().map(Thread::getThreadId).collect(Collectors.toList()));
-			allMessagesEx.setOrderByClause("post_ts desc");
-			mappedMessageDetails.putAll(allMessagesMapper.selectByExample(allMessagesEx).stream()
-					.collect(Collectors.groupingBy(AllMessagesInThreadViewDbo::getThreadId)));
+		if (result.isEmpty()) {
+			return result;
 		}
+
+		List<Integer> threadIds = result.stream().map(Thread::getThreadId).filter(Objects::nonNull).toList();
+
+		Map<Integer, Integer> postCountsByThreadId = threadIds.isEmpty() ? Map.of() :
+				messagePostCountMapper.postCountsByThreadIds(threadIds).stream()
+						.collect(Collectors.toMap(MessagePostCountMapper.ThreadPostCount::getThreadId,
+								MessagePostCountMapper.ThreadPostCount::getPostCount));
+
+		Map<Integer, MessagePostCountMapper.LatestMessageUser> latestMessageUserByThreadId = threadIds.isEmpty() ? Map.of() :
+				messagePostCountMapper.latestMessageUsersByThreadIds(threadIds).stream()
+						.collect(Collectors.toMap(MessagePostCountMapper.LatestMessageUser::getThreadId, Function.identity()));
 
 		Map<Integer, User> startersByUserId = loadStarterUsers(result);
 
@@ -174,19 +182,18 @@ public class ThreadDataProvider {
 			User starter = startersByUserId.get(thread.getCreatedUserId());
 			thread.setCreatedUser(starter != null ? starter : User.orphaned());
 
-			List<AllMessagesInThreadViewDbo> threadMessageDetails = mappedMessageDetails.get(thread.getThreadId());
-			thread.setPostCount(threadMessageDetails == null ? 0 : threadMessageDetails.size());
+			int postCount = postCountsByThreadId.getOrDefault(thread.getThreadId(), 0);
+			thread.setPostCount(postCount);
 
 			LatestMessageInThreadViewDbo latestDbo = messagesByThreadId.get(thread.getThreadId());
-			if(latestDbo != null) {
+			if (latestDbo != null) {
 				thread.setLatestMessage(threadMap.toLatestMessage(latestDbo));
-				if(threadMessageDetails != null && !threadMessageDetails.isEmpty()) {
-					thread.getLatestMessage().setOwnerId(threadMessageDetails.get(0).getLastPostedUserId());
-					thread.getLatestMessage().setOwnerName(threadMessageDetails.get(0).getLastPostedUser());
+				MessagePostCountMapper.LatestMessageUser latestUser = latestMessageUserByThreadId.get(thread.getThreadId());
+				if (latestUser != null) {
+					thread.getLatestMessage().setOwnerId(latestUser.getLastPostedUserId());
+					thread.getLatestMessage().setOwnerName(latestUser.getLastPostedUser());
 				}
 			}
-
-			mappedMessageDetails.remove(thread.getThreadId());
 		});
 
 		return result;
@@ -208,7 +215,6 @@ public class ThreadDataProvider {
 		return threadDb.map(threadDbo -> {
 			Thread result = threadMap.toModel(threadDbo);
 			
-			//get permissions for the parent board
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
 			
 			MessageDboExample ex = new MessageDboExample();
@@ -223,7 +229,6 @@ public class ThreadDataProvider {
 	public Thread saveThread(Thread thread) {
 		ThreadDbo threadDbo = threadMap.toDbo(thread);
 		
-		//create the thread dbo first
 		threadDbo = threadDao.save(threadDbo);
 		thread.setThreadId(threadDbo.getThreadId());
 		thread.setCreatedTs(threadDbo.getCreatedTs());

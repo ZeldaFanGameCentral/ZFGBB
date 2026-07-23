@@ -268,7 +268,7 @@ class TokenTest {
 		private JwtConfig config(String profile, String secret) {
 			MockEnvironment environment = new MockEnvironment();
 			environment.setActiveProfiles(profile);
-			JwtConfig config = new JwtConfig(environment);
+			JwtConfig config = new JwtConfig(new com.zfgc.zfgbb.config.security.JwtProperties(""), environment);
 			ReflectionTestUtils.setField(config, "secret", secret);
 			return config;
 		}

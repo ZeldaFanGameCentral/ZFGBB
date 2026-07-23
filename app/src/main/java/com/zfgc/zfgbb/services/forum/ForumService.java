@@ -17,9 +17,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,11 +75,11 @@ import com.zfgc.zfgbb.content.renderer.TemplateSource;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 import com.zfgc.zfgbb.model.users.Permission;
 
+@Slf4j
 @Service
-@Transactional
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class ForumService extends AbstractService implements TemplateDataService {
-
-	private static final Logger LOG = LoggerFactory.getLogger(ForumService.class);
 
 	public static final String DELETION_OUTCOME_RECYCLED = "RECYCLED";
 	public static final String DELETION_OUTCOME_PURGED = "PURGED";
@@ -114,65 +113,26 @@ public class ForumService extends AbstractService implements TemplateDataService
 
 	public record MessagePosition(Integer messageId, Integer ownerId, Integer threadId, Integer postInThread) {}
 
-	@Autowired
-	private ForumDataProvider forumDataProvider;
-
-	@Autowired
-	private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
-
-	@Autowired
-	private RecentActivityViewDboMapper recentActivityViewDboMapper;
-
-	@Autowired
-	private ContentRenderer contentRenderer;
-
-	@Autowired
-	private BBCodeService bbCodeService;
-
-	@Autowired
-	private ThreadDataProvider threadDataProvider;
-
-	@Autowired
-	private MessageDataProvider messageDataProvider;
-
-	@Autowired
-	private IpService ipService;
-
-	@Autowired
-	private SystemConfigService systemConfigService;
-
-	@Autowired
-	private ThreadDao threadDao;
-
-	@Autowired
-	private BoardDao boardDao;
-
-	@Autowired
-	private MessageDao messageDao;
-
-	@Autowired
-	private MessageHistoryDao messageHistoryDao;
-
-	@Autowired
-	private AuthorityTiers authorityTiers;
-
-	@Autowired
-	private UserDeletionService userDeletionService;
-
-	@Autowired
-	private com.zfgc.zfgbb.services.core.deletion.ForumUserDataHandler forumUserDataHandler;
-
-	@Autowired
-	private UserDeletionMapper userDeletionMapper;
-
-	@Autowired
-	private ModerationLogDboMapper moderationLogMapper;
-
-	@Autowired
-	private ForumAccessRules forumAccessRules;
-
-	@Autowired
-	private ForumLockMapper forumLockMapper;
+	private final ForumDataProvider forumDataProvider;
+	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final RecentActivityViewDboMapper recentActivityViewDboMapper;
+	private final ContentRenderer contentRenderer;
+	private final BBCodeService bbCodeService;
+	private final ThreadDataProvider threadDataProvider;
+	private final MessageDataProvider messageDataProvider;
+	private final IpService ipService;
+	private final SystemConfigService systemConfigService;
+	private final ThreadDao threadDao;
+	private final BoardDao boardDao;
+	private final MessageDao messageDao;
+	private final MessageHistoryDao messageHistoryDao;
+	private final AuthorityTiers authorityTiers;
+	private final UserDeletionService userDeletionService;
+	private final com.zfgc.zfgbb.services.core.deletion.ForumUserDataHandler forumUserDataHandler;
+	private final UserDeletionMapper userDeletionMapper;
+	private final ModerationLogDboMapper moderationLogMapper;
+	private final ForumAccessRules forumAccessRules;
+	private final ForumLockMapper forumLockMapper;
 
 	private static final long UNFILTERED_FORUM_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(30);
 
@@ -343,6 +303,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 
 	}
 
+	@Transactional
 	public Thread createThread(Integer boardId, CreateThreadRequest request, User zfgcUser) {
 		if (request == null || StringUtils.isBlank(request.title()) || StringUtils.isBlank(request.body()))
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thread title and body are required.");
@@ -364,6 +325,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 		return thread;
 	}
 
+	@Transactional
 	public Integer createDiscussionThread(String title, String body, User zfgcUser) {
 		String boardId = systemConfigService.get(SystemConfigService.Keys.CMS_DISCUSSION_BOARD_ID);
 		if (boardId == null || boardId.isBlank()) {
@@ -427,6 +389,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 			throw new ZfgcNotFoundException();
 	}
 
+	@Transactional
 	public Message saveMessage(Integer threadId, String body, User user) {
 		if (StringUtils.isBlank(body))
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message body is required.");
@@ -437,6 +400,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 		return saveMessage(message, user);
 	}
 
+	@Transactional
 	public Message saveMessage(Message message, User user) {
 		lockThreadRows(List.of(message.getThreadId()));
 		Thread thread = threadDataProvider.getThread(message.getThreadId());
@@ -509,7 +473,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 		} catch (NumberFormatException notNumeric) {
 		}
 		if (recycleBoardId == null || !boardExists(recycleBoardId)) {
-			LOG.warn("recycle_board_id is misconfigured (value '{}' does not name an existing board)",
+			log.warn("recycle_board_id is misconfigured (value '{}' does not name an existing board)",
 					configuredValue);
 			if (failWhenMisconfigured)
 				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,

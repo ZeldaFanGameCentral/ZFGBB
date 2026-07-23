@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller.cms;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import com.zfgc.zfgbb.services.cms.ResourceService;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/resources")
 public class ResourceController extends BaseController {
@@ -29,6 +31,7 @@ public class ResourceController extends BaseController {
 	@GetMapping("/facets")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, List<Map<String, Object>>>> getFacets() {
+     log.info("Executing getFacets");
 		return ResponseEntity.ok(Map.of("types", toFacet(resourceService.getResourceTypes())));
 	}
 
@@ -53,17 +56,20 @@ public class ResourceController extends BaseController {
 	@GetMapping("/showcase")
 	@AllowAnonymous
 	public ResponseEntity<ResourceShowcase> getShowcase() {
+     log.info("Executing getShowcase");
 		return ResponseEntity.ok(resourceService.getResourceShowcase());
 	}
 
 	@GetMapping("/{slug}")
 	@AllowAnonymous
 	public ResponseEntity<Resource> getResource(@PathVariable("slug") String slug) {
+     log.info("Executing getResource");
 		return ResponseEntity.ok(resourceService.getResource(slug));
 	}
 
 	@PostMapping("/{slug}/discussion")
 	public ResponseEntity<Resource> startDiscussion(@PathVariable("slug") String slug) {
+     log.info("Executing startDiscussion");
 		return ResponseEntity.ok(resourceService.startResourceDiscussion(slug, super.zfgcUser()));
 	}
 }

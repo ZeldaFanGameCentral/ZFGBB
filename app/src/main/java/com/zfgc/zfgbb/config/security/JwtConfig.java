@@ -18,23 +18,26 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
 @Configuration
+@EnableConfigurationProperties(JwtProperties.class)
 public class JwtConfig {
 
 	private static final String PLACEHOLDER_SECRET = "dev-only-secret-replace-me-with-32-or-more-bytes-please";
 	private static final List<String> DEV_PROFILES = List.of("local");
 
-	@Value("${zfgbb.auth.jwt.secret}")
-	private String secret;
-
+	private final JwtProperties jwtProperties;
 	private final Environment environment;
 
-	public JwtConfig(Environment environment) {
+	public JwtConfig(JwtProperties jwtProperties, Environment environment) {
+		this.jwtProperties = jwtProperties;
 		this.environment = environment;
 	}
 
 	@Bean
 	public SecretKeySpec jwtSigningKey() {
+		String secret = jwtProperties.secret();
 		boolean devProfile = Arrays.stream(environment.getActiveProfiles()).anyMatch(DEV_PROFILES::contains);
 		boolean weakSecret = secret == null || secret.isBlank()
 				|| secret.equals(PLACEHOLDER_SECRET)

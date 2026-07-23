@@ -26,8 +26,12 @@ import com.zfgc.zfgbb.model.users.UserSettings;
 import com.zfgc.zfgbb.model.users.UpdateUserProfileRequest;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 public class UserService implements TemplateDataService {
+
+	@Autowired
+	@org.springframework.context.annotation.Lazy
+	private UserService self;
 
 	private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9_]{3,32}$");
 	private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
@@ -52,6 +56,7 @@ public class UserService implements TemplateDataService {
 	@Autowired
 	private GenderLkupDboMapper genderLkupDboMapper;
 
+	@Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
 	public User createNewUser(RegistrationRequest req) {
 		validate(req);
 
@@ -63,7 +68,11 @@ public class UserService implements TemplateDataService {
 		}
 
 		HashedPassword hashed = passwordService.hash(req.password());
+		return self.saveNewUserDb(req, hashed);
+	}
 
+	@Transactional
+	public User saveNewUserDb(RegistrationRequest req, HashedPassword hashed) {
 		User user = User.builder()
 				.userName(req.userName())
 				.displayName(req.displayName())
@@ -100,6 +109,7 @@ public class UserService implements TemplateDataService {
 		return user;
 	}
 
+	@Transactional
 	public UserSettings saveUserSettings(Integer userId, UserSettings settings, User requester) {
 		if (settings == null) {
 			throw new ZfgcInvalidRequestException("Settings are required.");
@@ -116,6 +126,7 @@ public class UserService implements TemplateDataService {
 		return profileAccessRules.permittedProfileActions(requester, userId);
 	}
 
+	@Transactional
 	public User saveUserProfile(Integer userId, UpdateUserProfileRequest request, User zfgcUser) {
 		if (userId == null || request == null) {
 			throw new ZfgcInvalidRequestException("User profile and userId are required.");
@@ -189,6 +200,7 @@ public class UserService implements TemplateDataService {
 		return userDataProvider.getAwardCatalog();
 	}
 
+	@Transactional
 	public User grantAward(Integer userId, GrantAwardRequest request, User requester) {
 		if (request == null || request.awardId() == null) {
 			throw new ZfgcInvalidRequestException("awardId is required.");

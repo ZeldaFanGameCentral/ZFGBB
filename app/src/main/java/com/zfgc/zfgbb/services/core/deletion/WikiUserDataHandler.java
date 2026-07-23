@@ -3,8 +3,6 @@ package com.zfgc.zfgbb.services.core.deletion;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.core.annotation.Order;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +16,14 @@ import com.zfgc.zfgbb.mappers.WikiPageRevisionDboMapper;
 import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @Order(2)
 @RequiredArgsConstructor
 public class WikiUserDataHandler implements UserDataHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WikiUserDataHandler.class);
     public static final String REMEDIATION_TEMPLATE_LINKED_WIKI_PAGE = "ACCOUNT_DELETION_TEMPLATE_LINKED_WIKI_PAGE";
 
     private final UserDeletionMapper deletionMapper;
@@ -84,7 +83,7 @@ public class WikiUserDataHandler implements UserDataHandler {
 
     public List<String> purgeOwnedWikiPages(Integer accountDeletionRequestId, Integer userId) {
         for (Integer templateLinkedPageId : deletionMapper.findOwnedTemplateLinkedWikiPageIds(userId))
-            LOG.warn("operator remediation required: {} {}", REMEDIATION_TEMPLATE_LINKED_WIKI_PAGE, "wiki_page_id=" + templateLinkedPageId
+            log.warn("operator remediation required: {} {}", REMEDIATION_TEMPLATE_LINKED_WIKI_PAGE, "wiki_page_id=" + templateLinkedPageId
                     + " is referenced by a content_template and was retained anonymized; operator must re-home or unlink the template");
         List<Integer> pageIds = deletionMapper.findOwnedHardDeletableWikiPageIds(userId);
         if (pageIds.isEmpty())

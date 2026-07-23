@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.config.security;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -25,22 +25,14 @@ import com.zfgc.zfgbb.services.core.AuthCookieService;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-	@Autowired
-	private JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
-
-	@Autowired
-	private AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
-
-	@Autowired
-	private PartialInstallGateFilter partialInstallGateFilter;
-
-	@Autowired
-	private AllowAnonymousRequestMatcher allowAnonymous;
-
-	@Autowired
-	private AuthCookieService authCookieService;
+	private final JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
+	private final AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
+	private final PartialInstallGateFilter partialInstallGateFilter;
+	private final AllowAnonymousRequestMatcher allowAnonymous;
+	private final AuthCookieService authCookieService;
 	private final PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
 
 	private static final Set<String> CSRF_SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ import com.zfgc.zfgbb.services.search.SearchService;
 import com.zfgc.zfgbb.model.users.Permission;
 import java.util.Objects;
 
+@Slf4j
 @RestController
 @RequestMapping("/search")
 public class SearchController extends BaseController {
@@ -36,6 +38,7 @@ public class SearchController extends BaseController {
 	@GetMapping("/realms")
 	@AllowAnonymous
 	public ResponseEntity realms() {
+     log.info("Executing realms");
 		return ResponseEntity.ok(searchService.getRealms());
 	}
 }

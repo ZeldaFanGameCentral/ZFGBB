@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
 import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.renderer.ContentRenderer;
@@ -44,8 +45,10 @@ import com.zfgc.zfgbb.model.users.ReactionSummary;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserSettings;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
+import com.zfgc.zfgbb.services.core.GuestPermissionService;
 
 @Component
+@UnfilteredBoardRead("Calculates user post count scoped to guest-visible board IDs using MessagePostCountMapper")
 public class UserProfileFacade {
 
     @Autowired
@@ -87,7 +90,13 @@ public class UserProfileFacade {
     @Autowired
     private MessagePostCountMapper messagePostCountMapper;
 
-    private List<Integer> guestVisibleBoardIds() {
+    @Autowired
+    private GuestPermissionService guestPermissionService;
+
+    public List<Integer> guestVisibleBoardIds() {
+        if (guestPermissionService != null) {
+            return guestPermissionService.guestVisibleBoardIds();
+        }
         List<Integer> guestPerms = User.guest().getPermissions().stream()
                 .map(Permission::getPermissionId).toList();
         BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();

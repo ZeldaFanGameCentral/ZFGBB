@@ -5,9 +5,11 @@ import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.zfgc.zfgbb.authorization.RawSqlAccess;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 
 @Service
+@RawSqlAccess("Namespace metadata query resolution")
 public class WikiNamespaceRegistry {
 	private final JdbcTemplate jdbc;
 

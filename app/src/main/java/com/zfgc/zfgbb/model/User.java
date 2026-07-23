@@ -102,14 +102,6 @@ public class User extends BaseModel implements UserDetails {
 		return guest;
 	}
 
-	public List<Permission> getPermissions() {
-		return permissions;
-	}
-
-	public void setPermissions(List<Permission> permissions) {
-		this.permissions = permissions;
-	}
-
 	public static final Set<String> PUBLIC_RANK_PERMISSIONS = Set.of(
 			"ZFGC_SITE_ADMIN", "ZFGC_SITE_MODERATOR", "ZFGC_WIKI_MODERATOR");
 
@@ -172,68 +164,12 @@ public class User extends BaseModel implements UserDetails {
 		userId = id;
 	}
 
-	public Integer getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Integer userId) {
-		this.userId = userId;
-	}
-
-	public String getDisplayName() {
-		return displayName;
-	}
-
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
-	}
-
-	public IpAddress getCurrentIpAddress() {
-		return currentIpAddress;
-	}
-
-	public void setCurrentIpAddress(IpAddress currentIpAddress) {
-		this.currentIpAddress = currentIpAddress;
-	}
-
-	public List<IpAddress> getAllKnownIpAddresses() {
-		return allKnownIpAddresses;
-	}
-
-	public void setAllKnownIpAddresses(List<IpAddress> allKnownIpAddresses) {
-		this.allKnownIpAddresses = allKnownIpAddresses;
-	}
-
 	public String getUserName() {
 		return userName;
 	}
 
 	public void setUserName(String userName) {
 		this.userName = userName;
-	}
-
-	public EmailAddress getEmail() {
-		return email;
-	}
-
-	public void setEmail(EmailAddress email) {
-		this.email = email;
-	}
-
-	public Boolean getActiveFlag() {
-		return activeFlag;
-	}
-
-	public void setActiveFlag(Boolean activeFlag) {
-		this.activeFlag = activeFlag;
-	}
-
-	public String getSsoKey() {
-		return ssoKey;
-	}
-
-	public void setSsoKey(String ssoKey) {
-		this.ssoKey = ssoKey;
 	}
 
 	@Override
@@ -243,14 +179,6 @@ public class User extends BaseModel implements UserDetails {
 			return null;
 		return new EncodedPassword(passwordAlgo == null ? PasswordAlgo.BCRYPT : passwordAlgo, passwordSalt, passwordHash)
 				.toEncoded();
-	}
-
-	public UserBioInfo getBioInfo() {
-		return bioInfo;
-	}
-
-	public void setBioInfo(UserBioInfo bioInfo) {
-		this.bioInfo = bioInfo;
 	}
 	
 	@JsonIgnore

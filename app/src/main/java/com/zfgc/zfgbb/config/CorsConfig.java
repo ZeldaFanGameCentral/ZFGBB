@@ -9,17 +9,22 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import lombok.RequiredArgsConstructor;
+
 @Configuration
+@EnableConfigurationProperties(CorsProperties.class)
+@RequiredArgsConstructor
 public class CorsConfig {
 
-    @Value("${zfgbb.cors.allowed-origin-patterns}")
-    private List<String> allowedOriginPatterns;
+    private final CorsProperties corsProperties;
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(allowedOriginPatterns);
+        config.setAllowedOriginPatterns(corsProperties.allowedOriginPatterns());
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -40,29 +41,25 @@ import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.services.core.ContentService;
 import com.zfgc.zfgbb.services.forum.ForumService;
 
+@Slf4j
 @RestController
 @RequestMapping("/content")
+@RequiredArgsConstructor
 public class ContentController extends BaseController {
 
 	private static final int MAX_PREVIEW_LENGTH = 100_000;
 
-	@Autowired
-	private ContentService contentService;
-
-	@Autowired
-	private BBCodeService bbCodeService;
-
-	@Autowired
-	private ContentRenderer contentRenderer;
-
-	@Autowired
-	private ForumService forumService;
+	private final ContentService contentService;
+	private final BBCodeService bbCodeService;
+	private final ContentRenderer contentRenderer;
+	private final ForumService forumService;
 
 	public record PreviewRequest(String content, String scope) {}
 
 	@GetMapping("bbcodes")
 	@AllowAnonymous
 	public ResponseEntity<List<? extends Map<String, ?>>> getBbcodes() {
+     log.info("Executing getBbcodes");
 		return ResponseEntity.ok(bbCodeService.validBbCodes.values().stream()
 				.map(config -> Map.of(
 						"code", config.getCode(),
@@ -73,6 +70,8 @@ public class ContentController extends BaseController {
 
 	@PostMapping("preview")
 	public ResponseEntity<Map<String, String>> preview(@RequestBody PreviewRequest request) {
+		log.debug("Executing preview with request={}", request);
+
 		if (request == null || request.content() == null) {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST, "content is required");
@@ -109,6 +108,7 @@ public class ContentController extends BaseController {
 	@GetMapping("archive/{resourceId}")
 	@AllowAnonymous
 	public ResponseEntity<List<ContentService.ArchiveEntry>> getArchiveEntries(@PathVariable("resourceId") Integer resourceId) {
+     log.info("Executing getArchiveEntries");
 		contentService.authorizeAccess(resourceId, zfgcUser());
 		return ResponseEntity.ok(contentService.getArchiveEntries(resourceId));
 	}

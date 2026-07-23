@@ -136,10 +136,10 @@ class TemplateTest {
 		@Test
 		void productionSourcesRegisterWithSeededParamNames() {
 			TemplateDataFetcher production = fetcherOver(
-					new com.zfgc.zfgbb.services.cms.ProjectService(),
-					new com.zfgc.zfgbb.services.cms.WikiService(),
-					new com.zfgc.zfgbb.services.forum.ForumService(),
-					new com.zfgc.zfgbb.services.core.UserService());
+					org.mockito.Mockito.mock(com.zfgc.zfgbb.services.cms.ProjectService.class),
+					org.mockito.Mockito.mock(com.zfgc.zfgbb.services.cms.WikiService.class),
+					org.mockito.Mockito.mock(com.zfgc.zfgbb.services.forum.ForumService.class),
+					org.mockito.Mockito.mock(com.zfgc.zfgbb.services.core.UserService.class));
 
 			Map<String, List<String>> sources = production.describeSources();
 

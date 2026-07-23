@@ -21,8 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -55,11 +53,11 @@ import com.zfgc.zfgbb.services.core.deletion.UserDataHandler;
 import com.zfgc.zfgbb.services.forum.ForumService;
 
 import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class AccountDeletionService {
-
-	private static final Logger LOG = LoggerFactory.getLogger(AccountDeletionService.class);
 
 	private static final SecureRandom CONFIRMATION_TOKEN_RNG = new SecureRandom();
 	private static final int CONFIRMATION_TOKEN_BYTES = 32;
@@ -289,7 +287,7 @@ public class AccountDeletionService {
 				try {
 					executeConfirmedDeletion(request.getAccountDeletionRequestId());
 				} catch (RuntimeException resumeFailure) {
-					LOG.error("failed to resume account deletion request {}",
+					log.error("failed to resume account deletion request {}",
 							request.getAccountDeletionRequestId(), resumeFailure);
 				}
 			});
@@ -305,7 +303,7 @@ public class AccountDeletionService {
 			return;
 		Optional<MailDispatcher> dispatcher = Optional.ofNullable(mailDispatcherProvider.getIfAvailable());
 		if (dispatcher.isEmpty()) {
-			LOG.warn("no mail dispatcher is configured; the courtesy completion notice was not sent");
+			log.warn("no mail dispatcher is configured; the courtesy completion notice was not sent");
 			return;
 		}
 		try {
@@ -314,7 +312,7 @@ public class AccountDeletionService {
 					"Your account deletion has been confirmed and is now being carried out. "
 							+ "This action is permanent and cannot be reversed."));
 		} catch (RuntimeException dispatchFailure) {
-			LOG.warn("courtesy completion notice could not be sent", dispatchFailure);
+			log.warn("courtesy completion notice could not be sent", dispatchFailure);
 		}
 	}
 
@@ -330,7 +328,7 @@ public class AccountDeletionService {
 		try {
 			runPurge(accountDeletionRequestId);
 		} catch (RuntimeException purgeFailure) {
-			LOG.error("account deletion purge failed for request {}; it will resume on restart",
+			log.error("account deletion purge failed for request {}; it will resume on restart",
 					accountDeletionRequestId, purgeFailure);
 		}
 	}
@@ -371,7 +369,7 @@ public class AccountDeletionService {
 			try {
 				Files.deleteIfExists(Path.of(blobPath));
 			} catch (IOException | RuntimeException blobDeleteFailure) {
-				LOG.warn("stored blob {} could not be deleted; a later sweep may reconcile it", blobPath,
+				log.warn("stored blob {} could not be deleted; a later sweep may reconcile it", blobPath,
 						blobDeleteFailure);
 			}
 		}
@@ -498,7 +496,7 @@ public class AccountDeletionService {
 			dispatcher.dispatch(new MailDispatcher.OutboundMail(recipientEmailAddress,
 					"Confirm your account deletion", body));
 		} catch (RuntimeException dispatchFailure) {
-			LOG.warn("deletion confirmation email could not be sent for user {}", userId, dispatchFailure);
+			log.warn("deletion confirmation email could not be sent for user {}", userId, dispatchFailure);
 			throw confirmationEmailUndeliverable();
 		}
 	}

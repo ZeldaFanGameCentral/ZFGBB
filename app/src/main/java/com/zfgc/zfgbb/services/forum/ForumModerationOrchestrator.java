@@ -12,9 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,11 +47,13 @@ import com.zfgc.zfgbb.services.forum.ForumService.MessageDeletionResponse;
 import com.zfgc.zfgbb.services.forum.ForumService.ThreadDeletionResponse;
 import com.zfgc.zfgbb.services.forum.ForumService.RestoreResponse;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class ForumModerationOrchestrator extends AbstractService {
-
-	private static final Logger LOG = LoggerFactory.getLogger(ForumModerationOrchestrator.class);
 
 	public static final String DELETION_OUTCOME_RECYCLED = "RECYCLED";
 	public static final String DELETION_OUTCOME_PURGED = "PURGED";
@@ -76,41 +76,18 @@ public class ForumModerationOrchestrator extends AbstractService {
 	private static final int THREAD_PURGE_CHUNK_SIZE = 500;
 	private static final int THREAD_PAGE_SIZE = 10;
 
-	@Autowired
-	private ForumService forumService;
-
-	@Autowired
-	private ThreadDataProvider threadDataProvider;
-
-	@Autowired
-	private MessageDataProvider messageDataProvider;
-
-	@Autowired
-	private SystemConfigService systemConfigService;
-
-	@Autowired
-	private ThreadDao threadDao;
-
-	@Autowired
-	private BoardDao boardDao;
-
-	@Autowired
-	private MessageDao messageDao;
-
-	@Autowired
-	private ForumUserDataHandler forumUserDataHandler;
-
-	@Autowired
-	private UserDeletionMapper userDeletionMapper;
-
-	@Autowired
-	private ModerationLogDboMapper moderationLogMapper;
-
-	@Autowired
-	private ForumAccessRules forumAccessRules;
-
-	@Autowired
-	private ForumLockMapper forumLockMapper;
+	private final ForumService forumService;
+	private final ThreadDataProvider threadDataProvider;
+	private final MessageDataProvider messageDataProvider;
+	private final SystemConfigService systemConfigService;
+	private final ThreadDao threadDao;
+	private final BoardDao boardDao;
+	private final MessageDao messageDao;
+	private final ForumUserDataHandler forumUserDataHandler;
+	private final UserDeletionMapper userDeletionMapper;
+	private final ModerationLogDboMapper moderationLogMapper;
+	private final ForumAccessRules forumAccessRules;
+	private final ForumLockMapper forumLockMapper;
 
 	public ThreadDeletionResponse deleteThread(Integer threadId, User user) {
 		forumService.lockThreadRows(List.of(threadId));
@@ -418,7 +395,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 					try {
 						Files.deleteIfExists(Path.of(blobPath));
 					} catch (IOException | RuntimeException blobDeleteFailure) {
-						LOG.warn("orphan blob {} could not be deleted; operator sweep required", blobPath,
+						log.warn("orphan blob {} could not be deleted; operator sweep required", blobPath,
 								blobDeleteFailure);
 					}
 				}

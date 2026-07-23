@@ -1,12 +1,18 @@
 package com.zfgc.zfgbb.controller.forum;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.CacheControl;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +32,7 @@ import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
 import java.util.Objects;
 
+@Slf4j
 @RestController
 @RequestMapping("/message")
 public class MessageController extends BaseController {
@@ -38,22 +45,26 @@ public class MessageController extends BaseController {
 	
 	@GetMapping("/template")
 	@AllowAnonymous
-	public ResponseEntity getMessageTemplate(@RequestParam("threadId") Integer threadId) {
+	public ResponseEntity<Message> getMessageTemplate(@RequestParam("threadId") Integer threadId) {
+     log.info("Executing getMessageTemplate");
 		Message template = forumService.getMessageTemplate(null, threadId, null, super.zfgcUser());
 		return ResponseEntity.ok(template);
 	}
 	
 	@PostMapping("/{threadId}")
 	@PreAuthorize("hasPermission(#threadId, 'THREAD', 'thread.reply')")
-	public ResponseEntity addMessageToThread(@PathVariable Integer threadId, @RequestBody MessagePostRequest request) {
-		return ResponseEntity.ok(forumService.saveMessage(threadId, request.body(), super.zfgcUser()));
+	public ResponseEntity<Message> addMessageToThread(@PathVariable Integer threadId, @Valid @RequestBody MessagePostRequest request) {
+		log.info("Executing addMessageToThread with threadId={}", threadId);
+		log.debug("Executing addMessageToThread with request={}", request);
+		return ResponseEntity.status(HttpStatus.CREATED).body(forumService.saveMessage(threadId, request.body(), super.zfgcUser()));
 	}
 
-	public record MessagePostRequest(String body) {}
+	public record MessagePostRequest(@NotBlank @Size(max=10000) String body) {}
 
 	@GetMapping("/{messageId}/allowed-actions")
 	@AllowAnonymous
 	public ResponseEntity<java.util.Set<String>> getAllowedActions(@PathVariable Integer messageId) {
+     log.info("Executing getAllowedActions with messageId={}", messageId);
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
 				.body(forumService.messageAllowedActions(messageId, super.zfgcUser()));
 	}
@@ -61,12 +72,14 @@ public class MessageController extends BaseController {
 	@DeleteMapping("/{messageId}")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.delete')")
 	public ResponseEntity<ForumService.MessageDeletionResponse> deleteMessage(@PathVariable Integer messageId) {
+     log.info("Executing deleteMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.deleteMessage(messageId, super.zfgcUser()));
 	}
 
 	@PutMapping("/{messageId}/restore")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.restore')")
 	public ResponseEntity<ForumService.RestoreResponse> restoreMessage(@PathVariable Integer messageId) {
+     log.info("Executing restoreMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.restoreMessage(messageId, super.zfgcUser()));
 	}
 

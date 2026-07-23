@@ -10,7 +10,7 @@ import com.zfgc.zfgbb.model.cms.Resource;
 
 @Mapper(config=BBMapperConfig.class, builder=@Builder(disableBuilder=true))
 public interface ResourceMap {
-	@Mapping(target="id", ignore=true)
+	@Mapping(target="id", source="contentEntityId")
 	@Mapping(target="resourceId", ignore=true)
 	@Mapping(target="downloadFilename", ignore=true)
 	@Mapping(target="author", ignore=true)

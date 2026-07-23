@@ -1,8 +1,9 @@
 package com.zfgc.zfgbb.controller.cms;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,24 +26,22 @@ import com.zfgc.zfgbb.services.cms.WikiService;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/wiki")
+@RequiredArgsConstructor
 public class WikiController extends BaseController {
 
 	private static final String MODERATOR_ACCESS = "hasAnyRole('ROLE_ZFGC_WIKI_MODERATOR','ROLE_ZFGC_SITE_ADMIN')";
 
-	@Autowired
-	private WikiService wikiService;
-
-	@Autowired
-	private WikiModerationService wikiModerationService;
-
-	@Autowired
-	private WikiConfigService wikiConfigService;
+	private final WikiService wikiService;
+	private final WikiModerationService wikiModerationService;
+	private final WikiConfigService wikiConfigService;
 
 	@GetMapping("/meta/config")
 	@AllowAnonymous
 	public ResponseEntity<WikiConfig> getConfig() {
+     log.info("Executing getConfig");
 		return ResponseEntity.ok(wikiConfigService.getConfig());
 	}
 
@@ -58,18 +57,21 @@ public class WikiController extends BaseController {
 	@GetMapping("/meta/statistics")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, Object>> getStatistics() {
+     log.info("Executing getStatistics");
 		return ResponseEntity.ok(wikiService.getWikiStatistics());
 	}
 
 	@GetMapping("/meta/random")
 	@AllowAnonymous
 	public ResponseEntity<WikiPageRef> getRandomPage() {
+     log.info("Executing getRandomPage");
 		return ResponseEntity.ok(wikiService.getRandomWikiPage());
 	}
 
 	@GetMapping("/meta/categories")
 	@AllowAnonymous
 	public ResponseEntity<List<? extends Map<String, ?>>> getCategories() {
+     log.info("Executing getCategories");
 		return ResponseEntity.ok(wikiService.getWikiCategories().stream()
 				.map(entry -> Map.of("name", entry.getKey(), "count", entry.getValue()))
 				.toList());
@@ -78,18 +80,21 @@ public class WikiController extends BaseController {
 	@GetMapping("/meta/category")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, Object>> getCategory(@RequestParam(name = "name", required = false) String name) {
+     log.info("Executing getCategory");
 		return ResponseEntity.ok(wikiService.getCategoryPages(name));
 	}
 
 	@GetMapping("/meta/recentchanges")
 	@AllowAnonymous
 	public ResponseEntity<List<WikiRevisionRef>> getRecentChanges() {
+     log.info("Executing getRecentChanges");
 		return ResponseEntity.ok(wikiService.getWikiRecentChanges());
 	}
 
 	@GetMapping("/meta/history")
 	@AllowAnonymous
 	public ResponseEntity<List<WikiRevisionRef>> getHistory(@RequestParam(name = "slug") String slug) {
+     log.info("Executing getHistory");
 		return ResponseEntity.ok(wikiService.getWikiHistory(slug, isWikiModerator()));
 	}
 
@@ -101,6 +106,8 @@ public class WikiController extends BaseController {
 
 	@PostMapping("/meta/revisions")
 	public ResponseEntity<WikiRevisionRef> submitRevision(@RequestBody WikiRevisionRequest request) {
+		log.info("Executing submitRevision");
+		log.debug("Executing submitRevision with request={}", request);
 		return ResponseEntity.ok(wikiModerationService.submit(
 				request.slug(), request.content(), request.summary(), super.zfgcUser()));
 	}
@@ -108,18 +115,21 @@ public class WikiController extends BaseController {
 	@GetMapping("/meta/moderation/pending")
 	@PreAuthorize(MODERATOR_ACCESS)
 	public ResponseEntity<List<WikiRevisionRef>> getPendingRevisions() {
+     log.info("Executing getPendingRevisions");
 		return ResponseEntity.ok(wikiModerationService.getPendingRevisions());
 	}
 
 	@GetMapping("/meta/moderation/{revisionId}/preview")
 	@PreAuthorize(MODERATOR_ACCESS)
 	public ResponseEntity<Map<String, Object>> previewRevision(@PathVariable("revisionId") Integer revisionId) {
+     log.info("Executing previewRevision");
 		return ResponseEntity.ok(wikiModerationService.preview(revisionId));
 	}
 
 	@PostMapping("/meta/moderation/{revisionId}/approve")
 	@PreAuthorize(MODERATOR_ACCESS)
 	public ResponseEntity<Void> approveRevision(@PathVariable("revisionId") Integer revisionId) {
+     log.info("Executing approveRevision");
 		wikiModerationService.approve(revisionId);
 		return ResponseEntity.noContent().build();
 	}
@@ -127,6 +137,7 @@ public class WikiController extends BaseController {
 	@PostMapping("/meta/moderation/{revisionId}/reject")
 	@PreAuthorize(MODERATOR_ACCESS)
 	public ResponseEntity<Void> rejectRevision(@PathVariable("revisionId") Integer revisionId) {
+     log.info("Executing rejectRevision");
 		wikiModerationService.reject(revisionId);
 		return ResponseEntity.noContent().build();
 	}

@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.mapstruct.forum;
 
+import java.util.List;
+
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -32,6 +34,10 @@ public interface BoardMap {
 	BoardSummary toModel(BoardSummaryViewDbo dbo);
 
 	ChildBoard toModel(ChildBoardViewDbo dbo);
+
+	List<BoardSummary> toBoardSummaryList(List<BoardSummaryViewDbo> dbos);
+
+	List<ChildBoard> toChildBoardList(List<ChildBoardViewDbo> dbos);
 
 	@Mapping(target="id", ignore=true)
 	@Mapping(target="parentCategoryId", ignore=true)

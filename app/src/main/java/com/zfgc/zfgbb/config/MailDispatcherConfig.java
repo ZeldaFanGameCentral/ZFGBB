@@ -3,8 +3,6 @@ package com.zfgc.zfgbb.config;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
@@ -14,21 +12,24 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import com.zfgc.zfgbb.services.core.MailDispatcher;
+import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
+@Slf4j
 @Configuration
+@EnableConfigurationProperties(ZfgbbMailProperties.class)
 public class MailDispatcherConfig {
-
-	private static final Logger LOG = LoggerFactory.getLogger(MailDispatcherConfig.class);
 
 	@Bean
 	@ConditionalOnExpression("!'${spring.mail.host:}'.isBlank()")
 	public MailDispatcher smtpMailDispatcher(JavaMailSender javaMailSender,
 			@Value("${spring.mail.host}") String smtpHost,
-			@Value("${zfgbb.mail.from:noreply@zfgc.com}") String fromAddress) {
-		LOG.info("outbound mail will be sent through SMTP host {}", smtpHost);
+			ZfgbbMailProperties zfgbbMailProperties) {
+		log.info("outbound mail will be sent through SMTP host {}", smtpHost);
 		return mail -> {
 			SimpleMailMessage message = new SimpleMailMessage();
-			message.setFrom(fromAddress);
+			message.setFrom(zfgbbMailProperties.from() != null ? zfgbbMailProperties.from() : "noreply@zfgc.com");
 			message.setTo(mail.toEmailAddress());
 			message.setSubject(mail.subject());
 			message.setText(mail.body());
@@ -40,7 +41,7 @@ public class MailDispatcherConfig {
 	@Profile("!prod")
 	@ConditionalOnExpression("'${spring.mail.host:}'.isBlank()")
 	public InMemoryMailDispatcher inMemoryMailDispatcher() {
-		LOG.info("spring.mail.host is not configured; outbound mail will be captured in memory and logged");
+		log.info("spring.mail.host is not configured; outbound mail will be captured in memory and logged");
 		return new InMemoryMailDispatcher();
 	}
 
@@ -51,8 +52,8 @@ public class MailDispatcherConfig {
 		@Override
 		public void dispatch(OutboundMail mail) {
 			sentMessages.add(mail);
-			LOG.info("captured outbound mail to {} with subject '{}'", mail.toEmailAddress(), mail.subject());
-			LOG.debug("captured outbound mail body:\n{}", mail.body());
+			log.info("captured outbound mail to {} with subject '{}'", mail.toEmailAddress(), mail.subject());
+			log.debug("captured outbound mail body:\n{}", mail.body());
 		}
 
 		public List<OutboundMail> sentMessages() {

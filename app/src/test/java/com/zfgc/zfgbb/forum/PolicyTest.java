@@ -42,6 +42,10 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.zfgc.zfgbb.authorization.AuthorityTiers;
 import com.zfgc.zfgbb.authorization.RawSqlAccess;
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
+import com.zfgc.zfgbb.dataprovider.users.UserProfileFacade;
+import com.zfgc.zfgbb.dbo.UserAggregateDbo;
+import com.zfgc.zfgbb.mappers.custom.UserProfileHydrationMapper;
+import com.zfgc.zfgbb.services.core.GuestPermissionService;
 import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
 import com.zfgc.zfgbb.content.renderer.ContentRenderer;
 import com.zfgc.zfgbb.dao.UserPermissionViewDao;
@@ -230,9 +234,11 @@ class PolicyTest {
 			threadMapper = mock(ThreadDboMapper.class);
 			boardPermissionViewDboMapper = mock(BoardPermissionViewDboMapper.class);
 			provider = new ProjectDataProvider();
+			GuestPermissionService guestPermissionService = new GuestPermissionService();
+			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
+			ReflectionTestUtils.setField(provider, "guestPermissionService", guestPermissionService);
 			ReflectionTestUtils.setField(provider, "newsMapper", newsMapper);
 			ReflectionTestUtils.setField(provider, "threadMapper", threadMapper);
-			ReflectionTestUtils.setField(provider, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
 			when(newsMapper.selectByExample(any()))
 					.thenReturn(List.of(newsRow(PUBLIC_THREAD_ID), newsRow(HIDDEN_THREAD_ID)));
 		}
@@ -295,6 +301,7 @@ class PolicyTest {
 		private UserBioInfoDao bioInfoDao;
 		private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 		private MessageDboMapper messageDboMapper;
+		private MessagePostCountMapper messagePostCountMapper;
 		private ContentRenderer contentRenderer;
 		private UserBioInfoMap userBioInfoMap;
 		private UserMap userMap;
@@ -318,20 +325,35 @@ class PolicyTest {
 			bioInfoDao = mock(UserBioInfoDao.class);
 			boardPermissionViewDboMapper = mock(BoardPermissionViewDboMapper.class);
 			messageDboMapper = mock(MessageDboMapper.class);
+			messagePostCountMapper = mock(MessagePostCountMapper.class);
 			contentRenderer = mock(ContentRenderer.class);
 			userBioInfoMap = mock(UserBioInfoMap.class);
 			userMap = mock(UserMap.class);
 			provider = new UserDataProvider();
+			UserProfileFacade userProfileFacade = new UserProfileFacade();
+			GuestPermissionService guestPermissionService = new GuestPermissionService();
+			UserProfileHydrationMapper userProfileHydrationMapper = mock(UserProfileHydrationMapper.class);
+			ReflectionTestUtils.setField(userProfileFacade, "messagePostCountMapper", messagePostCountMapper);
+			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "guestPermissionService", guestPermissionService);
+			ReflectionTestUtils.setField(userProfileFacade, "userProfileHydrationMapper", userProfileHydrationMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "contentRenderer", contentRenderer);
+			ReflectionTestUtils.setField(userProfileFacade, "userBioInfoMap", userBioInfoMap);
+			ReflectionTestUtils.setField(userProfileFacade, "userMap", userMap);
+			ReflectionTestUtils.setField(provider, "userProfileFacade", userProfileFacade);
 			ReflectionTestUtils.setField(provider, "userDao", userDao);
 			ReflectionTestUtils.setField(provider, "bioInfoDao", bioInfoDao);
-			ReflectionTestUtils.setField(provider, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
-			ReflectionTestUtils.setField(provider, "messageDboMapper", messageDboMapper);
 			ReflectionTestUtils.setField(provider, "contentRenderer", contentRenderer);
 			ReflectionTestUtils.setField(provider, "userBioInfoMap", userBioInfoMap);
 			ReflectionTestUtils.setField(provider, "userMap", userMap);
 
 			UserDbo userDbo = new UserDbo();
 			userDbo.setUserId(USER_ID);
+			UserBioInfoDbo bioDbo = new UserBioInfoDbo();
+			UserAggregateDbo agg = new UserAggregateDbo();
+			agg.setUser(userDbo);
+			agg.setBio(bioDbo);
+			when(userProfileHydrationMapper.hydrateUsers(any())).thenReturn(List.of(agg));
 			when(userDao.get(any(UserDboExample.class))).thenReturn(List.of(userDbo));
 			when(bioInfoDao.get(USER_ID)).thenReturn(Optional.of(new UserBioInfoDbo()));
 			when(userBioInfoMap.toModel(any())).thenReturn(new UserBioInfo());
@@ -371,15 +393,13 @@ class PolicyTest {
 			BoardPermissionViewDbo perm2 = new BoardPermissionViewDbo();
 			perm2.setBoardId(2);
 			when(boardPermissionViewDboMapper.selectByExample(any())).thenReturn(List.of(perm1, perm2));
-			when(messageDboMapper.countByExample(any())).thenReturn(3L);
-			ArgumentCaptor<MessageDboExample> exampleCaptor = ArgumentCaptor.forClass(MessageDboExample.class);
+			MessagePostCountMapper.OwnerPostCount count = new MessagePostCountMapper.OwnerPostCount();
+			count.setOwnerId(USER_ID);
+			count.setPostCount(3L);
+			when(messagePostCountMapper.postCountsByOwnerWithinBoards(any(), any())).thenReturn(List.of(count));
 			UserBioInfo bio = loadBio();
 			assertEquals(3, bio.getPostCount().intValue());
-			verify(messageDboMapper).countByExample(exampleCaptor.capture());
-			List<String> conditions = exampleCaptor.getValue().getOredCriteria().get(0).getAllCriteria().stream()
-					.map(MessageDboExample.Criterion::getCondition).toList();
-			assertTrue(conditions.stream().anyMatch(condition -> condition.contains("owner_id")));
-			assertTrue(conditions.stream().anyMatch(condition -> condition.contains("board_id in")));
+			verify(messagePostCountMapper).postCountsByOwnerWithinBoards(any(), any());
 		}
 	}
 
@@ -392,6 +412,7 @@ class PolicyTest {
 		private AvatarDao avatarDao;
 		private UserReactionSummaryViewDboMapper reactionSummaryMapper;
 		private MessagePostCountMapper messagePostCountMapper;
+		private UserProfileHydrationMapper userProfileHydrationMapper;
 		private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 		private ContentRenderer contentRenderer;
 		private UserMap userMap;
@@ -415,18 +436,37 @@ class PolicyTest {
 			permissionMap = mock(PermissionMap.class);
 			avatarMap = mock(AvatarMap.class);
 			provider = new UserDataProvider();
+			UserProfileFacade userProfileFacade = new UserProfileFacade();
+			GuestPermissionService guestPermissionService = new GuestPermissionService();
+			userProfileHydrationMapper = mock(UserProfileHydrationMapper.class);
+			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "guestPermissionService", guestPermissionService);
+			ReflectionTestUtils.setField(userProfileFacade, "userProfileHydrationMapper", userProfileHydrationMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "contentRenderer", contentRenderer);
+			when(userProfileHydrationMapper.hydrateUsers(any())).thenAnswer(invocation -> {
+				List<Integer> userIds = invocation.getArgument(0);
+				return userIds.stream().map(userId -> {
+					UserDbo dbo = new UserDbo();
+					dbo.setUserId(userId);
+					UserAggregateDbo agg = new UserAggregateDbo();
+					agg.setUser(dbo);
+					return agg;
+				}).toList();
+			});
+			ReflectionTestUtils.setField(userProfileFacade, "userPermissionDao", userPermissionDao);
+			ReflectionTestUtils.setField(userProfileFacade, "reactionSummaryMapper", reactionSummaryMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "messagePostCountMapper", messagePostCountMapper);
+			ReflectionTestUtils.setField(userProfileFacade, "userMap", userMap);
+			ReflectionTestUtils.setField(userProfileFacade, "userBioInfoMap", userBioInfoMap);
+			ReflectionTestUtils.setField(userProfileFacade, "avatarMap", avatarMap);
+			ReflectionTestUtils.setField(provider, "userProfileFacade", userProfileFacade);
 			ReflectionTestUtils.setField(provider, "userDao", userDao);
 			ReflectionTestUtils.setField(provider, "userPermissionDao", userPermissionDao);
 			ReflectionTestUtils.setField(provider, "bioInfoDao", bioInfoDao);
 			ReflectionTestUtils.setField(provider, "avatarDao", avatarDao);
-			ReflectionTestUtils.setField(provider, "reactionSummaryMapper", reactionSummaryMapper);
-			ReflectionTestUtils.setField(provider, "messagePostCountMapper", messagePostCountMapper);
-			ReflectionTestUtils.setField(provider, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
 			ReflectionTestUtils.setField(provider, "contentRenderer", contentRenderer);
 			ReflectionTestUtils.setField(provider, "userMap", userMap);
 			ReflectionTestUtils.setField(provider, "userBioInfoMap", userBioInfoMap);
-			ReflectionTestUtils.setField(provider, "permissionMap", permissionMap);
-			ReflectionTestUtils.setField(provider, "avatarMap", avatarMap);
 
 			BoardPermissionViewDbo perm = new BoardPermissionViewDbo();
 			perm.setBoardId(1);
@@ -456,10 +496,7 @@ class PolicyTest {
 		}
 
 		private void verifyExactlyOneQueryPerSubEntity() {
-			verify(userDao, times(1)).get(any(UserDboExample.class));
-			verify(userPermissionDao, times(1)).get(any(UserPermissionViewDboExample.class));
-			verify(bioInfoDao, times(1)).get(any(UserBioInfoDboExample.class));
-			verify(avatarDao, times(1)).get(any(AvatarDboExample.class));
+			verify(userProfileHydrationMapper, times(1)).hydrateUsers(any());
 			verify(reactionSummaryMapper, times(1)).selectByExample(any());
 			verify(messagePostCountMapper, times(1)).postCountsByOwnerWithinBoards(any(), any());
 			verify(boardPermissionViewDboMapper, times(1)).selectByExample(any());

@@ -1,8 +1,9 @@
 package com.zfgc.zfgbb.controller;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
+import jakarta.validation.Valid;
 
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.AccountDeletionConfirmation;
@@ -31,34 +34,32 @@ import com.zfgc.zfgbb.services.core.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController extends BaseController {
 
-	@Autowired
-	private UserService userService;
-
-	@Autowired
-	private AuthService authService;
-
-	@Autowired
-	private AuthCookieService cookieService;
-
-	@Autowired
-	private AccountDeletionService accountDeletionService;
+	private final UserService userService;
+	private final AuthService authService;
+	private final AuthCookieService cookieService;
+	private final AccountDeletionService accountDeletionService;
 
 	@Value("${zfgbb.registration.enabled:false}")
 	private boolean registrationEnabled;
 
 	@GetMapping("/loggedInUser")
 	@AllowAnonymous
-	public ResponseEntity<?> getLoggedInUser() {
+	public ResponseEntity<User> getLoggedInUser() {
+     log.info("Executing getLoggedInUser");
 		return ResponseEntity.ok(zfgcUser());
 	}
 
 	@PostMapping("/auth/login")
 	@AllowAnonymous
-	public ResponseEntity<?> login(@RequestBody AuthCredentials credentials) {
+	public ResponseEntity<LoginResponse> login(@Valid @RequestBody AuthCredentials credentials) {
+		log.info("Executing login");
+		log.debug("Executing login for user={}", credentials.getUsername());
 		LoginResponse result = authService.login(credentials);
 
 		if (credentials.isUseTokens()) {
@@ -73,7 +74,8 @@ public class UserController extends BaseController {
 
 	@PostMapping("/auth/refresh")
 	@AllowAnonymous
-	public ResponseEntity<?> refresh(@RequestBody(required = false) RefreshRequest request, HttpServletRequest httpRequest) {
+	public ResponseEntity<TokenPair> refresh(@Valid @RequestBody(required = false) RefreshRequest request, HttpServletRequest httpRequest) {
+		log.debug("Executing refresh");
 		String bodyToken = request != null ? request.refreshToken() : null;
 		boolean fromBody = bodyToken != null && !bodyToken.isBlank();
 		String refreshToken = fromBody ? bodyToken : cookieService.readRefreshCookie(httpRequest).orElse(null);
@@ -96,7 +98,8 @@ public class UserController extends BaseController {
 
 	@PostMapping("/auth/logout")
 	@AllowAnonymous
-	public ResponseEntity<?> logout(@RequestBody(required = false) RefreshRequest request, HttpServletRequest httpRequest) {
+	public ResponseEntity<Void> logout(@Valid @RequestBody(required = false) RefreshRequest request, HttpServletRequest httpRequest) {
+		log.debug("Executing logout");
 		String bodyToken = request != null ? request.refreshToken() : null;
 		String refreshToken = (bodyToken != null && !bodyToken.isBlank())
 				? bodyToken
@@ -114,44 +117,52 @@ public class UserController extends BaseController {
 
 	@PostMapping("/register")
 	@AllowAnonymous
-	public ResponseEntity<?> registerNewUser(@RequestBody RegistrationRequest request) {
+	public ResponseEntity<User> registerNewUser(@Valid @RequestBody RegistrationRequest request) {
+		log.info("Executing registerNewUser");
+		log.debug("Executing registerNewUser with request={}", request);
 		if (!registrationEnabled) {
 			throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
 					"Registration is currently disabled");
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(userService.createNewUser(request));
+		return ResponseEntity.status(HttpStatus.CREATED).body(userService.createNewUser(request));
 	}
 
 	@PostMapping("/account/delete")
-	public ResponseEntity<AccountDeletionState> requestAccountDeletion(@RequestBody AccountDeletionRequest body) {
+	public ResponseEntity<AccountDeletionState> requestAccountDeletion(@Valid @RequestBody AccountDeletionRequest body) {
+		log.info("Executing requestAccountDeletion");
+		log.debug("Executing requestAccountDeletion with body={}", body);
 		return ResponseEntity.status(HttpStatus.ACCEPTED)
 				.body(accountDeletionService.requestDeletion(zfgcUser(), body));
 	}
 
 	@GetMapping("/account/delete")
 	public ResponseEntity<AccountDeletionState> accountDeletionState() {
+     log.info("Executing accountDeletionState");
 		return ResponseEntity.ok(accountDeletionService.currentDeletionState(zfgcUser()));
 	}
 
 	@PostMapping("/account/delete/preview")
 	public ResponseEntity<AccountDeletionPreview> previewAccountDeletion() {
+     log.info("Executing previewAccountDeletion");
 		return ResponseEntity.ok(accountDeletionService.previewDeletion(zfgcUser()));
 	}
 
 	@PostMapping("/account/delete/resend")
 	public ResponseEntity<AccountDeletionState> resendAccountDeletionConfirmation() {
+     log.info("Executing resendAccountDeletionConfirmation");
 		return ResponseEntity.ok(accountDeletionService.resendConfirmation(zfgcUser()));
 	}
 
 	@PostMapping("/account/delete/cancel")
 	public ResponseEntity<AccountDeletionState> cancelAccountDeletion() {
+     log.info("Executing cancelAccountDeletion");
 		return ResponseEntity.ok(accountDeletionService.cancelPendingDeletion(zfgcUser()));
 	}
 
 	@PostMapping("/account/delete/confirm")
 	@AllowAnonymous
 	public ResponseEntity<AccountDeletionState> confirmAccountDeletion(
-			@RequestBody(required = false) AccountDeletionConfirmation body, HttpServletRequest httpRequest) {
+			@Valid @RequestBody(required = false) AccountDeletionConfirmation body, HttpServletRequest httpRequest) {
 		AccountDeletionService.AccountDeletionConfirmOutcome outcome = accountDeletionService
 				.confirmDeletion(body == null ? null : body.token(), httpRequest.getRemoteAddr());
 		User caller = zfgcUser();

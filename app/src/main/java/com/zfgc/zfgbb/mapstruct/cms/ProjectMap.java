@@ -14,7 +14,7 @@ import com.zfgc.zfgbb.model.cms.ProjectDownload;
 
 @Mapper(config=BBMapperConfig.class, builder=@Builder(disableBuilder=true))
 public interface ProjectMap {
-	@Mapping(target="id", ignore=true)
+	@Mapping(target="id", source="contentEntityId")
 	@Mapping(target="projectId", ignore=true)
 	@Mapping(target="author", ignore=true)
 	@Mapping(target="screenshots", ignore=true)

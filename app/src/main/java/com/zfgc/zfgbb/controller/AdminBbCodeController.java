@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.controller;
 
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.zfgc.zfgbb.content.renderer.BBCodeService;
 import com.zfgc.zfgbb.dataprovider.forum.BBCodeDataProvider;
 
+@Slf4j
 @RestController
 @RequestMapping("/system/bbcodes")
 @PreAuthorize("hasRole('ROLE_ZFGC_SITE_ADMIN')")
@@ -27,6 +29,7 @@ public class AdminBbCodeController extends BaseController {
 
 	@GetMapping
 	public ResponseEntity<List<BBCodeDataProvider.BbCodeToggle>> listBbCodes() {
+     log.info("Executing listBbCodes");
 		return ResponseEntity.ok(bbCodeService.listBbCodes());
 	}
 

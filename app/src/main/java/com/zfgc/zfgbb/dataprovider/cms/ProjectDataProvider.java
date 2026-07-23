@@ -54,6 +54,7 @@ import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.ThreadDboMapper;
+import com.zfgc.zfgbb.mappers.custom.CmsFacetMapper;
 import com.zfgc.zfgbb.mapstruct.cms.ProjectMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.cms.PagedResult;
@@ -62,6 +63,7 @@ import com.zfgc.zfgbb.model.cms.ProjectNews;
 import com.zfgc.zfgbb.model.cms.TeamInfo;
 import com.zfgc.zfgbb.model.cms.TeamMember;
 import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.services.core.GuestPermissionService;
 import com.zfgc.zfgbb.dbo.ContentCollectionDbo;
 
 @Repository
@@ -113,7 +115,16 @@ public class ProjectDataProvider extends CatalogDataProvider {
 	@Autowired
 	private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 
-	private List<Integer> guestVisibleBoardIds() {
+	@Autowired
+	private GuestPermissionService guestPermissionService;
+
+	@Autowired
+	private CmsFacetMapper cmsFacetMapper;
+
+	public List<Integer> guestVisibleBoardIds() {
+		if (guestPermissionService != null) {
+			return guestPermissionService.guestVisibleBoardIds();
+		}
 		List<Integer> guestPerms = User.guest().getPermissions().stream()
 				.map(Permission::getPermissionId).toList();
 		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
@@ -122,42 +133,88 @@ public class ProjectDataProvider extends CatalogDataProvider {
 				.map(BoardPermissionViewDbo::getBoardId).distinct().collect(Collectors.toList());
 	}
 
+	private String escapeLike(String input) {
+		if (input == null) {
+			return null;
+		}
+		return input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+	}
+
 	public PagedResult<Project> getProjects(String search, String status, String language, String author,
 			Boolean hasDownload, String sort, int page, int pageSize) {
-		List<ProjectViewDbo> dbos = projectViewMapper.selectByExample(new ProjectViewDboExample());
-		Set<Integer> withDownloads = hasDownload == null ? Set.of()
-				: downloadMapper.selectByExample(new ProjectDownloadDboExample()).stream()
-						.map(ProjectDownloadDbo::getContentEntityId).collect(Collectors.toSet());
-		Predicate<String> statusFilter = valueFilter(status);
+		ProjectViewDboExample projectExample = new ProjectViewDboExample();
+		ProjectViewDboExample.Criteria criteria = projectExample.createCriteria();
 
-		PagedResult<Project> result = catalogPage(dbos, ProjectViewDbo::getCreatedUserId,
-				(dbo, liveNames) -> statusFilter.test(dbo.getStatus())
-						&& (language == null || language.equalsIgnoreCase(trimToNull(dbo.getLanguage())))
-						&& (search == null || containsIgnoreCase(dbo.getTitle(), search))
-						&& (author == null
-								|| containsIgnoreCase(dbo.getAuthorName(), author)
-								|| containsIgnoreCase(liveNames.get(dbo.getCreatedUserId()), author))
-						&& (hasDownload == null || hasDownload == withDownloads.contains(dbo.getContentEntityId())),
-				catalogComparator(sort, ProjectViewDbo::getTitle, ProjectViewDbo::getPublishedTs,
-						ProjectViewDbo::getLastUpdatedTs, ProjectViewDbo::getViewCount, ProjectViewDbo::getDownloadCount,
-						ProjectViewDbo::getRating, ProjectViewDbo::getVoteCount),
-				sort, page, pageSize,
-				(dbo, liveNames) -> {
-					Project project = projectMap.toModel(dbo);
-					project.setId(dbo.getContentEntityId());
-					String name = liveNames.get(dbo.getCreatedUserId());
-					project.setAuthor(name != null ? name : dbo.getAuthorName());
-					return project;
-				});
+		if (search != null && !search.isBlank()) {
+			criteria.andTitleLike("%" + escapeLike(search.trim()) + "%");
+		}
+		if (author != null && !author.isBlank()) {
+			criteria.andAuthorNameLike("%" + escapeLike(author.trim()) + "%");
+		}
+		if (status != null && !status.isBlank()) {
+			criteria.andStatusEqualTo(status.trim());
+		}
+		if (language != null && !language.isBlank()) {
+			criteria.andLanguageEqualTo(language.trim());
+		}
+		if (Boolean.TRUE.equals(hasDownload)) {
+			criteria.andDownloadCountGreaterThan(0);
+		} else if (Boolean.FALSE.equals(hasDownload)) {
+			criteria.andDownloadCountLessThanOrEqualTo(0);
+		}
+
+		if ("newest".equals(sort)) {
+			projectExample.setOrderByClause("published_ts desc, title asc");
+		} else if ("updated".equals(sort)) {
+			projectExample.setOrderByClause("last_updated_ts desc, title asc");
+		} else if ("views".equals(sort)) {
+			projectExample.setOrderByClause("view_count desc, title asc");
+		} else if ("downloads".equals(sort)) {
+			projectExample.setOrderByClause("download_count desc, title asc");
+		} else if ("rating".equals(sort)) {
+			projectExample.setOrderByClause("rating desc, vote_count desc, title asc");
+		} else if ("random".equals(sort)) {
+			projectExample.setOrderByClause("random()");
+		} else {
+			projectExample.setOrderByClause("title asc");
+		}
+
+		long totalCount = projectViewMapper.countByExample(projectExample);
+
+		int safePageSize = Math.max(pageSize, 1);
+		int safePage = Math.max(page, 1);
+		long zeroBasedOffset = (long) (safePage - 1) * (long) safePageSize;
+		if (zeroBasedOffset > Integer.MAX_VALUE) {
+			return new PagedResult<>(List.of(), (int) totalCount, safePage, safePageSize);
+		}
+		projectExample.setLimit(safePageSize);
+		projectExample.setOffset((int) zeroBasedOffset);
+
+		List<ProjectViewDbo> dbos = projectViewMapper.selectByExampleWithLimits(projectExample);
+		Map<Integer, String> liveNames = displayNames(dbos.stream().map(ProjectViewDbo::getCreatedUserId));
+
+		List<Project> items = dbos.stream().map(dbo -> {
+			Project project = projectMap.toModel(dbo);
+			String name = liveNames.get(dbo.getCreatedUserId());
+			project.setAuthor(name != null ? name : dbo.getAuthorName());
+			return project;
+		}).collect(Collectors.toList());
+
+		PagedResult<Project> result = new PagedResult<>(items, (int) totalCount, safePage, safePageSize);
 		fillTags(result.getItems());
 		return result;
 	}
 
 	public Map<String, List<Map.Entry<String, Long>>> getFacets() {
-		List<ProjectViewDbo> views = projectViewMapper.selectByExample(new ProjectViewDboExample());
+		List<Map.Entry<String, Long>> languages = cmsFacetMapper.countProjectLanguages().stream()
+				.map(fc -> Map.entry(fc.getValue(), fc.getCount()))
+				.collect(Collectors.toList());
+		List<Map.Entry<String, Long>> statuses = cmsFacetMapper.countProjectStatuses().stream()
+				.map(fc -> Map.entry(fc.getValue(), fc.getCount()))
+				.collect(Collectors.toList());
 		return Map.of(
-				"languages", countDistinct(views, ProjectViewDbo::getLanguage),
-				"statuses", countDistinct(views, ProjectViewDbo::getStatus));
+				"languages", languages,
+				"statuses", statuses);
 	}
 
 	public Project getProject(String slug) {
@@ -166,7 +223,6 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		ProjectViewDbo dbo = projectViewMapper.selectByExample(ex).stream().findFirst()
 				.orElseThrow(ZfgcNotFoundException::new);
 		Project project = projectMap.toModel(dbo);
-		project.setId(dbo.getContentEntityId());
 		String projectAuthor = displayNames(Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
 		project.setAuthor(projectAuthor != null ? projectAuthor : dbo.getAuthorName());
 
@@ -197,7 +253,6 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		ex.createCriteria().andSlugEqualTo(slug);
 		return projectViewMapper.selectByExample(ex).stream().findFirst().map(dbo -> {
 			Project project = projectMap.toModel(dbo);
-			project.setId(dbo.getContentEntityId());
 			String projectAuthor = displayNames(Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
 			project.setAuthor(projectAuthor != null ? projectAuthor : dbo.getAuthorName());
 			return project;
