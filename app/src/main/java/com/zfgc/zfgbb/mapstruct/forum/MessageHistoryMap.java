@@ -8,7 +8,6 @@ import org.mapstruct.MappingTarget;
 
 import com.zfgc.zfgbb.config.BBMapperConfig;
 import com.zfgc.zfgbb.dbo.CurrentMessageDbo;
-import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
@@ -39,5 +38,6 @@ public interface MessageHistoryMap {
 	@Mapping(target="currentFlag", ignore=true)
 	@Mapping(target="ipAddressId", ignore=true)
 	@Mapping(target="migrationHash", ignore=true)
+	@Mapping(target="contentFormat", ignore=true)
 	MessageHistoryDbo toDbo(Message message);
 }

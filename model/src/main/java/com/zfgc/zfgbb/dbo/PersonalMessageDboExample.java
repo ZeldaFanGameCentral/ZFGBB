@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PersonalMessageDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734713355-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734726365-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734740584-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734704546-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public PersonalMessageDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734718045-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734722195-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734729135-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734733125-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734745024-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734749174-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734753284-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734757264-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class PersonalMessageDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734761154-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734763564-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.734768944-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -362,12 +368,12 @@ public class PersonalMessageDboExample {
         }
 
         public Criteria andSenderNameLike(String value) {
-            addCriterion("sender_name like", value, "senderName");
+            addCriterion("sender_name ilike", value, "senderName");
             return (Criteria) this;
         }
 
         public Criteria andSenderNameNotLike(String value) {
-            addCriterion("sender_name not like", value, "senderName");
+            addCriterion("sender_name not ilike", value, "senderName");
             return (Criteria) this;
         }
 
@@ -432,12 +438,12 @@ public class PersonalMessageDboExample {
         }
 
         public Criteria andBodyLike(String value) {
-            addCriterion("body like", value, "body");
+            addCriterion("body ilike", value, "body");
             return (Criteria) this;
         }
 
         public Criteria andBodyNotLike(String value) {
-            addCriterion("body not like", value, "body");
+            addCriterion("body not ilike", value, "body");
             return (Criteria) this;
         }
 
@@ -742,12 +748,12 @@ public class PersonalMessageDboExample {
         }
 
         public Criteria andMigrationHashLike(String value) {
-            addCriterion("migration_hash like", value, "migrationHash");
+            addCriterion("migration_hash ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
         public Criteria andMigrationHashNotLike(String value) {
-            addCriterion("migration_hash not like", value, "migrationHash");
+            addCriterion("migration_hash not ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
@@ -772,14 +778,14 @@ public class PersonalMessageDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.735075214-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.735083894-04:00", comments="Source Table: zfgbb.personal_message")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.personal_message")
     public static class Criterion {
         private String condition;
 

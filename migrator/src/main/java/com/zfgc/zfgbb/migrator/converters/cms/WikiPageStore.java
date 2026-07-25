@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDbo;
@@ -20,17 +19,15 @@ import com.zfgc.zfgbb.migrator.converters.MigrationHasher;
 import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class WikiPageStore {
 
-	@Autowired
-	private WikiPageDboMapper pageMapper;
-
-	@Autowired
-	private WikiPageRevisionDboMapper revisionMapper;
-
-	@Autowired
-	private WikiPageCategoryDboMapper categoryMapper;
+	private final WikiPageDboMapper pageMapper;
+	private final WikiPageRevisionDboMapper revisionMapper;
+	private final WikiPageCategoryDboMapper categoryMapper;
 
 	private static int byteSize(String content) {
 		return content == null ? 0 : content.getBytes(StandardCharsets.UTF_8).length;
@@ -41,8 +38,13 @@ public class WikiPageStore {
 		namespace = canonical.namespace();
 		title = canonical.title();
 		WikiPageDboExample ex = new WikiPageDboExample();
-		ex.createCriteria().andNamespaceEqualTo(namespace).andSlugEqualTo(slug);
+		ex.createCriteria().andNamespaceEqualTo(namespace).andTitleEqualTo(title);
 		WikiPageDbo existing = pageMapper.selectByExample(ex).stream().findFirst().orElse(null);
+		if (existing == null) {
+			WikiPageDboExample exSlug = new WikiPageDboExample();
+			exSlug.createCriteria().andNamespaceEqualTo(namespace).andSlugEqualTo(slug);
+			existing = pageMapper.selectByExample(exSlug).stream().findFirst().orElse(null);
+		}
 		if (existing != null) {
 			if (!Objects.equals(existing.getTitle(), title)) {
 				existing.setTitle(title);

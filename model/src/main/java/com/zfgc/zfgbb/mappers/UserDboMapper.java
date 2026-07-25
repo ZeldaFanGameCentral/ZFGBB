@@ -2,43 +2,7 @@ package com.zfgc.zfgbb.mappers;
 
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
-import jakarta.annotation.Generated;
-import java.util.List;
-import org.apache.ibatis.annotations.Param;
+import com.zfgc.zfgbb.persistence.VersionedIdentityCrudMapper;
 
-public interface UserDboMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666478989-04:00", comments="Source Table: zfgbb.user")
-    long countByExample(UserDboExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666524397-04:00", comments="Source Table: zfgbb.user")
-    int deleteByExample(UserDboExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666578206-04:00", comments="Source Table: zfgbb.user")
-    int deleteByPrimaryKey(Integer userId);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666605395-04:00", comments="Source Table: zfgbb.user")
-    int insert(UserDbo row);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666630224-04:00", comments="Source Table: zfgbb.user")
-    int insertSelective(UserDbo row);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666662483-04:00", comments="Source Table: zfgbb.user")
-    List<UserDbo> selectByExample(UserDboExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666705482-04:00", comments="Source Table: zfgbb.user")
-    UserDbo selectByPrimaryKey(Integer userId);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666736551-04:00", comments="Source Table: zfgbb.user")
-    int updateByExampleSelective(@Param("row") UserDbo row, @Param("example") UserDboExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666781969-04:00", comments="Source Table: zfgbb.user")
-    int updateByExample(@Param("row") UserDbo row, @Param("example") UserDboExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666834968-04:00", comments="Source Table: zfgbb.user")
-    int updateByPrimaryKeySelective(UserDbo row);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.666892116-04:00", comments="Source Table: zfgbb.user")
-    int updateByPrimaryKey(UserDbo row);
-
-    List<UserDbo> selectByExampleWithLimits(UserDboExample example);
+public interface UserDboMapper extends VersionedIdentityCrudMapper<UserDbo, UserDboExample, Integer> {
 }

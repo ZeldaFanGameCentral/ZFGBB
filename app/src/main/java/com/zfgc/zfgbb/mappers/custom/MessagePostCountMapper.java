@@ -5,78 +5,31 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public interface MessagePostCountMapper {
 
+	@Getter
+	@Setter
 	class OwnerPostCount {
 		private Integer ownerId;
 		private long postCount;
-
-		public Integer getOwnerId() {
-			return ownerId;
-		}
-
-		public void setOwnerId(Integer ownerId) {
-			this.ownerId = ownerId;
-		}
-
-		public long getPostCount() {
-			return postCount;
-		}
-
-		public void setPostCount(long postCount) {
-			this.postCount = postCount;
-		}
 	}
 
+	@Getter
+	@Setter
 	class ThreadPostCount {
 		private Integer threadId;
 		private int postCount;
-
-		public Integer getThreadId() {
-			return threadId;
-		}
-
-		public void setThreadId(Integer threadId) {
-			this.threadId = threadId;
-		}
-
-		public int getPostCount() {
-			return postCount;
-		}
-
-		public void setPostCount(int postCount) {
-			this.postCount = postCount;
-		}
 	}
 
+	@Getter
+	@Setter
 	class LatestMessageUser {
 		private Integer threadId;
 		private Integer lastPostedUserId;
 		private String lastPostedUser;
-
-		public Integer getThreadId() {
-			return threadId;
-		}
-
-		public void setThreadId(Integer threadId) {
-			this.threadId = threadId;
-		}
-
-		public Integer getLastPostedUserId() {
-			return lastPostedUserId;
-		}
-
-		public void setLastPostedUserId(Integer lastPostedUserId) {
-			this.lastPostedUserId = lastPostedUserId;
-		}
-
-		public String getLastPostedUser() {
-			return lastPostedUser;
-		}
-
-		public void setLastPostedUser(String lastPostedUser) {
-			this.lastPostedUser = lastPostedUser;
-		}
 	}
 
 	@Select("""

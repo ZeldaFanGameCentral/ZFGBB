@@ -1,24 +1,26 @@
 package com.zfgc.zfgbb.config.security;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.model.users.EncodedPassword;
 import com.zfgc.zfgbb.model.users.PasswordAlgo;
-import com.zfgc.zfgbb.services.core.PasswordService;
+
 
 @Component
 public class ZfgcPasswordEncoder implements PasswordEncoder {
 
-	private final PasswordService passwordService;
-
-	public ZfgcPasswordEncoder(PasswordService passwordService) {
-		this.passwordService = passwordService;
-	}
+	private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
 
 	@Override
 	public String encode(CharSequence rawPassword) {
-		return EncodedPassword.of(passwordService.hash(rawPassword.toString())).toEncoded();
+		return hash(rawPassword.toString()).toEncoded();
 	}
 
 	@Override
@@ -31,7 +33,7 @@ public class ZfgcPasswordEncoder implements PasswordEncoder {
 		} catch (IllegalArgumentException invalidEncoding) {
 			return false;
 		}
-		return passwordService.verify(rawPassword.toString(), parsed.hash(), parsed.algo(), parsed.salt());
+		return verify(rawPassword.toString(), parsed.hash(), parsed.algo(), parsed.salt());
 	}
 
 	@Override
@@ -42,6 +44,35 @@ public class ZfgcPasswordEncoder implements PasswordEncoder {
 			return EncodedPassword.parse(encodedPassword).algo() == PasswordAlgo.SMF2_SHA1;
 		} catch (IllegalArgumentException invalidEncoding) {
 			return false;
+		}
+	}
+
+	public EncodedPassword hash(String raw) {
+		return new EncodedPassword(PasswordAlgo.BCRYPT, null, bcrypt.encode(raw));
+	}
+
+	public boolean verify(String raw, String storedHash, PasswordAlgo algo, String salt) {
+		if (raw == null || storedHash == null || algo == null)
+			return false;
+		return switch (algo) {
+			case BCRYPT -> bcrypt.matches(raw, storedHash);
+			case SMF2_SHA1 -> verifySmf2Sha1(raw, storedHash, salt);
+		};
+	}
+
+	private boolean verifySmf2Sha1(String raw, String storedHash, String salt) {
+		if (salt == null)
+			return false;
+		return MessageDigest.isEqual(sha1Hex(raw + salt).getBytes(StandardCharsets.UTF_8),
+				storedHash.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private static String sha1Hex(String input) {
+		try {
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1")
+					.digest(input.getBytes(StandardCharsets.UTF_8)));
+		} catch (NoSuchAlgorithmException unavailable) {
+			throw new IllegalStateException("SHA-1 not available", unavailable);
 		}
 	}
 }

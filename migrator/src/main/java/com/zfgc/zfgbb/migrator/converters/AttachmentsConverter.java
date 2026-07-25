@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,28 +21,22 @@ import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFAttachmentsDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFAttachmentsDbMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class AttachmentsConverter extends AbstractConverter<Map<Integer, ContentResourceDbo>> {
+
+	private final SMFAttachmentsDbMapper smfAttachmentsDbMapper;
+	private final ContentResourceDboMapper contentMapper;
+	private final MessageDboMapper messageMapper;
+	private final FileAttachmentDboMapper attachmentMapper;
+	private final MigratorIdMapService idMap;
 
 	@Override
 	public JobType getType() {
 		return JobType.ATTACHMENTS;
 	}
-
-	@Autowired
-	private SMFAttachmentsDbMapper smfAttachmentsDbMapper;
-
-	@Autowired
-	private ContentResourceDboMapper contentMapper;
-
-	@Autowired
-	private MessageDboMapper messageMapper;
-
-	@Autowired
-	private FileAttachmentDboMapper attachmentMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
 
 	@Override
 	@Transactional

@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.testsupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -13,15 +14,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Tag;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.zfgc.zfgbb.dbo.*;
+import com.zfgc.zfgbb.mappers.*;
+import com.zfgc.zfgbb.testsupport.mappers.TestQueryHelperMapper;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +47,7 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
+@MapperScan("com.zfgc.zfgbb.testsupport.mappers")
 @TestPropertySource(properties = {
 		"zfgbb.install.token=" + ZfgbbIntegrationTest.INSTALL_TOKEN,
 		"zfgbb.registration.enabled=true",
@@ -55,12 +65,16 @@ public abstract class ZfgbbIntegrationTest {
 	private static final String PG_DB = "zfgc_dev";
 	private static final String PG_USER = "zfgbb_user";
 	private static final String PG_PASSWORD = "123456";
+	private static final String TEST_JWT_SECRET = "integration-test-jwt-secret-at-least-32-characters";
 
 	@Autowired
 	protected MockMvc mockMvc;
 
 	@Autowired
-	protected JdbcTemplate jdbcTemplate;
+	protected javax.sql.DataSource dataSource;
+
+	@Autowired
+	protected TestQueryHelperMapper testQueryHelperMapper;
 
 	protected final ObjectMapper json = new ObjectMapper();
 
@@ -72,6 +86,7 @@ public abstract class ZfgbbIntegrationTest {
 		ComposeContainer pg = new ComposeContainer(projectFile("docker-compose.yml"))
 				.withEnv("COMPOSE_PROJECT_NAME", "zfgbb-test-" + UUID.randomUUID().toString().substring(0, 8))
 				.withEnv("POSTGRES_PORT", String.valueOf(port))
+				.withEnv("ZFGBB_AUTH_JWT_SECRET", TEST_JWT_SECRET)
 				.withServices(PG_SERVICE)
 				.withBuild(true)
 				.waitingFor(PG_SERVICE, Wait.forLogMessage(".*database system is ready to accept connections.*", 2)
@@ -102,10 +117,8 @@ public abstract class ZfgbbIntegrationTest {
 	}
 
 	protected boolean isInstalled() {
-		Integer installed = jdbcTemplate.queryForObject(
-				"select count(*) from zfgbb.system_config where config_key = 'installed' and config_value = 'true'",
-				Integer.class);
-		return installed != null && installed > 0;
+		SystemConfigDbo installed = systemConfigDboMapper.selectByPrimaryKey("installed");
+		return installed != null && "true".equals(installed.getConfigValue());
 	}
 
 	protected void installSampleData() throws Exception {
@@ -119,8 +132,7 @@ public abstract class ZfgbbIntegrationTest {
 				  "adminEmail": "%s@fake-email.fake.tld.thing",
 				  "adminPassword": "%s",
 				  "siteName": "ZFGC Test",
-				  "contentPack": "zfgc",
-				  "provisionRecycleBin": true
+				  "provisionRecycleBin": false
 				}
 				""".formatted(ADMIN_USER, ADMIN_DISPLAY_NAME, ADMIN_USER, ADMIN_PASSWORD);
 		mockMvc.perform(post("/system/install")
@@ -142,14 +154,14 @@ public abstract class ZfgbbIntegrationTest {
 		MvcResult result = mockMvc.perform(post("/users/register")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(body))
-				.andExpect(status().isOk())
+				.andExpect(status().isCreated())
 				.andReturn();
 		return json.readTree(result.getResponse().getContentAsString());
 	}
 
 	protected JsonNode login(String userName, String password) throws Exception {
 		String body = """
-				{"username": "%s", "password": "%s", "useTokens": true}
+				{"username": "%s", "password": "%s", "useTokens": true, "stayLoggedIn": false}
 				""".formatted(userName, password);
 		MvcResult result = mockMvc.perform(post("/users/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -167,30 +179,100 @@ public abstract class ZfgbbIntegrationTest {
 		return result.getResponse().getCookie("XSRF-TOKEN");
 	}
 
-	protected int count(String fromAndWhere) {
-		Integer value = jdbcTemplate.queryForObject("select count(*) from " + fromAndWhere, Integer.class);
-		return value == null ? 0 : value;
+	@Autowired
+	private BoardDboMapper boardDboMapper;
+
+	@Autowired
+	private SystemConfigDboMapper systemConfigDboMapper;
+
+	@Autowired
+	private BrBoardPermissionDboMapper brBoardPermissionDboMapper;
+
+	@Autowired
+	private PermissionDboMapper permissionDboMapper;
+
+	@Autowired
+	private UserDboMapper baseUserDboMapper;
+
+	@Autowired
+	private MessageDboMapper baseMessageDboMapper;
+
+	private UserDbo userNamed(String userName) {
+		UserDboExample named = new UserDboExample();
+		named.createCriteria().andUserNameEqualTo(userName);
+		List<UserDbo> matches = baseUserDboMapper.selectByExample(named);
+		assertTrue(matches.size() <= 1, "user_name must identify at most one account: " + userName);
+		return matches.isEmpty() ? null : matches.get(0);
+	}
+
+	protected Integer findUserIdByName(String userName) {
+		UserDbo user = userNamed(userName);
+		return user == null ? null : user.getUserId();
+	}
+
+	protected String findDisplayNameByName(String userName) {
+		UserDbo user = userNamed(userName);
+		return user == null ? null : user.getDisplayName();
+	}
+
+	private List<MessageDbo> postsInThread(int threadId, Consumer<MessageDboExample.Criteria> predicate,
+			String orderByClause) {
+		MessageDboExample posts = new MessageDboExample();
+		MessageDboExample.Criteria criteria = posts.createCriteria().andThreadIdEqualTo(threadId);
+		predicate.accept(criteria);
+		posts.setOrderByClause(orderByClause);
+		return baseMessageDboMapper.selectByExample(posts);
+	}
+
+	protected Integer findMessageIdAtPosition(int threadId, int postInThread) {
+		List<MessageDbo> matches = postsInThread(threadId,
+				criteria -> criteria.andPostInThreadEqualTo(postInThread), "post_in_thread");
+		assertTrue(matches.size() <= 1,
+				"a thread must hold at most one post at position " + postInThread + ": " + matches.size());
+		return matches.isEmpty() ? null : matches.get(0).getMessageId();
+	}
+
+	protected Integer findLatestMessageIdInThread(int threadId) {
+		List<MessageDbo> posts = postsInThread(threadId, criteria -> { }, "post_in_thread desc");
+		return posts.isEmpty() ? null : posts.get(0).getMessageId();
+	}
+
+	protected Integer findLatestMessageIdInThreadOwnedBy(int threadId, int ownerId) {
+		List<MessageDbo> posts = postsInThread(threadId,
+				criteria -> criteria.andOwnerIdEqualTo(ownerId), "post_in_thread desc");
+		return posts.isEmpty() ? null : posts.get(0).getMessageId();
+	}
+
+	protected List<Integer> listPostPositionsInThread(int threadId) {
+		return postsInThread(threadId, criteria -> { }, "post_in_thread").stream()
+				.map(MessageDbo::getPostInThread).toList();
 	}
 
 	protected void assertRecycleBinProvisioned() {
-		assertEquals(1, count("zfgbb.board where board_name = 'Recycle Bin'"),
-				"exactly one recycle board must be provisioned");
-		assertEquals(1, count("""
-				zfgbb.system_config c
-				join zfgbb.board b on b.board_id = c.config_value::integer
-				where c.config_key = 'recycle_board_id' and b.board_name = 'Recycle Bin'"""),
+		BoardDboExample ex = new BoardDboExample();
+		ex.createCriteria().andBoardNameEqualTo("Recycle Bin");
+		var boards = boardDboMapper.selectByExample(ex);
+		assertEquals(1, boards.size(), "exactly one recycle board must be provisioned");
+
+		SystemConfigDboExample cfgEx = new SystemConfigDboExample();
+		cfgEx.createCriteria().andConfigKeyEqualTo("recycle_board_id")
+				.andConfigValueEqualTo(String.valueOf(boards.get(0).getBoardId()));
+		assertEquals(1, systemConfigDboMapper.countByExample(cfgEx),
 				"recycle_board_id must point at the provisioned recycle board");
-		assertEquals(2, count("""
-				zfgbb.br_board_permission bp
-				join zfgbb.board b on b.board_id = bp.board_id
-				where b.board_name = 'Recycle Bin'"""));
-		assertEquals(2, count("""
-				zfgbb.br_board_permission bp
-				join zfgbb.board b on b.board_id = bp.board_id
-				where b.board_name = 'Recycle Bin'
-					and bp.permission_id in (
-						select permission_id from zfgbb.permission
-						where permission_code in ('ZFGC_SITE_ADMIN', 'ZFGC_SITE_MODERATOR'))"""),
+
+		PermissionDboExample moderationPermissionEx = new PermissionDboExample();
+		moderationPermissionEx.createCriteria()
+				.andPermissionCodeIn(List.of("ZFGC_SITE_ADMIN", "ZFGC_SITE_MODERATOR"));
+		Set<Integer> moderationPermissionIds = permissionDboMapper.selectByExample(moderationPermissionEx)
+				.stream().map(PermissionDbo::getPermissionId).collect(Collectors.toSet());
+		assertEquals(2, moderationPermissionIds.size(),
+				"ZFGC_SITE_ADMIN and ZFGC_SITE_MODERATOR permissions must both exist");
+
+		BrBoardPermissionDboExample permEx = new BrBoardPermissionDboExample();
+		permEx.createCriteria().andBoardIdEqualTo(boards.get(0).getBoardId());
+		Set<Integer> recyclePermissionIds = brBoardPermissionDboMapper.selectByExample(permEx)
+				.stream().map(BrBoardPermissionDbo::getPermissionId).collect(Collectors.toSet());
+		assertEquals(moderationPermissionIds, recyclePermissionIds,
 				"the recycle board is visible to admins and moderators only");
 	}
 

@@ -6,10 +6,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -21,7 +26,9 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
 import com.zfgc.zfgbb.migrator.jobs.JobState;
+import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
+import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
 
 public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 
@@ -35,6 +42,7 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 	protected JobService jobService;
 
 	private JdbcTemplate smfJdbc;
+	private static final Path LEGACY_ASSETS = extractLegacyAssets();
 
 	@SuppressWarnings("resource")
 	protected static ComposeContainer smfFixture() {
@@ -49,10 +57,9 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 		return smf;
 	}
 
-	protected static void migrationProperties(DynamicPropertyRegistry r, java.util.function.Supplier<String> contentPath) {
+	protected static void migrationProperties(DynamicPropertyRegistry r, Supplier<String> contentPath) {
 		r.add("zfgbb.migrator.enabled", () -> "true");
 		r.add("zfgbb.content.path", contentPath::get);
-		r.add("zfgbb.content.images", () -> "");
 	}
 
 	protected JdbcTemplate smfJdbc(ComposeContainer smf) {
@@ -96,22 +103,50 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 				SMF_USERNAME,
 				SMF_PASSWORD,
 				SMF_TABLE_PREFIX,
-				null,
-				null,
-				resolveFromProjectRoot("app/src/test/resources/smf-fixtures/2.0.15/smf-attachments").toString(),
+				"localhost:8090",
+				"http://localhost:5173",
+				LEGACY_ASSETS.resolve("smf/attachments").toString(),
 				attachmentsTarget,
-				resolveFromProjectRoot("app/src/test/resources/smf-fixtures/2.0.15/smf-avatars").toString(),
-				resolveFromProjectRoot("app/src/test/resources/cms-fixtures/cms-files").toString(),
-				resolveFromProjectRoot("app/src/test/resources/cms-fixtures/wiki-images").toString(),
-				false,
+				LEGACY_ASSETS.resolve("smf/avatars").toString(),
+				LEGACY_ASSETS.resolve("cms/uploads").toString(),
+				LEGACY_ASSETS.resolve("wiki/images").toString(),
+				true,
 				true,
 				4,
 				5,
-				java.util.Map.of("User", 1),
-				java.util.Map.of(9, java.util.List.of("ZFGC_WIKI_MODERATOR")), null, null, null);
+				Map.of("User", 1),
+				Map.of(9, List.of("ZFGC_WIKI_MODERATOR")),
+				null,
+				null,
+				Map.of(
+						4, "ZFGCpedia",
+						5, "ZFGCpedia_talk",
+						100, "KOT",
+						101, "KOT_talk"),
+				"zfgc.com");
 	}
 
-	protected List<Job> runPipeline(com.zfgc.zfgbb.migrator.jobs.JobType type, SmfConnectionParams params)
+	private static Path extractLegacyAssets() {
+		try {
+			Path target = Files.createTempDirectory("zfgbb-legacy-assets-");
+			Path archive = resolveFromProjectRoot("app/src/test/resources/legacy-assets.tar.gz");
+			Process process = new ProcessBuilder("tar", "-xzf", archive.toString(), "-C", target.toString())
+					.redirectErrorStream(true)
+					.start();
+			if (process.waitFor() != 0)
+				throw new IllegalStateException("Unable to extract " + archive + ": "
+						+ new String(process.getInputStream().readAllBytes()));
+			target.toFile().deleteOnExit();
+			return target;
+		} catch (IOException e) {
+			throw new ExceptionInInitializerError(e);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+
+	protected List<Job> runPipeline(JobType type, SmfConnectionParams params)
 			throws InterruptedException {
 		List<Job> submitted = jobService.submit(type, params);
 		List<Job> finished = waitForAllTerminal(submitted, Duration.ofMinutes(3));
@@ -156,15 +191,15 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 		}
 	}
 
-	protected void assertSameCount(ComposeContainer smf, String smfFromAndWhere, String zfgbbFromAndWhere) {
-		assertSourceMatchesTarget(smf,
-				"select count(*) from " + smfFromAndWhere,
-				"select count(*) from " + zfgbbFromAndWhere);
+	@Autowired
+	protected TestSystemInfoMapper testSystemInfoMapper;
+
+	protected void assertSameCount(ComposeContainer smf, String smfFromAndWhere, long zfgbbCount) {
+		assertSourceMatchesTarget(smf, "select count(*) from " + smfFromAndWhere, zfgbbCount);
 	}
 
-	protected void assertSourceMatchesTarget(ComposeContainer smf, String smfQuery, String zfgbbQuery) {
-		Integer source = smfJdbc(smf).queryForObject(smfQuery, Integer.class);
-		Integer target = jdbcTemplate.queryForObject(zfgbbQuery, Integer.class);
-		assertEquals(source, target, smfQuery + "  vs  " + zfgbbQuery);
+	protected void assertSourceMatchesTarget(ComposeContainer smf, String smfQuery, long zfgbbCount) {
+		Long source = smfJdbc(smf).queryForObject(smfQuery, Long.class);
+		assertEquals(source.longValue(), zfgbbCount, smfQuery);
 	}
 }

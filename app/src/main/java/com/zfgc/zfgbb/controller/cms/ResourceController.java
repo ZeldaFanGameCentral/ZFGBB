@@ -1,9 +1,9 @@
 package com.zfgc.zfgbb.controller.cms;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,29 +16,23 @@ import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Resource;
 import com.zfgc.zfgbb.model.cms.ResourceShowcase;
-import com.zfgc.zfgbb.services.cms.ResourceService;
+import com.zfgc.zfgbb.services.cms.catalog.ResourceService;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/resources")
+@RequiredArgsConstructor
 public class ResourceController extends BaseController {
 
-	@Autowired
-	private ResourceService resourceService;
+	private final ResourceService resourceService;
 
 	@GetMapping("/facets")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, List<Map<String, Object>>>> getFacets() {
      log.info("Executing getFacets");
 		return ResponseEntity.ok(Map.of("types", toFacet(resourceService.getResourceTypes())));
-	}
-
-	private static List<Map<String, Object>> toFacet(List<Map.Entry<String, Long>> values) {
-		return values.stream()
-				.map(entry -> Map.<String, Object>of("value", entry.getKey(), "count", entry.getValue()))
-				.toList();
 	}
 
 	@GetMapping

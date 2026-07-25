@@ -20,7 +20,9 @@ public class ZfgbbPermissionEvaluator implements PermissionEvaluator {
 
 	@Override
 	public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
-		return false;
+		throw new UnsupportedOperationException(
+				"hasPermission(target, permission) has no ResourceAccessRules binding and would deny every actor "
+						+ "silently; use hasPermission(id, 'RESOURCE_TYPE', 'action') instead");
 	}
 
 	@Override

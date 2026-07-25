@@ -28,6 +28,7 @@ public class WikiPage extends BaseModel {
 	private List<Heading> headings = new ArrayList<>();
 	private boolean toc;
 	private String entityUrl;
+	private boolean editable;
 
 	public record Heading(int level, String text, String id) {
 	}

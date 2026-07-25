@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.model.cms;
 
+import java.time.OffsetDateTime;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 import com.zfgc.zfgbb.util.ZfgcStringUtils;
@@ -28,8 +30,8 @@ public class Resource extends BaseModel {
 	private Integer downloadCount;
 	private String author;
 	private Integer createdUserId;
-	private java.time.OffsetDateTime publishedTs;
-	private java.time.OffsetDateTime lastUpdatedTs;
+	private OffsetDateTime publishedTs;
+	private OffsetDateTime lastUpdatedTs;
 	private Float rating;
 	private Integer voteCount;
 	private WikiPage page;

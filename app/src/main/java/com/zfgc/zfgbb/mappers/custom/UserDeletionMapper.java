@@ -31,9 +31,6 @@ public interface UserDeletionMapper {
 			""")
 	boolean isSiteAdmin(@Param("userId") Integer userId);
 
-	@Update("update zfgbb.message set owner_id = #{sentinelId} where owner_id = #{userId}")
-	int reassignMessages(@Param("userId") Integer userId, @Param("sentinelId") Integer sentinelId);
-
 	@Update("""
 			update zfgbb.thread set created_user_id = #{sentinelId}, migration_hash = null
 			where created_user_id = #{userId}
@@ -51,30 +48,6 @@ public interface UserDeletionMapper {
 			where created_user_id = #{userId}
 			""")
 	int reassignPolls(@Param("userId") Integer userId, @Param("sentinelId") Integer sentinelId);
-
-	@Delete("""
-			delete from zfgbb.file_attachments where message_id in
-			  (select message_id from zfgbb.message where owner_id = #{userId})
-			""")
-	int deleteUserMessageAttachments(@Param("userId") Integer userId);
-
-	@Delete("""
-			delete from zfgbb.message_history where message_id in
-			  (select message_id from zfgbb.message where owner_id = #{userId})
-			""")
-	int deleteUserMessageHistory(@Param("userId") Integer userId);
-
-	@Delete("""
-			delete from zfgbb.reaction where reactable_type = 'MESSAGE' and reactable_id in
-			  (select message_id from zfgbb.message where owner_id = #{userId})
-			""")
-	int deleteUserMessageReactions(@Param("userId") Integer userId);
-
-	@Select("select distinct thread_id from zfgbb.message where owner_id = #{userId}")
-	List<Integer> findThreadIdsWithUserMessages(@Param("userId") Integer userId);
-
-	@Delete("delete from zfgbb.message where owner_id = #{userId}")
-	int deleteUserMessages(@Param("userId") Integer userId);
 
 	@Update("""
 			<script>

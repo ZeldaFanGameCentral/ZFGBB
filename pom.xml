@@ -37,6 +37,7 @@
     <lombok.version>1.18.46</lombok.version>
     <commons-lang3.version>3.20.0</commons-lang3.version>
     <commons-io.version>2.19.0</commons-io.version>
+    <commons-compress.version>1.28.0</commons-compress.version>
     <guava.version>33.6.0-jre</guava.version>
     <mybatis-spring-boot.version>4.1.0</mybatis-spring-boot.version>
     <mybatis-generator.version>2.0.0</mybatis-generator.version>
@@ -47,7 +48,8 @@
     <flyway.version>13.1.0</flyway.version>
     <jsoup.version>1.23.1</jsoup.version>
     <bliki.version>3.1.0</bliki.version>
-    <commonmark.version>0.24.0</commonmark.version>
+    <commonmark.version>0.29.0</commonmark.version>
+    <autolink.version>0.11.0</autolink.version>
 
     <testcontainers.version>2.0.5</testcontainers.version>
   </properties>
@@ -79,6 +81,7 @@
         <artifactId>zfgbb-migrator</artifactId>
         <version>${project.version}</version>
       </dependency>
+
 
       <dependency>
         <groupId>org.mybatis.spring.boot</groupId>
@@ -153,6 +156,18 @@
       </dependency>
 
       <dependency>
+        <groupId>org.nibor.autolink</groupId>
+        <artifactId>autolink</artifactId>
+        <version>${autolink.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>${commons-compress.version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
         <version>${commons-io.version}</version>
@@ -207,5 +222,21 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+    <profile>
+      <id>fast-tests</id>
+      <properties>
+        <excludedGroups>integration</excludedGroups>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>integration-tests</id>
+      <properties>
+        <groups>integration</groups>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

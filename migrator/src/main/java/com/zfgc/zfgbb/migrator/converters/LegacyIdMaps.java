@@ -7,9 +7,10 @@ public record LegacyIdMaps(
 		Map<Integer, Integer> messageMap,
 		Map<Integer, Integer> boardMap,
 		Map<Integer, Integer> userMap,
-		Map<Integer, Integer> attachmentMap) {
+		Map<Integer, Integer> attachmentMap,
+		Map<Integer, Integer> gameToProjectMap) {
 
 	public static LegacyIdMaps empty() {
-		return new LegacyIdMaps(Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
+		return new LegacyIdMaps(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
 	}
 }

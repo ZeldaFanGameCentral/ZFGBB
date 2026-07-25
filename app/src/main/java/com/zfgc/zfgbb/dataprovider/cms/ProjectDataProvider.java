@@ -1,29 +1,26 @@
 package com.zfgc.zfgbb.dataprovider.cms;
 
+import static com.zfgc.zfgbb.dataprovider.cms.CatalogDataProvider.escapeLike;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dbo.ContentCollectionDboExample;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDbo;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDboExample;
 import com.zfgc.zfgbb.dbo.ContentEntityDbo;
+import com.zfgc.zfgbb.dbo.ProjectDownloadDbo;
 import com.zfgc.zfgbb.dbo.ProjectViewDbo;
 import com.zfgc.zfgbb.dbo.ProjectViewDboExample;
-import com.zfgc.zfgbb.dbo.ProjectDownloadDbo;
 import com.zfgc.zfgbb.dbo.ProjectDownloadDboExample;
 import com.zfgc.zfgbb.dbo.ProjectNewsDbo;
 import com.zfgc.zfgbb.dbo.ProjectNewsDboExample;
@@ -35,7 +32,6 @@ import com.zfgc.zfgbb.dbo.TagDboExample;
 import com.zfgc.zfgbb.dbo.TeamDbo;
 import com.zfgc.zfgbb.dbo.TeamMemberDbo;
 import com.zfgc.zfgbb.dbo.TeamMemberDboExample;
-import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.ContentCollectionDboMapper;
@@ -50,94 +46,66 @@ import com.zfgc.zfgbb.mappers.TagDboMapper;
 import com.zfgc.zfgbb.mappers.TeamDboMapper;
 import com.zfgc.zfgbb.mappers.TeamMemberDboMapper;
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.ThreadDboMapper;
 import com.zfgc.zfgbb.mappers.custom.CmsFacetMapper;
 import com.zfgc.zfgbb.mapstruct.cms.ProjectMap;
-import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Project;
 import com.zfgc.zfgbb.model.cms.ProjectNews;
 import com.zfgc.zfgbb.model.cms.TeamInfo;
 import com.zfgc.zfgbb.model.cms.TeamMember;
-import com.zfgc.zfgbb.model.users.Permission;
-import com.zfgc.zfgbb.services.core.GuestPermissionService;
+import com.zfgc.zfgbb.dataprovider.users.GuestPermissionDataProvider;
 import com.zfgc.zfgbb.dbo.ContentCollectionDbo;
+import lombok.RequiredArgsConstructor;
 
 @Repository
-@UnfilteredBoardRead("Resolves thread names for CMS project-news entries, restricting the ThreadDboMapper lookup to guest-visible boards so hidden-board titles are not exposed")
-public class ProjectDataProvider extends CatalogDataProvider {
+@UnfilteredBoardRead("restricted to guest-visible boards")
+@RequiredArgsConstructor
+public class ProjectDataProvider {
 
-	@Autowired
-	private ProjectViewDboMapper projectViewMapper;
+	private final CatalogDataProvider catalogDataProvider;
 
-	@Autowired
-	private ContentEntityDboMapper contentEntityMapper;
+	private final ProjectViewDboMapper projectViewMapper;
 
-	@Autowired
-	private ProjectScreenshotDboMapper screenshotMapper;
+	private final ContentEntityDboMapper contentEntityMapper;
 
-	@Autowired
-	private ProjectDownloadDboMapper downloadMapper;
+	private final ProjectScreenshotDboMapper screenshotMapper;
 
-	@Autowired
-	private TagDboMapper tagMapper;
+	private final ProjectDownloadDboMapper downloadMapper;
 
-	@Autowired
-	private ProjectTagDboMapper projectTagMapper;
+	private final TagDboMapper tagMapper;
 
-	@Autowired
-	private TeamDboMapper teamMapper;
+	private final ProjectTagDboMapper projectTagMapper;
 
-	@Autowired
-	private TeamMemberDboMapper teamMemberMapper;
+	private final TeamDboMapper teamMapper;
 
-	@Autowired
-	private ProjectNewsDboMapper newsMapper;
+	private final TeamMemberDboMapper teamMemberMapper;
 
-	@Autowired
-	private ThreadDboMapper threadMapper;
+	private final ProjectNewsDboMapper newsMapper;
 
-	@Autowired
-	private ContentCollectionDboMapper collectionMapper;
+	private final ThreadDboMapper threadMapper;
 
-	@Autowired
-	private ContentCollectionItemDboMapper collectionItemMapper;
+	private final ContentCollectionDboMapper collectionMapper;
 
-	@Autowired
-	private WikiDataProvider wikiDataProvider;
+	private final ContentCollectionItemDboMapper collectionItemMapper;
 
-	@Autowired
-	private ProjectMap projectMap;
+	private final WikiDataProvider wikiDataProvider;
 
-	@Autowired
-	private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final ProjectMap projectMap;
 
-	@Autowired
-	private GuestPermissionService guestPermissionService;
+	private final GuestPermissionDataProvider guestPermissionDataProvider;
 
-	@Autowired
-	private CmsFacetMapper cmsFacetMapper;
+	private final CmsFacetMapper cmsFacetMapper;
 
 	public List<Integer> guestVisibleBoardIds() {
-		if (guestPermissionService != null) {
-			return guestPermissionService.guestVisibleBoardIds();
-		}
-		List<Integer> guestPerms = User.guest().getPermissions().stream()
-				.map(Permission::getPermissionId).toList();
-		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
-		ex.createCriteria().andPermissionIdIn(guestPerms);
-		return boardPermissionViewDboMapper.selectByExample(ex).stream()
-				.map(BoardPermissionViewDbo::getBoardId).distinct().collect(Collectors.toList());
+		return guestPermissionDataProvider.guestVisibleBoardIds();
 	}
 
-	private String escapeLike(String input) {
-		if (input == null) {
-			return null;
-		}
-		return input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+	private List<Integer> contentEntityIdsWithDownloads() {
+		return downloadMapper.selectByExample(new ProjectDownloadDboExample()).stream()
+				.map(ProjectDownloadDbo::getContentEntityId)
+				.distinct()
+				.toList();
 	}
 
 	public PagedResult<Project> getProjects(String search, String status, String language, String author,
@@ -152,15 +120,30 @@ public class ProjectDataProvider extends CatalogDataProvider {
 			criteria.andAuthorNameLike("%" + escapeLike(author.trim()) + "%");
 		}
 		if (status != null && !status.isBlank()) {
-			criteria.andStatusEqualTo(status.trim());
+			List<String> includedStatuses = Stream.of(status.split(",")).map(String::trim)
+					.filter(value -> !value.isEmpty() && !value.startsWith("-")).toList();
+			List<String> excludedStatuses = Stream.of(status.split(",")).map(String::trim)
+					.filter(value -> value.startsWith("-") && value.length() > 1)
+					.map(value -> value.substring(1)).toList();
+			if (!includedStatuses.isEmpty()) {
+				criteria.andStatusIn(includedStatuses);
+			}
+			if (!excludedStatuses.isEmpty()) {
+				criteria.andStatusNotIn(excludedStatuses);
+			}
 		}
 		if (language != null && !language.isBlank()) {
 			criteria.andLanguageEqualTo(language.trim());
 		}
-		if (Boolean.TRUE.equals(hasDownload)) {
-			criteria.andDownloadCountGreaterThan(0);
-		} else if (Boolean.FALSE.equals(hasDownload)) {
-			criteria.andDownloadCountLessThanOrEqualTo(0);
+		if (hasDownload != null) {
+			List<Integer> entityIdsWithDownloads = contentEntityIdsWithDownloads();
+			if (Boolean.TRUE.equals(hasDownload)) {
+				criteria.andContentEntityIdIn(entityIdsWithDownloads.isEmpty()
+						? List.of(Integer.MIN_VALUE)
+						: entityIdsWithDownloads);
+			} else if (!entityIdsWithDownloads.isEmpty()) {
+				criteria.andContentEntityIdNotIn(entityIdsWithDownloads);
+			}
 		}
 
 		if ("newest".equals(sort)) {
@@ -191,7 +174,8 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		projectExample.setOffset((int) zeroBasedOffset);
 
 		List<ProjectViewDbo> dbos = projectViewMapper.selectByExampleWithLimits(projectExample);
-		Map<Integer, String> liveNames = displayNames(dbos.stream().map(ProjectViewDbo::getCreatedUserId));
+		Map<Integer, String> liveNames = catalogDataProvider.displayNames(
+				dbos.stream().map(ProjectViewDbo::getCreatedUserId));
 
 		List<Project> items = dbos.stream().map(dbo -> {
 			Project project = projectMap.toModel(dbo);
@@ -223,7 +207,8 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		ProjectViewDbo dbo = projectViewMapper.selectByExample(ex).stream().findFirst()
 				.orElseThrow(ZfgcNotFoundException::new);
 		Project project = projectMap.toModel(dbo);
-		String projectAuthor = displayNames(Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
+		String projectAuthor = catalogDataProvider.displayNames(
+				Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
 		project.setAuthor(projectAuthor != null ? projectAuthor : dbo.getAuthorName());
 
 		ProjectScreenshotDboExample screenshotEx = new ProjectScreenshotDboExample();
@@ -236,7 +221,7 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		downloadEx.setOrderByClause("ordinal asc");
 		project.setDownloads(downloadMapper.selectByExample(downloadEx).stream().map(projectMap::toModel).collect(Collectors.toList()));
 		project.getDownloads().forEach(download ->
-				download.setFilename(contentFilename(download.getContentResourceId())));
+				download.setFilename(catalogDataProvider.contentFilename(download.getContentResourceId())));
 
 		fillTags(List.of(project));
 		project.setTeam(loadTeam(dbo.getTeamId()));
@@ -253,52 +238,37 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		ex.createCriteria().andSlugEqualTo(slug);
 		return projectViewMapper.selectByExample(ex).stream().findFirst().map(dbo -> {
 			Project project = projectMap.toModel(dbo);
-			String projectAuthor = displayNames(Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
+			String projectAuthor = catalogDataProvider.displayNames(
+					Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
 			project.setAuthor(projectAuthor != null ? projectAuthor : dbo.getAuthorName());
 			return project;
 		});
 	}
 
-	public Project getFeaturedCollectionProject() {
-		ContentCollectionDboExample colEx = new ContentCollectionDboExample();
-		colEx.createCriteria().andCodeEqualTo("potm");
-		ContentCollectionDbo collection =
-				collectionMapper.selectByExample(colEx).stream().findFirst().orElse(null);
-		if (collection == null) {
-			return null;
-		}
-		ContentCollectionItemDboExample itemEx = new ContentCollectionItemDboExample();
-		itemEx.createCriteria().andContentCollectionIdEqualTo(collection.getContentCollectionId());
-		itemEx.setOrderByClause("ordinal asc");
-		Integer projectId = collectionItemMapper.selectByExample(itemEx).stream()
-				.map(ContentCollectionItemDbo::getContentEntityId)
-				.filter(Objects::nonNull)
-				.findFirst().orElse(null);
-		if (projectId == null) {
-			return null;
-		}
-		ContentEntityDbo dbo = contentEntityMapper.selectByPrimaryKey(projectId);
-		return dbo == null ? null : getProject(dbo.getSlug());
+	public Optional<Project> findFeaturedCollectionProject() {
+		return featuredCollectionProjectSlug().map(this::getProject);
 	}
 
-	public Project getFeaturedCollectionProjectCard() {
-		ContentCollectionDboExample colEx = new ContentCollectionDboExample();
-		colEx.createCriteria().andCodeEqualTo("potm");
-		ContentCollectionDbo collection =
-				collectionMapper.selectByExample(colEx).stream().findFirst().orElse(null);
-		if (collection == null)
-			return null;
-		ContentCollectionItemDboExample itemEx = new ContentCollectionItemDboExample();
-		itemEx.createCriteria().andContentCollectionIdEqualTo(collection.getContentCollectionId());
-		itemEx.setOrderByClause("ordinal asc");
-		Integer projectId = collectionItemMapper.selectByExample(itemEx).stream()
-				.map(ContentCollectionItemDbo::getContentEntityId)
-				.filter(Objects::nonNull)
-				.findFirst().orElse(null);
-		if (projectId == null)
-			return null;
-		ContentEntityDbo dbo = contentEntityMapper.selectByPrimaryKey(projectId);
-		return dbo == null ? null : getProjectCardData(dbo.getSlug()).orElse(null);
+	public Optional<Project> findFeaturedCollectionProjectCard() {
+		return featuredCollectionProjectSlug().flatMap(this::getProjectCardData);
+	}
+
+	private Optional<String> featuredCollectionProjectSlug() {
+		ContentCollectionDboExample featuredCollection = new ContentCollectionDboExample();
+		featuredCollection.createCriteria().andCodeEqualTo("potm");
+		return collectionMapper.selectByExample(featuredCollection).stream().findFirst()
+				.flatMap(collection -> {
+					ContentCollectionItemDboExample itemsInOrder = new ContentCollectionItemDboExample();
+					itemsInOrder.createCriteria()
+							.andContentCollectionIdEqualTo(collection.getContentCollectionId());
+					itemsInOrder.setOrderByClause("ordinal asc");
+					return collectionItemMapper.selectByExample(itemsInOrder).stream()
+							.map(ContentCollectionItemDbo::getContentEntityId)
+							.filter(Objects::nonNull)
+							.findFirst();
+				})
+				.map(contentEntityMapper::selectByPrimaryKey)
+				.map(ContentEntityDbo::getSlug);
 	}
 
 	public List<ProjectNews> getProjectNews(Integer projectId) {
@@ -375,7 +345,8 @@ public class ProjectDataProvider extends CatalogDataProvider {
 		TeamMemberDboExample ex = new TeamMemberDboExample();
 		ex.createCriteria().andTeamIdEqualTo(teamId);
 		List<TeamMemberDbo> members = teamMemberMapper.selectByExample(ex);
-		Map<Integer, String> names = displayNames(members.stream().map(TeamMemberDbo::getUserId));
+		Map<Integer, String> names = catalogDataProvider.displayNames(
+				members.stream().map(TeamMemberDbo::getUserId));
 		members.forEach(member -> {
 			TeamMember entry = new TeamMember();
 			entry.setUserId(member.getUserId());

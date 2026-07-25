@@ -25,6 +25,7 @@ public class MessageHistory extends BaseModel {
 	@Builder.Default
 	private Boolean currentFlag = true;
 	private Integer ipAddressId;
+	private String contentFormat;
 	
 	@Override
 	public Integer getId() {

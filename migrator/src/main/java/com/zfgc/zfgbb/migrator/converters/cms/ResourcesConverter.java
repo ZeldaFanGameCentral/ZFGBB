@@ -12,14 +12,13 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.ContentEntityDbo;
 import com.zfgc.zfgbb.dbo.ContentEntityDboExample;
 import com.zfgc.zfgbb.dbo.ResourceDbo;
-import com.zfgc.zfgbb.dbo.ResourceDboExample;
+import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
 import com.zfgc.zfgbb.mappers.ResourceDboMapper;
 import com.zfgc.zfgbb.mappers.UserDboMapper;
@@ -38,37 +37,23 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFResourceMainDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFResourceMainDbMapper;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfDownloadQueryMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class ResourcesConverter extends AbstractConverter<Void> {
 
-	@Autowired
-	private CiResourceDbMapper ciResourceMapper;
+	private static final Logger logger = LoggerFactory.getLogger(ResourcesConverter.class);
 
-	@Autowired
-	private SMFResourceMainDbMapper smfResourceMapper;
-
-	@Autowired
-	private SmfDownloadQueryMapper downloadQuery;
-
-	@Autowired
-	private ResourceDboMapper resourceMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.ContentEntityDboMapper contentEntityMapper;
-
-	@Autowired
-	private ContentResourceDboMapper contentMapper;
-
-	@Autowired
-	private UserDboMapper userMapper;
-
-	@Autowired
-	private WikiPageStore wikiPages;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	private final Logger logger = LoggerFactory.getLogger(ResourcesConverter.class);
+	private final CiResourceDbMapper ciResourceMapper;
+	private final SMFResourceMainDbMapper smfResourceMapper;
+	private final SmfDownloadQueryMapper downloadQuery;
+	private final ResourceDboMapper resourceMapper;
+	private final ContentEntityDboMapper contentEntityMapper;
+	private final ContentResourceDboMapper contentMapper;
+	private final UserDboMapper userMapper;
+	private final WikiPageStore wikiPages;
+	private final MigratorIdMapService idMap;
 
 	private CmsAssetStore assets;
 	private Path filesRoot;
@@ -286,7 +271,8 @@ public class ResourcesConverter extends AbstractConverter<Void> {
 	private void ensureEntityPage(ContentEntityDbo entity) {
 		Integer pageId = entity.getWikiPageId();
 		if (pageId == null) {
-			pageId = wikiPages.ensurePage("Resource", entity.getTitle(), entity.getSlug());
+			pageId = wikiPages.ensurePage("Resource", entity.getTitle(),
+					CmsSupport.wikiSlug("Resource", entity.getSlug()));
 			entity.setWikiPageId(pageId);
 			contentEntityMapper.updateByPrimaryKey(entity);
 		}
@@ -319,6 +305,9 @@ public class ResourcesConverter extends AbstractConverter<Void> {
 			usedSlugs.add(existing.getSlug());
 			entity.setSlug(existing.getSlug());
 			entity.setWikiPageId(existing.getWikiPageId());
+			if (entity.getThreadId() == null) {
+				entity.setThreadId(existing.getThreadId());
+			}
 			if (JobContextHolder.isForce() || !Objects.equals(existing.getMigrationHash(), entity.getMigrationHash())) {
 				contentEntityMapper.updateByPrimaryKey(entity);
 				resourceMapper.updateByPrimaryKey(ext);

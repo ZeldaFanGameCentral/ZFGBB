@@ -1,5 +1,8 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
+import java.util.List;
+import java.util.Map;
+
 public record SmfConnectionParams(
 		String jdbcUrl,
 		String username,
@@ -16,9 +19,18 @@ public record SmfConnectionParams(
 		boolean createMemberWikiPages,
 		Integer discussionBoardId,
 		Integer resourcesBoardId,
-		java.util.Map<String, Integer> talkBoardIds,
-		java.util.Map<Integer, java.util.List<String>> groupPermissionMap,
-		java.util.Map<String, String> wikiNamespaceCaseModes,
-		java.util.Map<String, String> wikiNamespaceAliases,
-		java.util.Map<Integer, String> wikiNamespaceIds) {
+		Map<String, Integer> talkBoardIds,
+		Map<Integer, List<String>> groupPermissionMap,
+		Map<String, String> wikiNamespaceCaseModes,
+		Map<String, String> wikiNamespaceAliases,
+		Map<Integer, String> wikiNamespaceIds,
+		String wikiLegacyHost) {
+
+	public SmfConnectionParams withForce(boolean force) {
+		return new SmfConnectionParams(
+				jdbcUrl, username, password, smfTablePrefix, smfLegacyHost, appBaseUrl,
+				attachmentsSourcePath, attachmentsTargetPath, avatarsSourcePath, cmsFilesSourcePath,
+				wikiImagesSourcePath, force, createMemberWikiPages, discussionBoardId, resourcesBoardId,
+				talkBoardIds, groupPermissionMap, wikiNamespaceCaseModes, wikiNamespaceAliases, wikiNamespaceIds, wikiLegacyHost);
+	}
 }

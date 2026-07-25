@@ -1,0 +1,10 @@
+.agents
+.claude
+.codex
+.env*
+.git
+.github
+.jj
+.vscode
+**/target
+docs

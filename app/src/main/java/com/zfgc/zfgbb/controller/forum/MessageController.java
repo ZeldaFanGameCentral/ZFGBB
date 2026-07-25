@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.CacheControl;
@@ -26,44 +25,54 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.model.forum.Message;
-import com.zfgc.zfgbb.model.forum.Thread;
-import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.model.forum.MessageDeletionResponse;
+import com.zfgc.zfgbb.model.forum.MessageResponse;
+import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
-import java.util.Objects;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 @Slf4j
 @RestController
 @RequestMapping("/message")
+@RequiredArgsConstructor
 public class MessageController extends BaseController {
-	
-	@Autowired
-	private ForumService forumService;
 
-	@Autowired
-	private ForumModerationOrchestrator forumModerationOrchestrator;
+	private final ForumService forumService;
+
+	private final ForumModerationOrchestrator forumModerationOrchestrator;
 	
 	@GetMapping("/template")
 	@AllowAnonymous
-	public ResponseEntity<Message> getMessageTemplate(@RequestParam("threadId") Integer threadId) {
+	public ResponseEntity<MessageResponse> getMessageTemplate(@RequestParam("threadId") Integer threadId) {
      log.info("Executing getMessageTemplate");
-		Message template = forumService.getMessageTemplate(null, threadId, null, super.zfgcUser());
-		return ResponseEntity.ok(template);
+		Message template = forumService.getMessageTemplate(threadId, super.zfgcUser());
+		return ResponseEntity.ok(new MessageResponse(template));
 	}
 	
 	@PostMapping("/{threadId}")
 	@PreAuthorize("hasPermission(#threadId, 'THREAD', 'thread.reply')")
-	public ResponseEntity<Message> addMessageToThread(@PathVariable Integer threadId, @Valid @RequestBody MessagePostRequest request) {
+	public ResponseEntity<MessageResponse> addMessageToThread(@PathVariable Integer threadId, @Valid @RequestBody MessagePostRequest request) {
 		log.info("Executing addMessageToThread with threadId={}", threadId);
 		log.debug("Executing addMessageToThread with request={}", request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(forumService.saveMessage(threadId, request.body(), super.zfgcUser()));
+		return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse(forumService.saveMessage(threadId,
+				request.body(), request.contentFormat(), super.zfgcUser())));
 	}
 
-	public record MessagePostRequest(@NotBlank @Size(max=10000) String body) {}
+	public record MessagePostRequest(@NotBlank @Size(max=10000) String body, String contentFormat) {}
+
+	@PutMapping("/{messageId}")
+	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.edit')")
+	public ResponseEntity<MessageResponse> editMessage(@PathVariable Integer messageId,
+			@Valid @RequestBody MessagePostRequest request) {
+		return ResponseEntity.ok(new MessageResponse(forumService.editMessage(messageId, request.body(),
+				request.contentFormat(), super.zfgcUser())));
+	}
 
 	@GetMapping("/{messageId}/allowed-actions")
 	@AllowAnonymous
-	public ResponseEntity<java.util.Set<String>> getAllowedActions(@PathVariable Integer messageId) {
+	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable Integer messageId) {
      log.info("Executing getAllowedActions with messageId={}", messageId);
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
 				.body(forumService.messageAllowedActions(messageId, super.zfgcUser()));
@@ -71,28 +80,25 @@ public class MessageController extends BaseController {
 
 	@DeleteMapping("/{messageId}")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.delete')")
-	public ResponseEntity<ForumService.MessageDeletionResponse> deleteMessage(@PathVariable Integer messageId) {
+	public ResponseEntity<MessageDeletionResponse> deleteMessage(@PathVariable Integer messageId) {
      log.info("Executing deleteMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.deleteMessage(messageId, super.zfgcUser()));
 	}
 
 	@PutMapping("/{messageId}/restore")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.restore')")
-	public ResponseEntity<ForumService.RestoreResponse> restoreMessage(@PathVariable Integer messageId) {
+	public ResponseEntity<RestoreResponse> restoreMessage(@PathVariable Integer messageId) {
      log.info("Executing restoreMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.restoreMessage(messageId, super.zfgcUser()));
 	}
 
 	@GetMapping("/user/{userId}")
 	@AllowAnonymous
-	public List<Message> getMessagesByUser(@PathVariable Integer userId,
+	public List<MessageResponse> getMessagesByUser(@PathVariable Integer userId,
 			@RequestParam(name = "page", required = false) Integer page,
 			@RequestParam(name = "pageSize", required = false) Integer pageSize) {
-		List<Integer> permissionIds = super.zfgcUser().getPermissions().stream()
-				.map(Permission::getId)
-				.filter(Objects::nonNull)
-				.toList();
-		return forumService.getMessagesByUserId(userId, page, pageSize, permissionIds);
+		return forumService.getMessagesByUserId(userId, page, pageSize, super.zfgcUser().permissionIds())
+				.stream().map(MessageResponse::new).toList();
 	}
 	
 }

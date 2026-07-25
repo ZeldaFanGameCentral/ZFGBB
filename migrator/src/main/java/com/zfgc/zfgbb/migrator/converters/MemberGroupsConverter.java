@@ -1,12 +1,13 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -23,37 +24,29 @@ import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
+import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembergroupDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDb;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class MemberGroupsConverter extends AbstractConverter<Void> {
+
+	private final SmfResilientReadMapper resilientReads;
+	private final PermissionGroupDboMapper groupMapper;
+	private final UserPermissionGroupAssocDboMapper assocMapper;
+	private final PermissionGroupAssocDboMapper groupPermissionMapper;
+	private final MigratorPermissionService permissions;
+	private final MigratorIdMapService idMap;
+	private final Map<Integer, Set<String>> groupCodes = new HashMap<>();
 
 	@Override
 	public JobType getType() {
 		return JobType.MEMBER_GROUPS;
 	}
-
-	@Autowired
-	private SmfResilientReadMapper resilientReads;
-
-	@Autowired
-	private PermissionGroupDboMapper groupMapper;
-
-	@Autowired
-	private UserPermissionGroupAssocDboMapper assocMapper;
-
-	@Autowired
-	private PermissionGroupAssocDboMapper groupPermissionMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService permissions;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	private final java.util.Map<Integer, Set<String>> groupCodes = new java.util.HashMap<>();
 
 	@Override
 	@Transactional
@@ -130,7 +123,7 @@ public class MemberGroupsConverter extends AbstractConverter<Void> {
 	}
 
 	private Set<String> resolveGroupCodes(Integer legacyGroupId) {
-		java.util.List<String> override = JobContextHolder.getGroupPermissionCodes(legacyGroupId);
+		List<String> override = JobContextHolder.getGroupPermissionCodes(legacyGroupId);
 		if (override != null) {
 			return new LinkedHashSet<>(override);
 		}
@@ -165,7 +158,7 @@ public class MemberGroupsConverter extends AbstractConverter<Void> {
 				continue;
 			}
 			Set<String> userCodes = new LinkedHashSet<>();
-			userCodes.add(com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService.CODE_USER);
+			userCodes.add(MigratorPermissionService.CODE_USER);
 			for (Integer legacyGroupId : memberGroupIds(member)) {
 				Integer groupId = idMap.lookupOrNull(LegacyEntityType.PERMISSION_GROUP, legacyGroupId);
 				if (groupId == null) {

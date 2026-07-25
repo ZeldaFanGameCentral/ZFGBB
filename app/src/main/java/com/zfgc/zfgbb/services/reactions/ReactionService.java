@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,10 +23,11 @@ import com.zfgc.zfgbb.model.reactions.ContentReactionSummary;
 import com.zfgc.zfgbb.model.reactions.ReactionRequest;
 import com.zfgc.zfgbb.model.reactions.ReactionTally;
 import com.zfgc.zfgbb.model.reactions.ReactionType;
-import com.zfgc.zfgbb.model.users.Permission;
+import lombok.RequiredArgsConstructor;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class ReactionService {
 
 	private static final Set<String> ALLOWED_TYPES = Set.of("MESSAGE", "PROJECT", "RESOURCE", "WIKI_PAGE");
@@ -36,11 +36,9 @@ public class ReactionService {
 
 	private static final int MAX_SUMMARY_IDS = 200;
 
-	@Autowired
-	private ReactionDataProvider reactionDataProvider;
+	private final ReactionDataProvider reactionDataProvider;
 
-	@Autowired
-	private AuthorityTiers authorityTiers;
+	private final AuthorityTiers authorityTiers;
 
 	public List<ReactionType> getReactionTypes() {
 		return reactionDataProvider.getReactionTypes();
@@ -132,6 +130,7 @@ public class ReactionService {
 		return summary;
 	}
 
+	@Transactional
 	public ContentReactionSummary toggle(ReactionRequest request, User user) {
 		Integer userId = user.getUserId();
 		requireSignedIn(userId);
@@ -166,6 +165,7 @@ public class ReactionService {
 		return getSummary(request.getReactableType(), request.getReactableId(), user);
 	}
 
+	@Transactional
 	public ContentReactionSummary remove(String reactableType, Integer reactableId, User user) {
 		Integer userId = user.getUserId();
 		requireSignedIn(userId);
@@ -188,13 +188,11 @@ public class ReactionService {
 
 	private Set<Integer> permittedMessageIds(List<Integer> messageIds, User user) {
 		Map<Integer, Integer> boardByMessage = reactionDataProvider.getBoardIdsForMessages(messageIds);
-		Set<Integer> userPerms = user.getPermissions().stream().map(Permission::getPermissionId)
-				.collect(Collectors.toSet());
 		Map<Integer, Boolean> boardAllowed = new HashMap<>();
 		Set<Integer> permitted = new HashSet<>();
 		for (Map.Entry<Integer, Integer> entry : boardByMessage.entrySet()) {
-			boolean allowed = boardAllowed.computeIfAbsent(entry.getValue(), boardId -> reactionDataProvider
-					.getBoardPermissionIds(boardId).stream().anyMatch(userPerms::contains));
+			boolean allowed = boardAllowed.computeIfAbsent(entry.getValue(),
+					boardId -> user.hasAnyPermissionId(reactionDataProvider.getBoardPermissionIds(boardId)));
 			if (allowed) {
 				permitted.add(entry.getKey());
 			}

@@ -3,46 +3,46 @@ package com.zfgc.zfgbb.migrator.jobs;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.dbo.MigratorIdMapDbo;
 import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
 import com.zfgc.zfgbb.mappers.MigratorIdMapDboMapper;
 import com.zfgc.zfgbb.mappers.MigratorIdMapMapper;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class MigratorIdMapService {
 
-	@Autowired
-	private MigratorIdMapDboMapper migratorIdMapDboMapper;
+	private final MigratorIdMapDboMapper migratorIdMapDboMapper;
 
-	@Autowired
-	private MigratorIdMapMapper migratorIdMapMapper;
+	private final MigratorIdMapMapper migratorIdMapMapper;
 
 	public void record(LegacyEntityType type, Integer legacyId, Integer zfgbbId) {
 		migratorIdMapMapper.upsert(type.name(), legacyId, zfgbbId);
 	}
 
 	public Integer lookup(LegacyEntityType type, Integer legacyId) {
-		Integer result = lookupOrNull(type, legacyId);
-		if (result == null) {
-			throw new IllegalStateException(
-					"No id mapping for " + type + " legacy_id=" + legacyId
-							+ " — converter ordering may be wrong, or the prior converter failed");
-		}
-		return result;
+		return find(type, legacyId).orElseThrow(() -> new IllegalStateException(
+				"No id mapping for " + type + " legacy_id=" + legacyId
+						+ " — converter ordering may be wrong, or the prior converter failed"));
 	}
 
 	public Integer lookupOrNull(LegacyEntityType type, Integer legacyId) {
-		if (legacyId == null) {
-			return null;
-		}
+		return find(type, legacyId).orElse(null);
+	}
+
+	public Optional<Integer> find(LegacyEntityType type, Integer legacyId) {
+		if (legacyId == null)
+			return Optional.empty();
 		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
 		example.createCriteria().andEntityTypeEqualTo(type.name()).andLegacyIdEqualTo(legacyId);
-		List<MigratorIdMapDbo> rows = migratorIdMapDboMapper.selectByExample(example);
-		return rows.isEmpty() ? null : rows.get(0).getZfgbbId();
+		return migratorIdMapDboMapper.selectByExample(example).stream()
+				.findFirst()
+				.map(MigratorIdMapDbo::getZfgbbId);
 	}
 
 	public Map<Integer, Integer> getAllForType(LegacyEntityType type) {

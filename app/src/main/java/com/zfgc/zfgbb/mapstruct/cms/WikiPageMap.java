@@ -21,5 +21,6 @@ public interface WikiPageMap {
 	@Mapping(target="headings", ignore=true)
 	@Mapping(target="toc", ignore=true)
 	@Mapping(target="entityUrl", ignore=true)
+	@Mapping(target="editable", ignore=true)
 	WikiPage toModel(WikiPageDbo dbo);
 }

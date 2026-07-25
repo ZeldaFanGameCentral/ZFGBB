@@ -17,6 +17,8 @@ public class DboOverridesPlugin extends PluginAdapter {
 	private static final FullyQualifiedJavaType INTEGER = new FullyQualifiedJavaType("java.lang.Integer");
 	private static final FullyQualifiedJavaType OFFSET_DATE_TIME = new FullyQualifiedJavaType(
 			"java.time.OffsetDateTime");
+	private static final FullyQualifiedJavaType ABSTRACT_DBO = new FullyQualifiedJavaType(
+			"com.zfgc.zfgbb.dbo.AbstractDbo");
 
 	@Override
 	public boolean validate(List<String> warnings) {
@@ -25,6 +27,7 @@ public class DboOverridesPlugin extends PluginAdapter {
 
 	@Override
 	public boolean modelBaseRecordClassGenerated(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+		topLevelClass.setSuperClass(ABSTRACT_DBO);
 		topLevelClass.addMethod(buildPkIdOverride(introspectedTable, topLevelClass));
 		topLevelClass.addImportedType(OFFSET_DATE_TIME);
 		topLevelClass.addMethod(

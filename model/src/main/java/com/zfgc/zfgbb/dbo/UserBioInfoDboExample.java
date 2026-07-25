@@ -7,62 +7,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UserBioInfoDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.66773016-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667760479-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667790808-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.66771396-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public UserBioInfoDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.66774206-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667751729-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667768319-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667777208-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667800728-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667810667-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667819207-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667827547-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -71,36 +73,40 @@ public class UserBioInfoDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667835427-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667868466-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.667885595-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -243,12 +249,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andCustomTitleLike(String value) {
-            addCriterion("custom_title like", value, "customTitle");
+            addCriterion("custom_title ilike", value, "customTitle");
             return (Criteria) this;
         }
 
         public Criteria andCustomTitleNotLike(String value) {
-            addCriterion("custom_title not like", value, "customTitle");
+            addCriterion("custom_title not ilike", value, "customTitle");
             return (Criteria) this;
         }
 
@@ -313,12 +319,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andPersonalTextLike(String value) {
-            addCriterion("personal_text like", value, "personalText");
+            addCriterion("personal_text ilike", value, "personalText");
             return (Criteria) this;
         }
 
         public Criteria andPersonalTextNotLike(String value) {
-            addCriterion("personal_text not like", value, "personalText");
+            addCriterion("personal_text not ilike", value, "personalText");
             return (Criteria) this;
         }
 
@@ -503,12 +509,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andSignatureLike(String value) {
-            addCriterion("signature like", value, "signature");
+            addCriterion("signature ilike", value, "signature");
             return (Criteria) this;
         }
 
         public Criteria andSignatureNotLike(String value) {
-            addCriterion("signature not like", value, "signature");
+            addCriterion("signature not ilike", value, "signature");
             return (Criteria) this;
         }
 
@@ -573,12 +579,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andMigrationHashLike(String value) {
-            addCriterion("migration_hash like", value, "migrationHash");
+            addCriterion("migration_hash ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
         public Criteria andMigrationHashNotLike(String value) {
-            addCriterion("migration_hash not like", value, "migrationHash");
+            addCriterion("migration_hash not ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
@@ -823,12 +829,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andRealNameLike(String value) {
-            addCriterion("real_name like", value, "realName");
+            addCriterion("real_name ilike", value, "realName");
             return (Criteria) this;
         }
 
         public Criteria andRealNameNotLike(String value) {
-            addCriterion("real_name not like", value, "realName");
+            addCriterion("real_name not ilike", value, "realName");
             return (Criteria) this;
         }
 
@@ -953,12 +959,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andWebsiteTitleLike(String value) {
-            addCriterion("website_title like", value, "websiteTitle");
+            addCriterion("website_title ilike", value, "websiteTitle");
             return (Criteria) this;
         }
 
         public Criteria andWebsiteTitleNotLike(String value) {
-            addCriterion("website_title not like", value, "websiteTitle");
+            addCriterion("website_title not ilike", value, "websiteTitle");
             return (Criteria) this;
         }
 
@@ -1023,12 +1029,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andWebsiteUrlLike(String value) {
-            addCriterion("website_url like", value, "websiteUrl");
+            addCriterion("website_url ilike", value, "websiteUrl");
             return (Criteria) this;
         }
 
         public Criteria andWebsiteUrlNotLike(String value) {
-            addCriterion("website_url not like", value, "websiteUrl");
+            addCriterion("website_url not ilike", value, "websiteUrl");
             return (Criteria) this;
         }
 
@@ -1093,12 +1099,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andLocationLike(String value) {
-            addCriterion("location like", value, "location");
+            addCriterion("location ilike", value, "location");
             return (Criteria) this;
         }
 
         public Criteria andLocationNotLike(String value) {
-            addCriterion("location not like", value, "location");
+            addCriterion("location not ilike", value, "location");
             return (Criteria) this;
         }
 
@@ -1163,12 +1169,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andTimeFormatLike(String value) {
-            addCriterion("time_format like", value, "timeFormat");
+            addCriterion("time_format ilike", value, "timeFormat");
             return (Criteria) this;
         }
 
         public Criteria andTimeFormatNotLike(String value) {
-            addCriterion("time_format not like", value, "timeFormat");
+            addCriterion("time_format not ilike", value, "timeFormat");
             return (Criteria) this;
         }
 
@@ -1413,12 +1419,12 @@ public class UserBioInfoDboExample {
         }
 
         public Criteria andPreferredTimezoneLike(String value) {
-            addCriterion("preferred_timezone like", value, "preferredTimezone");
+            addCriterion("preferred_timezone ilike", value, "preferredTimezone");
             return (Criteria) this;
         }
 
         public Criteria andPreferredTimezoneNotLike(String value) {
-            addCriterion("preferred_timezone not like", value, "preferredTimezone");
+            addCriterion("preferred_timezone not ilike", value, "preferredTimezone");
             return (Criteria) this;
         }
 
@@ -1443,14 +1449,14 @@ public class UserBioInfoDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.668651821-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.66868238-04:00", comments="Source Table: zfgbb.user_bio_info")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.user_bio_info")
     public static class Criterion {
         private String condition;
 

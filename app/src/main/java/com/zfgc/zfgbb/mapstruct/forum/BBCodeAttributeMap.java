@@ -13,6 +13,7 @@ public interface BBCodeAttributeMap {
 
 	@Mapping(target="id", ignore=true)
 	@Mapping(target="dataType", ignore=true)
+	@Mapping(target="valuePolicy", ignore=true)
 	BBCodeAttribute toModel(BBCodeAttributeDbo dbo);
 
 }

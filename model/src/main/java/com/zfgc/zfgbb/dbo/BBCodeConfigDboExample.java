@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BBCodeConfigDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420541099-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420552899-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420571399-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.42053397-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public BBCodeConfigDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420545889-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420550109-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420557099-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420563539-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420583588-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420591688-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420595898-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420599848-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class BBCodeConfigDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420602288-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420606028-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420611587-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -242,12 +248,12 @@ public class BBCodeConfigDboExample {
         }
 
         public Criteria andCodeLike(String value) {
-            addCriterion("code like", value, "code");
+            addCriterion("code ilike", value, "code");
             return (Criteria) this;
         }
 
         public Criteria andCodeNotLike(String value) {
-            addCriterion("code not like", value, "code");
+            addCriterion("code not ilike", value, "code");
             return (Criteria) this;
         }
 
@@ -312,12 +318,12 @@ public class BBCodeConfigDboExample {
         }
 
         public Criteria andEndTagLike(String value) {
-            addCriterion("end_tag like", value, "endTag");
+            addCriterion("end_tag ilike", value, "endTag");
             return (Criteria) this;
         }
 
         public Criteria andEndTagNotLike(String value) {
-            addCriterion("end_tag not like", value, "endTag");
+            addCriterion("end_tag not ilike", value, "endTag");
             return (Criteria) this;
         }
 
@@ -640,16 +646,426 @@ public class BBCodeConfigDboExample {
             addCriterion("enabled_flag not between", value1, value2, "enabledFlag");
             return (Criteria) this;
         }
+
+        public Criteria andSourceReferenceAttributeIsNull() {
+            addCriterion("source_reference_attribute is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeIsNotNull() {
+            addCriterion("source_reference_attribute is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeEqualTo(String value) {
+            addCriterion("source_reference_attribute =", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotEqualTo(String value) {
+            addCriterion("source_reference_attribute <>", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeGreaterThan(String value) {
+            addCriterion("source_reference_attribute >", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeGreaterThanOrEqualTo(String value) {
+            addCriterion("source_reference_attribute >=", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLessThan(String value) {
+            addCriterion("source_reference_attribute <", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLessThanOrEqualTo(String value) {
+            addCriterion("source_reference_attribute <=", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLike(String value) {
+            addCriterion("source_reference_attribute ilike", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotLike(String value) {
+            addCriterion("source_reference_attribute not ilike", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeIn(List<String> values) {
+            addCriterion("source_reference_attribute in", values, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotIn(List<String> values) {
+            addCriterion("source_reference_attribute not in", values, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeBetween(String value1, String value2) {
+            addCriterion("source_reference_attribute between", value1, value2, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotBetween(String value1, String value2) {
+            addCriterion("source_reference_attribute not between", value1, value2, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIsNull() {
+            addCriterion("source_reference_resolver is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIsNotNull() {
+            addCriterion("source_reference_resolver is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverEqualTo(String value) {
+            addCriterion("source_reference_resolver =", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotEqualTo(String value) {
+            addCriterion("source_reference_resolver <>", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverGreaterThan(String value) {
+            addCriterion("source_reference_resolver >", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverGreaterThanOrEqualTo(String value) {
+            addCriterion("source_reference_resolver >=", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLessThan(String value) {
+            addCriterion("source_reference_resolver <", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLessThanOrEqualTo(String value) {
+            addCriterion("source_reference_resolver <=", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLike(String value) {
+            addCriterion("source_reference_resolver ilike", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotLike(String value) {
+            addCriterion("source_reference_resolver not ilike", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIn(List<String> values) {
+            addCriterion("source_reference_resolver in", values, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotIn(List<String> values) {
+            addCriterion("source_reference_resolver not in", values, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverBetween(String value1, String value2) {
+            addCriterion("source_reference_resolver between", value1, value2, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotBetween(String value1, String value2) {
+            addCriterion("source_reference_resolver not between", value1, value2, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIsNull() {
+            addCriterion("markdown_equivalent is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIsNotNull() {
+            addCriterion("markdown_equivalent is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentEqualTo(String value) {
+            addCriterion("markdown_equivalent =", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotEqualTo(String value) {
+            addCriterion("markdown_equivalent <>", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentGreaterThan(String value) {
+            addCriterion("markdown_equivalent >", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentGreaterThanOrEqualTo(String value) {
+            addCriterion("markdown_equivalent >=", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLessThan(String value) {
+            addCriterion("markdown_equivalent <", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLessThanOrEqualTo(String value) {
+            addCriterion("markdown_equivalent <=", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLike(String value) {
+            addCriterion("markdown_equivalent ilike", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotLike(String value) {
+            addCriterion("markdown_equivalent not ilike", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIn(List<String> values) {
+            addCriterion("markdown_equivalent in", values, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotIn(List<String> values) {
+            addCriterion("markdown_equivalent not in", values, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentBetween(String value1, String value2) {
+            addCriterion("markdown_equivalent between", value1, value2, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotBetween(String value1, String value2) {
+            addCriterion("markdown_equivalent not between", value1, value2, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIsNull() {
+            addCriterion("markdown_canonical_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIsNotNull() {
+            addCriterion("markdown_canonical_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag =", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag <>", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagGreaterThan(Boolean value) {
+            addCriterion("markdown_canonical_flag >", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag >=", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagLessThan(Boolean value) {
+            addCriterion("markdown_canonical_flag <", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag <=", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIn(List<Boolean> values) {
+            addCriterion("markdown_canonical_flag in", values, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotIn(List<Boolean> values) {
+            addCriterion("markdown_canonical_flag not in", values, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("markdown_canonical_flag between", value1, value2, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("markdown_canonical_flag not between", value1, value2, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIsNull() {
+            addCriterion("implicit_item_marker is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIsNotNull() {
+            addCriterion("implicit_item_marker is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerEqualTo(String value) {
+            addCriterion("implicit_item_marker =", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotEqualTo(String value) {
+            addCriterion("implicit_item_marker <>", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerGreaterThan(String value) {
+            addCriterion("implicit_item_marker >", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerGreaterThanOrEqualTo(String value) {
+            addCriterion("implicit_item_marker >=", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLessThan(String value) {
+            addCriterion("implicit_item_marker <", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLessThanOrEqualTo(String value) {
+            addCriterion("implicit_item_marker <=", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLike(String value) {
+            addCriterion("implicit_item_marker ilike", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotLike(String value) {
+            addCriterion("implicit_item_marker not ilike", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIn(List<String> values) {
+            addCriterion("implicit_item_marker in", values, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotIn(List<String> values) {
+            addCriterion("implicit_item_marker not in", values, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerBetween(String value1, String value2) {
+            addCriterion("implicit_item_marker between", value1, value2, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotBetween(String value1, String value2) {
+            addCriterion("implicit_item_marker not between", value1, value2, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIsNull() {
+            addCriterion("implicit_item_code is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIsNotNull() {
+            addCriterion("implicit_item_code is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeEqualTo(String value) {
+            addCriterion("implicit_item_code =", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotEqualTo(String value) {
+            addCriterion("implicit_item_code <>", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeGreaterThan(String value) {
+            addCriterion("implicit_item_code >", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeGreaterThanOrEqualTo(String value) {
+            addCriterion("implicit_item_code >=", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLessThan(String value) {
+            addCriterion("implicit_item_code <", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLessThanOrEqualTo(String value) {
+            addCriterion("implicit_item_code <=", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLike(String value) {
+            addCriterion("implicit_item_code ilike", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotLike(String value) {
+            addCriterion("implicit_item_code not ilike", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIn(List<String> values) {
+            addCriterion("implicit_item_code in", values, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotIn(List<String> values) {
+            addCriterion("implicit_item_code not in", values, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeBetween(String value1, String value2) {
+            addCriterion("implicit_item_code between", value1, value2, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotBetween(String value1, String value2) {
+            addCriterion("implicit_item_code not between", value1, value2, "implicitItemCode");
+            return (Criteria) this;
+        }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420842381-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-16T23:56:56.420851531-04:00", comments="Source Table: zfgbb.bb_code_config")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_config")
     public static class Criterion {
         private String condition;
 

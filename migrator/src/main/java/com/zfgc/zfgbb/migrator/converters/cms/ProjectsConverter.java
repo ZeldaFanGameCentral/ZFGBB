@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.migrator.converters.cms;
 
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,11 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +24,6 @@ import com.zfgc.zfgbb.dbo.ContentCollectionDboExample;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDbo;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDboExample;
 import com.zfgc.zfgbb.dbo.ProjectDbo;
-import com.zfgc.zfgbb.dbo.ProjectDboExample;
 import com.zfgc.zfgbb.dbo.ProjectDownloadDbo;
 import com.zfgc.zfgbb.dbo.ProjectDownloadDboExample;
 import com.zfgc.zfgbb.dbo.ProjectNewsDbo;
@@ -40,6 +40,7 @@ import com.zfgc.zfgbb.dbo.TeamMemberDbo;
 import com.zfgc.zfgbb.dbo.TeamMemberDboExample;
 import com.zfgc.zfgbb.mappers.ContentCollectionDboMapper;
 import com.zfgc.zfgbb.mappers.ContentCollectionItemDboMapper;
+import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
 import com.zfgc.zfgbb.mappers.ProjectDboMapper;
 import com.zfgc.zfgbb.mappers.ProjectDownloadDboMapper;
@@ -76,78 +77,37 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfDownloadQueryMapper;
 import com.zfgc.zfgbb.dbo.MigrationConflictDbo;
 import com.zfgc.zfgbb.dbo.MigrationConflictDboExample;
 import com.zfgc.zfgbb.mappers.MigrationConflictDboMapper;
-import java.util.function.Consumer;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class ProjectsConverter extends AbstractConverter<Void> {
 
-	@Autowired
-	private CiProjectDbMapper ciProjectMapper;
+	private static final Logger logger = LoggerFactory.getLogger(ProjectsConverter.class);
 
-	@Autowired
-	private CiProjectScreenshotDbMapper ciScreenshotMapper;
-
-	@Autowired
-	private CiProjectDownloadDbMapper ciDownloadMapper;
-
-	@Autowired
-	private SMFGameDbMapper smfGameMapper;
-
-	@Autowired
-	private SmfDownloadQueryMapper gameDownloadMapper;
-
-	@Autowired
-	private ProjectDboMapper projectMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.ContentEntityDboMapper contentEntityMapper;
-
-	@Autowired
-	private MigrationConflictDboMapper conflictMapper;
-
-	@Autowired
-	private ProjectScreenshotDboMapper screenshotMapper;
-
-	@Autowired
-	private ProjectDownloadDboMapper downloadMapper;
-
-	@Autowired
-	private ContentResourceDboMapper contentMapper;
-
-	@Autowired
-	private ContentCollectionDboMapper collectionMapper;
-
-	@Autowired
-	private CiPotmDbMapper potmMapper;
-
-	@Autowired
-	private ContentCollectionItemDboMapper collectionItemMapper;
-
-	@Autowired
-	private TeamDboMapper teamMapper;
-
-	@Autowired
-	private TeamMemberDboMapper teamMemberMapper;
-
-	@Autowired
-	private TagDboMapper tagMapper;
-
-	@Autowired
-	private ProjectTagDboMapper projectTagMapper;
-
-	@Autowired
-	private ProjectNewsDboMapper newsMapper;
-
-	@Autowired
-	private UserDboMapper userMapper;
-
-	@Autowired
-	private WikiPageStore wikiPages;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	private final Logger logger = LoggerFactory.getLogger(ProjectsConverter.class);
+	private final CiProjectDbMapper ciProjectMapper;
+	private final CiProjectScreenshotDbMapper ciScreenshotMapper;
+	private final CiProjectDownloadDbMapper ciDownloadMapper;
+	private final SMFGameDbMapper smfGameMapper;
+	private final SmfDownloadQueryMapper gameDownloadMapper;
+	private final ProjectDboMapper projectMapper;
+	private final ContentEntityDboMapper contentEntityMapper;
+	private final MigrationConflictDboMapper conflictMapper;
+	private final ProjectScreenshotDboMapper screenshotMapper;
+	private final ProjectDownloadDboMapper downloadMapper;
+	private final ContentResourceDboMapper contentMapper;
+	private final ContentCollectionDboMapper collectionMapper;
+	private final CiPotmDbMapper potmMapper;
+	private final ContentCollectionItemDboMapper collectionItemMapper;
+	private final TeamDboMapper teamMapper;
+	private final TeamMemberDboMapper teamMemberMapper;
+	private final TagDboMapper tagMapper;
+	private final ProjectTagDboMapper projectTagMapper;
+	private final ProjectNewsDboMapper newsMapper;
+	private final UserDboMapper userMapper;
+	private final WikiPageStore wikiPages;
+	private final MigratorIdMapService idMap;
 
 	private CmsAssetStore assets;
 	private Path filesRoot;
@@ -447,7 +407,7 @@ public class ProjectsConverter extends AbstractConverter<Void> {
 		}
 	}
 
-	private void upsertPotmItem(Integer collectionId, Integer projectId, int ordinal, java.time.OffsetDateTime awardedTs) {
+	private void upsertPotmItem(Integer collectionId, Integer projectId, int ordinal, OffsetDateTime awardedTs) {
 		ContentCollectionItemDboExample ex = new ContentCollectionItemDboExample();
 		ex.createCriteria().andContentCollectionIdEqualTo(collectionId).andContentEntityIdEqualTo(projectId);
 		ContentCollectionItemDbo existing = collectionItemMapper.selectByExample(ex).stream().findFirst().orElse(null);
@@ -522,7 +482,8 @@ public class ProjectsConverter extends AbstractConverter<Void> {
 	private void ensureEntityPage(ContentEntityDbo entity, boolean wikiAdopted) {
 		Integer pageId = entity.getWikiPageId();
 		if (pageId == null) {
-			pageId = wikiPages.ensurePage("Project", entity.getTitle(), entity.getSlug());
+			pageId = wikiPages.ensurePage("Project", entity.getTitle(),
+					CmsSupport.wikiSlug("Project", entity.getSlug()));
 			entity.setWikiPageId(pageId);
 			contentEntityMapper.updateByPrimaryKey(entity);
 		}
@@ -685,6 +646,9 @@ public class ProjectsConverter extends AbstractConverter<Void> {
 			usedSlugs.add(existing.getSlug());
 			entity.setSlug(existing.getSlug());
 			entity.setWikiPageId(existing.getWikiPageId());
+			if (entity.getThreadId() == null) {
+				entity.setThreadId(existing.getThreadId());
+			}
 			if (entity.getPreviewContentResourceId() == null) {
 				entity.setPreviewContentResourceId(existing.getPreviewContentResourceId());
 			}

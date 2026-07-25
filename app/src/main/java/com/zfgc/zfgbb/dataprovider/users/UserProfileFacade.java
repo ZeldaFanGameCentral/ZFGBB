@@ -5,21 +5,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
-import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
+import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.content.ContentFormat;
-import com.zfgc.zfgbb.content.renderer.ContentRenderer;
-import com.zfgc.zfgbb.dao.UserPermissionViewDao;
+import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
 import com.zfgc.zfgbb.dbo.AwardDbo;
 import com.zfgc.zfgbb.dbo.AwardDboExample;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.UserAggregateDbo;
 import com.zfgc.zfgbb.dbo.UserAwardDbo;
 import com.zfgc.zfgbb.dbo.UserAwardDboExample;
@@ -28,8 +23,8 @@ import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDbo;
 import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDboExample;
 import com.zfgc.zfgbb.mappers.AwardDboMapper;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.UserReactionSummaryViewDboMapper;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mappers.custom.UserProfileHydrationMapper;
@@ -45,67 +40,44 @@ import com.zfgc.zfgbb.model.users.ReactionSummary;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserSettings;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
-import com.zfgc.zfgbb.services.core.GuestPermissionService;
+import lombok.RequiredArgsConstructor;
 
 @Component
-@UnfilteredBoardRead("Calculates user post count scoped to guest-visible board IDs using MessagePostCountMapper")
+@RequiredArgsConstructor
+@UnfilteredBoardRead("counts only guest-visible boards")
 public class UserProfileFacade {
 
-    @Autowired
-    private UserProfileHydrationMapper userProfileHydrationMapper;
+    private final UserProfileHydrationMapper userProfileHydrationMapper;
 
-    @Autowired
-    private UserPermissionViewDao userPermissionDao;
+    private final UserPermissionViewDboMapper userPermissionViewDboMapper;
 
-    @Autowired
-    private ContentRenderer contentRenderer;
+    private final ContentRenderingService contentRenderingService;
 
-    @Autowired
-    private UserMap userMap;
+    private final UserMap userMap;
 
-    @Autowired
-    private UserBioInfoMap userBioInfoMap;
+    private final UserBioInfoMap userBioInfoMap;
 
-    @Autowired
-    private UserContactInfoMap userContactInfoMap;
+    private final UserContactInfoMap userContactInfoMap;
 
-    @Autowired
-    private AvatarMap avatarMap;
+    private final AvatarMap avatarMap;
 
-    @Autowired
-    private PermissionMap permissionMap;
+    private final PermissionMap permissionMap;
 
-    @Autowired
-    private UserReactionSummaryViewDboMapper reactionSummaryMapper;
+    private final UserReactionSummaryViewDboMapper reactionSummaryMapper;
 
-    @Autowired
-    private UserAwardDboMapper userAwardMapper;
+    private final UserAwardDboMapper userAwardMapper;
 
-    @Autowired
-    private AwardDboMapper awardMapper;
+    private final AwardDboMapper awardMapper;
 
-    @Autowired
-    private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+    private final MessagePostCountMapper messagePostCountMapper;
 
-    @Autowired
-    private MessagePostCountMapper messagePostCountMapper;
-
-    @Autowired
-    private GuestPermissionService guestPermissionService;
+    private final GuestPermissionDataProvider guestPermissionDataProvider;
 
     public List<Integer> guestVisibleBoardIds() {
-        if (guestPermissionService != null) {
-            return guestPermissionService.guestVisibleBoardIds();
-        }
-        List<Integer> guestPerms = User.guest().getPermissions().stream()
-                .map(Permission::getPermissionId).toList();
-        BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
-        ex.createCriteria().andPermissionIdIn(guestPerms);
-        return boardPermissionViewDboMapper.selectByExample(ex).stream()
-                .map(BoardPermissionViewDbo::getBoardId).distinct().collect(Collectors.toList());
+        return guestPermissionDataProvider.guestVisibleBoardIds();
     }
 
-    public Map<Integer, User> loadUsersByIds(Collection<Integer> userIds, BasicUserLoadOptions loadOptions) {
+    public Map<Integer, User> loadUsersByIds(Collection<Integer> userIds, UserLoadOptions loadOptions) {
         if (userIds == null || userIds.isEmpty()) return Collections.emptyMap();
         List<Integer> distinctIds = userIds.stream().filter(id -> id != null).distinct().toList();
         if (distinctIds.isEmpty()) return Collections.emptyMap();
@@ -114,16 +86,16 @@ public class UserProfileFacade {
         if (aggregates.isEmpty()) return Collections.emptyMap();
 
         Map<Integer, List<Permission>> permissionsByUserId = Collections.emptyMap();
-        if (Boolean.TRUE.equals(loadOptions.loadPermissions())) {
+        if (loadOptions.loadPermissions()) {
             UserPermissionViewDboExample permissionEx = new UserPermissionViewDboExample();
             permissionEx.createCriteria().andUserIdIn(distinctIds);
-            permissionsByUserId = userPermissionDao.get(permissionEx).stream()
+            permissionsByUserId = userPermissionViewDboMapper.selectByExample(permissionEx).stream()
                     .collect(Collectors.groupingBy(UserPermissionViewDbo::getUserId,
                             Collectors.mapping(permissionMap::toModel, Collectors.toList())));
         }
 
         Map<Integer, ReactionSummary> reactionByUserId = Collections.emptyMap();
-        if (Boolean.TRUE.equals(loadOptions.loadReactions())) {
+        if (loadOptions.loadReactions()) {
             UserReactionSummaryViewDboExample reactionEx = new UserReactionSummaryViewDboExample();
             reactionEx.createCriteria().andUserIdIn(distinctIds);
             reactionByUserId = reactionSummaryMapper.selectByExample(reactionEx).stream()
@@ -132,7 +104,7 @@ public class UserProfileFacade {
 
         Map<Integer, Integer> postCountByOwnerId = Collections.emptyMap();
         List<Integer> guestVisibleBoardIds = guestVisibleBoardIds();
-        if (!guestVisibleBoardIds.isEmpty() && Boolean.TRUE.equals(loadOptions.loadBio())) {
+        if (!guestVisibleBoardIds.isEmpty() && loadOptions.loadBio()) {
             postCountByOwnerId = messagePostCountMapper
                     .postCountsByOwnerWithinBoards(distinctIds, guestVisibleBoardIds).stream()
                     .collect(Collectors.toMap(MessagePostCountMapper.OwnerPostCount::getOwnerId,
@@ -140,7 +112,7 @@ public class UserProfileFacade {
         }
 
         Map<Integer, List<Award>> awardsByUserId = Collections.emptyMap();
-        if (Boolean.TRUE.equals(loadOptions.loadAwards())) {
+        if (loadOptions.loadAwards()) {
             UserAwardDboExample grantEx = new UserAwardDboExample();
             grantEx.createCriteria().andUserIdIn(distinctIds);
             grantEx.setOrderByClause("granted_ts desc");
@@ -162,22 +134,22 @@ public class UserProfileFacade {
         for (UserAggregateDbo agg : aggregates) {
             Integer userId = agg.getUser().getUserId();
             UserBioInfo bioInfo = null;
-            if (agg.getBio() != null && Boolean.TRUE.equals(loadOptions.loadBio())) {
+            if (agg.getBio() != null && loadOptions.loadBio()) {
                 bioInfo = userBioInfoMap.toModel(agg.getBio())
                         .toBuilder()
                         .postCount(postCountByOwnerId.getOrDefault(userId, 0))
-                        .signatureParsed(contentRenderer.render(agg.getBio().getSignature(), ContentFormat.BBCODE))
-                        .avatar(agg.getAvatar() != null && Boolean.TRUE.equals(loadOptions.loadAvatar()) ? avatarMap.toModel(agg.getAvatar()) : null)
+                        .signatureParsed(contentRenderingService.render(agg.getBio().getSignature(), ContentFormat.BBCODE))
+                        .avatar(agg.getAvatar() != null && loadOptions.loadAvatar() ? avatarMap.toModel(agg.getAvatar()) : null)
                         .build();
             }
 
             UserContactInfo contactInfo = null;
-            if (agg.getContact() != null && agg.getEmail() != null && Boolean.TRUE.equals(loadOptions.loadContactInfo())) {
+            if (agg.getContact() != null && agg.getEmail() != null && loadOptions.loadContactInfo()) {
                 contactInfo = userContactInfoMap.toModel(agg.getContact(), agg.getEmail());
             }
 
             UserSettings settings = null;
-            if (agg.getSettings() != null && Boolean.TRUE.equals(loadOptions.loadSettings())) {
+            if (agg.getSettings() != null && loadOptions.loadSettings()) {
                 settings = UserSettings.builder()
                         .userId(agg.getSettings().getUserId())
                         .theme(agg.getSettings().getTheme())
@@ -186,7 +158,7 @@ public class UserProfileFacade {
                         .notifySendBodyFlag(agg.getSettings().getNotifySendBodyFlag())
                         .sendHappyBirthdayFlag(agg.getSettings().getSendHappyBirthdayFlag())
                         .build();
-            } else if (Boolean.TRUE.equals(loadOptions.loadSettings())) {
+            } else if (loadOptions.loadSettings()) {
                 settings = new UserSettings();
             }
 

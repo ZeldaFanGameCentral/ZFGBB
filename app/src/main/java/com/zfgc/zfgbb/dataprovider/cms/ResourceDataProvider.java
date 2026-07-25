@@ -1,16 +1,12 @@
 package com.zfgc.zfgbb.dataprovider.cms;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import static com.zfgc.zfgbb.dataprovider.cms.CatalogDataProvider.escapeLike;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dbo.ContentEntityDbo;
@@ -23,31 +19,23 @@ import com.zfgc.zfgbb.mappers.custom.CmsFacetMapper;
 import com.zfgc.zfgbb.mapstruct.cms.ResourceMap;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Resource;
+import lombok.RequiredArgsConstructor;
 
 @Repository
-public class ResourceDataProvider extends CatalogDataProvider {
+@RequiredArgsConstructor
+public class ResourceDataProvider {
 
-	@Autowired
-	private ResourceViewDboMapper resourceViewMapper;
+	private final CatalogDataProvider catalogDataProvider;
 
-	@Autowired
-	private ContentEntityDboMapper contentEntityMapper;
+	private final ResourceViewDboMapper resourceViewMapper;
 
-	@Autowired
-	private WikiDataProvider wikiDataProvider;
+	private final ContentEntityDboMapper contentEntityMapper;
 
-	@Autowired
-	private ResourceMap resourceMap;
+	private final WikiDataProvider wikiDataProvider;
 
-	@Autowired
-	private CmsFacetMapper cmsFacetMapper;
+	private final ResourceMap resourceMap;
 
-	private String escapeLike(String input) {
-		if (input == null) {
-			return null;
-		}
-		return input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-	}
+	private final CmsFacetMapper cmsFacetMapper;
 
 	public PagedResult<Resource> getResources(String search, String type, String author,
 			Boolean hasDownload, String sort, int page, int pageSize) {
@@ -97,7 +85,8 @@ public class ResourceDataProvider extends CatalogDataProvider {
 		resourceExample.setOffset((int) zeroBasedOffset);
 
 		List<ResourceViewDbo> dbos = resourceViewMapper.selectByExampleWithLimits(resourceExample);
-		Map<Integer, String> liveNames = displayNames(dbos.stream().map(ResourceViewDbo::getCreatedUserId));
+		Map<Integer, String> liveNames = catalogDataProvider.displayNames(
+				dbos.stream().map(ResourceViewDbo::getCreatedUserId));
 
 		List<Resource> items = dbos.stream().map(dbo -> {
 			Resource resource = resourceMap.toModel(dbo);
@@ -121,9 +110,10 @@ public class ResourceDataProvider extends CatalogDataProvider {
 		ResourceViewDbo dbo = resourceViewMapper.selectByExample(ex).stream().findFirst()
 				.orElseThrow(ZfgcNotFoundException::new);
 		Resource resource = resourceMap.toModel(dbo);
-		String resourceAuthor = displayNames(Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
+		String resourceAuthor = catalogDataProvider.displayNames(
+				Stream.of(dbo.getCreatedUserId())).get(dbo.getCreatedUserId());
 		resource.setAuthor(resourceAuthor != null ? resourceAuthor : dbo.getAuthorName());
-		resource.setDownloadFilename(contentFilename(dbo.getDownloadContentResourceId()));
+		resource.setDownloadFilename(catalogDataProvider.contentFilename(dbo.getDownloadContentResourceId()));
 		if (dbo.getWikiPageId() != null) {
 			wikiDataProvider.getWikiPage(dbo.getWikiPageId()).ifPresent(resource::setPage);
 		}

@@ -1,9 +1,15 @@
 package com.zfgc.zfgbb.model;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -13,10 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.zfgc.zfgbb.model.forum.Message;
-import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.model.meta.IpAddress;
-import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.EncodedPassword;
@@ -26,8 +29,10 @@ import com.zfgc.zfgbb.model.users.ReactionSummary;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
 import com.zfgc.zfgbb.model.users.UserSettings;
+import com.zfgc.zfgbb.security.Securable;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -66,9 +71,11 @@ public class User extends BaseModel implements UserDetails {
 	private OffsetDateTime tokensValidAfterTs;
 	@JsonIgnore
 	private Boolean credentialsNonExpired;
+	@Builder.Default
 	private List<Permission> permissions = new ArrayList<>();
 	
 	private IpAddress currentIpAddress;
+	@Builder.Default
 	private List<IpAddress> allKnownIpAddresses = new ArrayList<>();
 	private UserBioInfo bioInfo;
 	private UserContactInfo contactInfo;
@@ -139,7 +146,7 @@ public class User extends BaseModel implements UserDetails {
 	@JsonIgnore
 	@Override
 	public boolean isAccountNonLocked() {
-		return lockedUntilTs == null || !lockedUntilTs.isAfter(OffsetDateTime.now(java.time.ZoneOffset.UTC));
+		return lockedUntilTs == null || !lockedUntilTs.isAfter(OffsetDateTime.now(ZoneOffset.UTC));
 	}
 
 	@JsonIgnore
@@ -186,8 +193,56 @@ public class User extends BaseModel implements UserDetails {
 		if(permissions != null) {
 			return permissions.stream().anyMatch(pr -> permission.equals(pr.getPermissionCode()));
 		}
-		
+
 		return false;
 	}
-	
+
+	@JsonIgnore
+	public List<Integer> permissionIds() {
+		if (permissions == null)
+			return List.of();
+		return permissions.stream().filter(Objects::nonNull).map(Permission::getPermissionId)
+				.filter(Objects::nonNull).toList();
+	}
+
+	@JsonIgnore
+	public boolean hasAnyPermissionId(Collection<Integer> requiredPermissionIds) {
+		if (requiredPermissionIds == null || requiredPermissionIds.isEmpty())
+			return false;
+		Set<Integer> heldPermissionIds = new HashSet<>(permissionIds());
+		if (heldPermissionIds.isEmpty())
+			return false;
+		for (Integer requiredPermissionId : requiredPermissionIds)
+			if (heldPermissionIds.contains(requiredPermissionId))
+				return true;
+		return false;
+	}
+
+	@JsonIgnore
+	public boolean canAccess(Securable securedResource) {
+		if (securedResource == null || securedResource.getPermissions() == null)
+			return false;
+		return hasAnyPermissionId(securedResource.getPermissions().stream().filter(Objects::nonNull)
+				.map(Permission::getPermissionId).toList());
+	}
+
+	@JsonIgnore
+	public boolean invalidatesTokenIssuedAt(Optional<Instant> tokenIssuedAt) {
+		return tokenValidityCutoff()
+				.map(cutoff -> tokenIssuedAt.filter(issuance -> issuance.isAfter(cutoff)).isEmpty())
+				.orElse(false);
+	}
+
+	@JsonIgnore
+	public Instant earliestAcceptableTokenIssuance(Instant candidateIssuance) {
+		return tokenValidityCutoff()
+				.filter(cutoff -> !candidateIssuance.truncatedTo(ChronoUnit.SECONDS).isAfter(cutoff))
+				.map(cutoff -> cutoff.truncatedTo(ChronoUnit.SECONDS).plusSeconds(1))
+				.orElse(candidateIssuance);
+	}
+
+	private Optional<Instant> tokenValidityCutoff() {
+		return Optional.ofNullable(tokensValidAfterTs).map(OffsetDateTime::toInstant);
+	}
+
 }

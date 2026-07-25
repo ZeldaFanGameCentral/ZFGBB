@@ -8,5 +8,6 @@ public record InstallRequest(
 		String siteName,
 		String contentPack,
 		Boolean useTokens,
-		Boolean provisionRecycleBin) {
+		Boolean provisionRecycleBin,
+		String defaultContentFormat) {
 }

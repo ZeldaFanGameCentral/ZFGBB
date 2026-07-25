@@ -14,6 +14,7 @@ public interface BBCodeConfigMap {
 	@Mapping(target="id", ignore=true)
 	@Mapping(target="allAttributeNamesAsString", ignore=true)
 	@Mapping(target="attributeConfig", ignore=true)
+	@Mapping(target="valuePolicyByAttributeName", ignore=true)
 	BBCodeConfig toModel(BBCodeConfigDbo dbo);
 
 }

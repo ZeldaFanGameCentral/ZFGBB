@@ -1,12 +1,13 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,30 +25,24 @@ import com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogKarmaDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class ReactionsConverter extends AbstractConverter<Void> {
+
+	private static final String MSG_REGEX = "[0-9]+$";
+
+	private final ReactionDboMapper reactionMapper;
+	private final ReactionTypeDboMapper reactionTypeMapper;
+	private final SmfResilientReadMapper resilientReads;
+	private final MigratorIdMapService idMap;
+	private final MigratorTimestampMapper migratorTimestampMapper;
 
 	@Override
 	public JobType getType() {
 		return JobType.REACTIONS;
 	}
-
-	@Autowired
-	private ReactionDboMapper reactionMapper;
-
-	@Autowired
-	private ReactionTypeDboMapper reactionTypeMapper;
-
-	@Autowired
-	private SmfResilientReadMapper resilientReads;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	@Autowired
-	private MigratorTimestampMapper migratorTimestampMapper;
-
-	private final String MSG_REGEX = "[0-9]+$";
 
 	@Override
 	@Transactional
@@ -60,10 +55,10 @@ public class ReactionsConverter extends AbstractConverter<Void> {
 		Map<String, Integer> reactionIdByHash = existingReactions.stream()
 				.filter(row -> row.getMigrationHash() != null)
 				.collect(Collectors.toMap(ReactionDbo::getMigrationHash, ReactionDbo::getReactionId, (a, b) -> a));
-		java.util.Set<String> seenReactionKeys = existingReactions.stream()
+		Set<String> seenReactionKeys = existingReactions.stream()
 				.filter(row -> row.getReactorUserId() != null)
 				.map(row -> row.getReactableType() + ":" + row.getReactableId() + ":" + row.getReactorUserId())
-				.collect(Collectors.toCollection(java.util.HashSet::new));
+				.collect(Collectors.toCollection(HashSet::new));
 		List<SMFLogKarmaDbWithBLOBs> karmaSMF = resilientReads.selectAllKarma();
 		Pattern pattern = Pattern.compile(MSG_REGEX);
 

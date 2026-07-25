@@ -6,8 +6,14 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.security.Securable;
 
-public class BoardSummary {
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class BoardSummary implements Securable {
 	private Integer boardId;
     private String description;
     private String boardName;
@@ -22,100 +28,15 @@ public class BoardSummary {
     private String threadName;
 
     private List<ChildBoard> childBoards;
-    
+
     @JsonIgnore
     private List<Permission> boardPerms = new ArrayList<>();
-    
+
     private OffsetDateTime latestMessageCreatedTs;
-    
-	public Integer getBoardId() {
-		return boardId;
-	}
-	public void setBoardId(Integer boardId) {
-		this.boardId = boardId;
-	}
-	public String getDescription() {
-		return description;
-	}
-	public void setDescription(String description) {
-		this.description = description;
-	}
-	public String getBoardName() {
-		return boardName;
-	}
-	public void setBoardName(String boardName) {
-		this.boardName = boardName;
-	}
-	public Long getThreadCount() {
-		return threadCount;
-	}
-	public void setThreadCount(Long threadCount) {
-		this.threadCount = threadCount;
-	}
-	public Long getPostCount() {
-		return postCount;
-	}
-	public void setPostCount(Long postCount) {
-		this.postCount = postCount;
-	}
-	public Integer getLatestMessageId() {
-		return latestMessageId;
-	}
-	public void setLatestMessageId(Integer latestMessageId) {
-		this.latestMessageId = latestMessageId;
-	}
-	public Integer getLatestThreadId() {
-		return latestThreadId;
-	}
-	public void setLatestThreadId(Integer latestThreadId) {
-		this.latestThreadId = latestThreadId;
-	}
-	public Integer getLatestMessageOwnerId() {
-		return latestMessageOwnerId;
-	}
-	public void setLatestMessageOwnerId(Integer latestMessageOwnerId) {
-		this.latestMessageOwnerId = latestMessageOwnerId;
-	}
-	public String getLatestMessageUserName() {
-		return latestMessageUserName;
-	}
-	public void setLatestMessageUserName(String latestMessageUserName) {
-		this.latestMessageUserName = latestMessageUserName;
-	}
-	public OffsetDateTime getLatestMessageCreatedTs() {
-		return latestMessageCreatedTs;
-	}
-	public void setLatestMessageCreatedTs(OffsetDateTime latestMessageCreatedTs) {
-		this.latestMessageCreatedTs = latestMessageCreatedTs;
-	}
-	public Integer getParentBoardId() {
-		return parentBoardId;
-	}
-	public void setParentBoardId(Integer parentBoardId) {
-		this.parentBoardId = parentBoardId;
-	}
-	public Integer getCategoryId() {
-		return categoryId;
-	}
-	public void setCategoryId(Integer categoryId) {
-		this.categoryId = categoryId;
-	}
-	public List<ChildBoard> getChildBoards() {
-		return childBoards;
-	}
-	public void setChildBoards(List<ChildBoard> childBoards) {
-		this.childBoards = childBoards;
-	}
-	public String getThreadName() {
-		return threadName;
-	}
-	public void setThreadName(String threadName) {
-		this.threadName = threadName;
-	}
-	public List<Permission> getBoardPerms() {
-		return boardPerms;
-	}
-	public void setBoardPerms(List<Permission> boardPerms) {
-		this.boardPerms = boardPerms;
-	}
+
+    @Override
+    @JsonIgnore
+    public List<Permission> getPermissions() {
+        return boardPerms;
+    }
 }

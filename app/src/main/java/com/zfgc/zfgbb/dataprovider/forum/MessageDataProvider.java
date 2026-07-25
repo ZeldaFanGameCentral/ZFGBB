@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -8,19 +7,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Streams;
-import com.zfgc.zfgbb.config.loadoption.user.PublicUserLoadOptions;
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
+import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dao.ThreadDao;
-import com.zfgc.zfgbb.dao.forum.CurrentMessageDao;
-import com.zfgc.zfgbb.dao.forum.FileAttachmentsDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
-import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
@@ -31,9 +25,9 @@ import com.zfgc.zfgbb.dbo.FileAttachmentDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
-import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mappers.CurrentMessageDboMapper;
+import com.zfgc.zfgbb.mappers.FileAttachmentDboMapper;
 import com.zfgc.zfgbb.mappers.custom.SearchQueryMapper;
 import com.zfgc.zfgbb.mapstruct.forum.MessageHistoryMap;
 import com.zfgc.zfgbb.mapstruct.forum.MessageMap;
@@ -41,65 +35,69 @@ import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.forum.FileAttachment;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
+import lombok.RequiredArgsConstructor;
 
 @Repository
+@RequiredArgsConstructor
+@BoardVisibilityChokepoint
 public class MessageDataProvider {
-	@Autowired
-	private MessageDao messageDao;
-	
-	@Autowired
-	private MessageHistoryDao messageHistoryDao;
 
-	@Autowired
-	private ThreadDao threadDao;
+	private final MessageDao messageDao;
 
-	@Autowired
-	private CurrentMessageDao currentMessageDao;
-	
-	@Autowired
-	private UserDataProvider userDataProvider;
+	private final MessageHistoryDao messageHistoryDao;
 
-	@Autowired
-	private FileAttachmentsDao fileAttachmentsDao;
+	private final ThreadDao threadDao;
 
-	@Autowired
-	private ContentResourceDboMapper contentResourceMapper;
+	private final CurrentMessageDboMapper currentMessageDboMapper;
 
-	@Autowired
-	private SearchQueryMapper searchQueryMapper;
+	private final UserDataProvider userDataProvider;
 
-	@Autowired
-	private MessageMap messageMap;
+	private final FileAttachmentDboMapper fileAttachmentDboMapper;
 
-	@Autowired
-	private MessageHistoryMap messageHistoryMap;
+	private final ContentResourceDboMapper contentResourceMapper;
 
-	public Message getMessage(Integer messageId) {
-		Message message = messageMap.toModel(messageDao.get(messageId).orElseThrow(ZfgcNotFoundException::new));
-		MessageHistoryDboExample ex = new MessageHistoryDboExample();
-		ex.createCriteria().andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true);
-		List<MessageHistory> history = messageHistoryDao.get(ex).stream().map(messageHistoryMap::toModel).collect(Collectors.toList());
-		message.setCurrentMessage(history.get(0));
-		
-		return message;
-	}
-	
+	private final SearchQueryMapper searchQueryMapper;
+
+	private final MessageMap messageMap;
+
+	private final MessageHistoryMap messageHistoryMap;
+
 	public Message saveMessage(Message message) {
 		MessageDbo messageDbo = messageMap.toDbo(message);
 		ensureBoardId(messageDbo);
 
-		messageDbo = messageDao.save(messageDbo);
+		messageDao.save(messageDbo);
 
 		MessageHistory history = message.getCurrentMessage();
 		history.setMessageId(messageDbo.getMessageId());
 		MessageHistoryDbo historyDbo = messageHistoryMap.toDbo(history);
 		if (historyDbo.getCurrentFlag() == null)
 			historyDbo.setCurrentFlag(true);
-		historyDbo = messageHistoryDao.save(historyDbo);
-		
-		Message result = messageMap.toModel(messageDbo);
-		result.setCurrentMessage(messageHistoryMap.toModel(historyDbo));
+		messageHistoryDao.save(historyDbo);
 
+		Message result = messageMap.toModel(reload(messageDbo));
+		result.setCurrentMessage(messageHistoryMap.toModel(reload(historyDbo)));
+
+		return result;
+	}
+
+	private MessageDbo reload(MessageDbo message) {
+		return messageDao.find(message.getMessageId()).orElseThrow(ZfgcNotFoundException::new);
+	}
+
+	private MessageHistoryDbo reload(MessageHistoryDbo revision) {
+		return messageHistoryDao.find(revision.getMessageHistoryId())
+				.orElseThrow(ZfgcNotFoundException::new);
+	}
+
+	public Message editMessage(Integer messageId, MessageHistory revision) {
+		MessageDbo existing = messageDao.find(messageId).orElseThrow(ZfgcNotFoundException::new);
+		messageHistoryDao.clearCurrentFlag(messageId);
+		revision.setMessageId(messageId);
+		revision.setCurrentFlag(true);
+		MessageHistoryDbo saved = messageHistoryDao.save(messageHistoryMap.toDbo(revision));
+		Message result = messageMap.toModel(existing);
+		result.setCurrentMessage(messageHistoryMap.toModel(reload(saved)));
 		return result;
 	}
 	
@@ -113,7 +111,7 @@ public class MessageDataProvider {
 						   .andPostInThreadBetween(start, start + count - 1);
 		ex.setOrderByClause("post_in_thread asc");
 
-		List<CurrentMessageDbo> currentMessageDbos = currentMessageDao.get(ex);
+		List<CurrentMessageDbo> currentMessageDbos = currentMessageDboMapper.selectByExample(ex);
 		List<Integer> ownerIds = currentMessageDbos.stream()
 				.map(CurrentMessageDbo::getOwnerId)
 				.filter(ownerId -> ownerId != null)
@@ -138,7 +136,7 @@ public class MessageDataProvider {
 
 		FileAttachmentDboExample faEx = new FileAttachmentDboExample();
 		faEx.createCriteria().andMessageIdIn(messageIds);
-		List<FileAttachmentDbo> attachmentDbos = fileAttachmentsDao.get(faEx);
+		List<FileAttachmentDbo> attachmentDbos = fileAttachmentDboMapper.selectByExample(faEx);
 		if (attachmentDbos.isEmpty()) return;
 
 		List<Integer> resourceIds = attachmentDbos.stream()
@@ -186,42 +184,12 @@ public class MessageDataProvider {
 	}
 
 	private User loadPublicAuthor(Integer ownerId) {
-		User author = userDataProvider.findUser(ownerId, new PublicUserLoadOptions()).orElseGet(User::orphaned);
+		User author = userDataProvider.findUser(ownerId, UserLoadOptions.publicProfile()).orElseGet(User::orphaned);
 		author.retainPublicRankPermissions();
 		if (author.getBioInfo() != null) {
 			author.getBioInfo().setSignature(null);
 		}
 		return author;
-	}
-	
-	public Message postMessageToThread(Integer threadId, Message message) {
-		Preconditions.checkNotNull(message, "message cannot be null.");
-		Preconditions.checkNotNull(message.getCurrentMessage(), "message history cannot be null.");
-		Preconditions.checkNotNull(threadId, "threadId cannot be null.");
-		//ensure we have the right thread set
-		message.setThreadId(threadId);
-		MessageDbo messageDbo = messageMap.toDbo(message);
-		ensureBoardId(messageDbo);
-
-		//insert a message history record
-		MessageHistoryDbo historyDbo = messageHistoryMap.toDbo(message.getCurrentMessage());
-
-		historyDbo = messageHistoryDao.save(historyDbo);
-
-		Message result = messageMap.toModel(messageDao.save(messageDbo));
-		result.setCurrentMessage(messageHistoryMap.toModel(historyDbo));
-		
-		return result;
-	}
-	
-	public Message editMessage(Message message) {
-		Preconditions.checkNotNull(message, "message cannot be null.");
-		Preconditions.checkNotNull(message.getCurrentMessage(), "message history cannot be null.");
-		
-		MessageHistoryDbo historyDbo = messageHistoryMap.toDbo(message);
-		messageHistoryDao.save(historyDbo);
-		
-		return getMessage(message.getMessageId());
 	}
 	
 	public void reparentMessage(Integer messageId, Integer threadId, Integer boardId, Integer postInThread) {
@@ -232,7 +200,7 @@ public class MessageDataProvider {
 
 		MessageDboExample ex = new MessageDboExample();
 		ex.createCriteria().andMessageIdEqualTo(messageId);
-		messageDao.getMapper().updateByExampleSelective(reparented, ex);
+		messageDao.updateWhere(reparented, ex);
 	}
 
 	public int moveMessagesToNewThread(List<Integer> messageIds, Integer sourceThreadId, Integer newThreadId,
@@ -246,7 +214,7 @@ public class MessageDataProvider {
 
 		MessageDboExample ex = new MessageDboExample();
 		ex.createCriteria().andThreadIdEqualTo(sourceThreadId).andMessageIdIn(messageIds);
-		return messageDao.getMapper().updateByExampleSelective(threadAssignment, ex);
+		return messageDao.updateWhere(threadAssignment, ex);
 	}
 
 	public void updateBoardIdForThread(Integer threadId, Integer boardId) {
@@ -255,22 +223,14 @@ public class MessageDataProvider {
 
 		MessageDboExample ex = new MessageDboExample();
 		ex.createCriteria().andThreadIdEqualTo(threadId);
-		messageDao.getMapper().updateByExampleSelective(boardAssignment, ex);
+		messageDao.updateWhere(boardAssignment, ex);
 	}
 
 	private void ensureBoardId(MessageDbo messageDbo) {
 		if (messageDbo.getBoardId() != null || messageDbo.getThreadId() == null)
 			return;
-		threadDao.get(messageDbo.getThreadId())
+		threadDao.find(messageDbo.getThreadId())
 				.ifPresent(threadDbo -> messageDbo.setBoardId(threadDbo.getBoardId()));
-	}
-	
-	public Long getTotalPostsInThread(Integer threadId) {
-		MessageDboExample ex = new MessageDboExample();
-		ex.createCriteria().andThreadIdEqualTo(threadId);
-		Long count = messageDao.getMapper().countByExample(ex);
-		
-		return count;
 	}
 	
 	public List<Message> getMessagesByUser(Integer userId, Integer pageNumber, Integer count, List<Integer> permissionIds){

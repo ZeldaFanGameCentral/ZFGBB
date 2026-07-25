@@ -4,10 +4,6 @@ public record EncodedPassword(PasswordAlgo algo, String salt, String hash) {
 
 	private static final String DELIMITER = ":";
 
-	public static EncodedPassword of(HashedPassword hashedPassword) {
-		return new EncodedPassword(hashedPassword.algo(), hashedPassword.salt(), hashedPassword.hash());
-	}
-
 	public String toEncoded() {
 		return algo.name() + DELIMITER + (salt == null ? "" : salt) + DELIMITER + hash;
 	}

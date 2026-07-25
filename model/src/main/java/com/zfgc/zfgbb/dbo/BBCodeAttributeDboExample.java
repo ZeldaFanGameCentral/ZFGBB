@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BBCodeAttributeDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70691345-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70692815-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706957099-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706907011-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public BBCodeAttributeDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70691915-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70692364-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70693262-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.70693685-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706962319-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706967119-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706969999-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706975279-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class BBCodeAttributeDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706979548-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706983718-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.706989468-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -198,66 +204,6 @@ public class BBCodeAttributeDboExample {
 
         public Criteria andBbCodeAttributeIdNotBetween(Integer value1, Integer value2) {
             addCriterion("bb_code_attribute_id not between", value1, value2, "bbCodeAttributeId");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeIsNull() {
-            addCriterion("attribute_data_type is null");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeIsNotNull() {
-            addCriterion("attribute_data_type is not null");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeEqualTo(Integer value) {
-            addCriterion("attribute_data_type =", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotEqualTo(Integer value) {
-            addCriterion("attribute_data_type <>", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeGreaterThan(Integer value) {
-            addCriterion("attribute_data_type >", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeGreaterThanOrEqualTo(Integer value) {
-            addCriterion("attribute_data_type >=", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeLessThan(Integer value) {
-            addCriterion("attribute_data_type <", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeLessThanOrEqualTo(Integer value) {
-            addCriterion("attribute_data_type <=", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeIn(List<Integer> values) {
-            addCriterion("attribute_data_type in", values, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotIn(List<Integer> values) {
-            addCriterion("attribute_data_type not in", values, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeBetween(Integer value1, Integer value2) {
-            addCriterion("attribute_data_type between", value1, value2, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotBetween(Integer value1, Integer value2) {
-            addCriterion("attribute_data_type not between", value1, value2, "attributeDataType");
             return (Criteria) this;
         }
 
@@ -422,12 +368,12 @@ public class BBCodeAttributeDboExample {
         }
 
         public Criteria andNameLike(String value) {
-            addCriterion("name like", value, "name");
+            addCriterion("name ilike", value, "name");
             return (Criteria) this;
         }
 
         public Criteria andNameNotLike(String value) {
-            addCriterion("name not like", value, "name");
+            addCriterion("name not ilike", value, "name");
             return (Criteria) this;
         }
 
@@ -570,16 +516,156 @@ public class BBCodeAttributeDboExample {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
             return (Criteria) this;
         }
+
+        public Criteria andAttributeDataTypeIsNull() {
+            addCriterion("attribute_data_type is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeIsNotNull() {
+            addCriterion("attribute_data_type is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeEqualTo(String value) {
+            addCriterion("attribute_data_type =", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotEqualTo(String value) {
+            addCriterion("attribute_data_type <>", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeGreaterThan(String value) {
+            addCriterion("attribute_data_type >", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeGreaterThanOrEqualTo(String value) {
+            addCriterion("attribute_data_type >=", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLessThan(String value) {
+            addCriterion("attribute_data_type <", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLessThanOrEqualTo(String value) {
+            addCriterion("attribute_data_type <=", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLike(String value) {
+            addCriterion("attribute_data_type ilike", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotLike(String value) {
+            addCriterion("attribute_data_type not ilike", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeIn(List<String> values) {
+            addCriterion("attribute_data_type in", values, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotIn(List<String> values) {
+            addCriterion("attribute_data_type not in", values, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeBetween(String value1, String value2) {
+            addCriterion("attribute_data_type between", value1, value2, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotBetween(String value1, String value2) {
+            addCriterion("attribute_data_type not between", value1, value2, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIsNull() {
+            addCriterion("semantic_role is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIsNotNull() {
+            addCriterion("semantic_role is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleEqualTo(String value) {
+            addCriterion("semantic_role =", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotEqualTo(String value) {
+            addCriterion("semantic_role <>", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleGreaterThan(String value) {
+            addCriterion("semantic_role >", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleGreaterThanOrEqualTo(String value) {
+            addCriterion("semantic_role >=", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLessThan(String value) {
+            addCriterion("semantic_role <", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLessThanOrEqualTo(String value) {
+            addCriterion("semantic_role <=", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLike(String value) {
+            addCriterion("semantic_role ilike", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotLike(String value) {
+            addCriterion("semantic_role not ilike", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIn(List<String> values) {
+            addCriterion("semantic_role in", values, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotIn(List<String> values) {
+            addCriterion("semantic_role not in", values, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleBetween(String value1, String value2) {
+            addCriterion("semantic_role between", value1, value2, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotBetween(String value1, String value2) {
+            addCriterion("semantic_role not between", value1, value2, "semanticRole");
+            return (Criteria) this;
+        }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.707176902-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.707185492-04:00", comments="Source Table: zfgbb.bb_code_attribute")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.bb_code_attribute")
     public static class Criterion {
         private String condition;
 

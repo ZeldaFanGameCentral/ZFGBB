@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AccountDeletionRequestDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462653774-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462671033-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462691462-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462641184-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public AccountDeletionRequestDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462660043-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462665603-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462676423-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462681743-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462697122-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462702502-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462706272-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462711362-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class AccountDeletionRequestDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462716662-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462721631-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.462740301-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -302,12 +308,12 @@ public class AccountDeletionRequestDboExample {
         }
 
         public Criteria andModeLike(String value) {
-            addCriterion("mode like", value, "mode");
+            addCriterion("mode ilike", value, "mode");
             return (Criteria) this;
         }
 
         public Criteria andModeNotLike(String value) {
-            addCriterion("mode not like", value, "mode");
+            addCriterion("mode not ilike", value, "mode");
             return (Criteria) this;
         }
 
@@ -372,12 +378,12 @@ public class AccountDeletionRequestDboExample {
         }
 
         public Criteria andStatusLike(String value) {
-            addCriterion("status like", value, "status");
+            addCriterion("status ilike", value, "status");
             return (Criteria) this;
         }
 
         public Criteria andStatusNotLike(String value) {
-            addCriterion("status not like", value, "status");
+            addCriterion("status not ilike", value, "status");
             return (Criteria) this;
         }
 
@@ -442,12 +448,12 @@ public class AccountDeletionRequestDboExample {
         }
 
         public Criteria andTokenSha256Like(String value) {
-            addCriterion("token_sha256 like", value, "tokenSha256");
+            addCriterion("token_sha256 ilike", value, "tokenSha256");
             return (Criteria) this;
         }
 
         public Criteria andTokenSha256NotLike(String value) {
-            addCriterion("token_sha256 not like", value, "tokenSha256");
+            addCriterion("token_sha256 not ilike", value, "tokenSha256");
             return (Criteria) this;
         }
 
@@ -872,12 +878,12 @@ public class AccountDeletionRequestDboExample {
         }
 
         public Criteria andPurgeCursorLike(String value) {
-            addCriterion("purge_cursor like", value, "purgeCursor");
+            addCriterion("purge_cursor ilike", value, "purgeCursor");
             return (Criteria) this;
         }
 
         public Criteria andPurgeCursorNotLike(String value) {
-            addCriterion("purge_cursor not like", value, "purgeCursor");
+            addCriterion("purge_cursor not ilike", value, "purgeCursor");
             return (Criteria) this;
         }
 
@@ -942,12 +948,12 @@ public class AccountDeletionRequestDboExample {
         }
 
         public Criteria andRecordedBlobPathsLike(String value) {
-            addCriterion("recorded_blob_paths like", value, "recordedBlobPaths");
+            addCriterion("recorded_blob_paths ilike", value, "recordedBlobPaths");
             return (Criteria) this;
         }
 
         public Criteria andRecordedBlobPathsNotLike(String value) {
-            addCriterion("recorded_blob_paths not like", value, "recordedBlobPaths");
+            addCriterion("recorded_blob_paths not ilike", value, "recordedBlobPaths");
             return (Criteria) this;
         }
 
@@ -1092,14 +1098,14 @@ public class AccountDeletionRequestDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.463228755-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-17T15:39:43.463243535-04:00", comments="Source Table: zfgbb.account_deletion_request")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.account_deletion_request")
     public static class Criterion {
         private String condition;
 

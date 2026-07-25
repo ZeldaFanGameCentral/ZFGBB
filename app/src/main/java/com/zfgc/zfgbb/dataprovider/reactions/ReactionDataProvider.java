@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dbo.ContentEntityDboExample;
@@ -33,37 +32,30 @@ import com.zfgc.zfgbb.mappers.ThreadDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
 import com.zfgc.zfgbb.mapstruct.reactions.ReactionTypeMap;
 import com.zfgc.zfgbb.model.reactions.ReactionType;
+import lombok.RequiredArgsConstructor;
 
 @Repository
-@UnfilteredBoardRead("Resolves each reaction target's board id from message and thread rows so reaction visibility can be checked downstream")
+@UnfilteredBoardRead("board ids only")
+@RequiredArgsConstructor
 public class ReactionDataProvider {
 
-	@Autowired
-	private ReactionDboMapper reactionMapper;
+	private final ReactionDboMapper reactionMapper;
 
-	@Autowired
-	private ReactionTypeDboMapper reactionTypeMapper;
+	private final ReactionTypeDboMapper reactionTypeMapper;
 
-	@Autowired
-	private MessageDboMapper messageMapper;
+	private final MessageDboMapper messageMapper;
 
-	@Autowired
-	private ThreadDboMapper threadMapper;
+	private final ThreadDboMapper threadMapper;
 
-	@Autowired
-	private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 
-	@Autowired
-	private ContentEntityDboMapper contentEntityMapper;
+	private final ContentEntityDboMapper contentEntityMapper;
 
-	@Autowired
-	private WikiPageDboMapper wikiPageMapper;
+	private final WikiPageDboMapper wikiPageMapper;
 
-	@Autowired
-	private ReactionUpsertMapper reactionUpsertMapper;
+	private final ReactionUpsertMapper reactionUpsertMapper;
 
-	@Autowired
-	private ReactionTypeMap reactionTypeMap;
+	private final ReactionTypeMap reactionTypeMap;
 
 	public List<ReactionType> getReactionTypes() {
 		ReactionTypeDboExample example = new ReactionTypeDboExample();

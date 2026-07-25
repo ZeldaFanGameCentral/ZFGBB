@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,28 +19,23 @@ import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogPollsDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogPollsDbMapper;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class UserPollChoiceConverter extends AbstractConverter<Map<Integer, UserPollChoiceDbo>> {
+
+	private final UserPollChoiceDboMapper userPollChoiceMapper;
+	private final PollChoiceDboMapper pollChoiceMapper;
+	private final SMFLogPollsDbMapper smfLogPollsMapper;
+	private final MigratorIdMapService idMap;
 
 	@Override
 	public JobType getType() {
 		return JobType.USER_POLL_CHOICES;
 	}
-
-	@Autowired
-	private UserPollChoiceDboMapper userPollChoiceMapper;
-
-	@Autowired
-	private PollChoiceDboMapper pollChoiceMapper;
-
-	@Autowired
-	private SMFLogPollsDbMapper smfLogPollsMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
 
 	@Override
 	@Transactional

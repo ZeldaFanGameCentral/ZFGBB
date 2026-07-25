@@ -21,9 +21,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -39,9 +41,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
+import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
+import com.zfgc.zfgbb.mappers.GenderLkupDboMapper;
+import com.zfgc.zfgbb.mappers.custom.UserProfileMapper;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.users.UpdateUserProfileRequest;
-import com.zfgc.zfgbb.services.core.UserService;
+import com.zfgc.zfgbb.services.users.ProfileAccessRules;
+import com.zfgc.zfgbb.services.users.UserService;
 
 class AccessModelTest {
 
@@ -133,11 +139,16 @@ class AccessModelTest {
 		}
 
 		@Test
-		void twoArgumentOverloadAlwaysDenies() {
+		void twoArgumentOverloadRefusesLoudlyRatherThanDenyingEveryActorSilently() {
 			ResourceAccessRules rule = mock(ResourceAccessRules.class);
 			ZfgbbPermissionEvaluator evaluator = new ZfgbbPermissionEvaluator(List.of(rule));
 
-			assertFalse(evaluator.hasPermission(authenticatedAs(actor()), new Object(), "READ"));
+			UnsupportedOperationException refusal = assertThrows(UnsupportedOperationException.class,
+					() -> evaluator.hasPermission(authenticatedAs(actor()), new Object(), "READ"));
+
+			assertTrue(refusal.getMessage().contains("hasPermission(id, 'RESOURCE_TYPE', 'action')"),
+					"the refusal must name the id-form overload that callers should use instead");
+			verifyNoInteractions(rule);
 		}
 	}
 
@@ -214,10 +225,10 @@ class AccessModelTest {
 	}
 
 	@Nested
-	class ProfileAccessRules {
+	class ProfileAccessRulesTests {
 
-		private final com.zfgc.zfgbb.services.core.ProfileAccessRules rules =
-				new com.zfgc.zfgbb.services.core.ProfileAccessRules(new AuthorityTiers(roleHierarchy()));
+		private final ProfileAccessRules rules =
+				new ProfileAccessRules(new AuthorityTiers(roleHierarchy()));
 
 		private final User member = member();
 		private final User moderator = moderator();
@@ -264,8 +275,8 @@ class AccessModelTest {
 		@Test
 		void birthDateIsTyped() {
 			UpdateUserProfileRequest request = new UpdateUserProfileRequest();
-			request.setBirthDate(java.time.LocalDate.of(2000, 1, 2));
-			assertEquals(java.time.LocalDate.of(2000, 1, 2), request.birthDate());
+			request.setBirthDate(LocalDate.of(2000, 1, 2));
+			assertEquals(LocalDate.of(2000, 1, 2), request.birthDate());
 		}
 
 		@Test
@@ -278,7 +289,11 @@ class AccessModelTest {
 			assertEquals(null, request.hideEmailFlag());
 			assertEquals(null, request.hideOnlineStatus());
 			assertThrows(ZfgcInvalidRequestException.class,
-					() -> ReflectionTestUtils.invokeMethod(new UserService(), "validateProfileUpdate", request));
+					() -> ReflectionTestUtils.invokeMethod(new UserService(
+							mock(UserDataProvider.class),
+							mock(ProfileAccessRules.class),
+							mock(UserProfileMapper.class),
+							mock(GenderLkupDboMapper.class)), "validateProfileUpdate", request));
 		}
 	}
 }

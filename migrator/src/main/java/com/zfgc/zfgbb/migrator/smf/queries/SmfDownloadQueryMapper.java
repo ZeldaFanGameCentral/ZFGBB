@@ -5,8 +5,13 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public interface SmfDownloadQueryMapper {
 
+	@Getter
+	@Setter
 	class DownloadRow {
 		private Integer id;
 		private Integer type;
@@ -14,54 +19,6 @@ public interface SmfDownloadQueryMapper {
 		private String description;
 		private Integer fileSize;
 		private Integer postTime;
-
-		public Integer getPostTime() {
-			return postTime;
-		}
-
-		public void setPostTime(Integer postTime) {
-			this.postTime = postTime;
-		}
-
-		public Integer getId() {
-			return id;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public Integer getType() {
-			return type;
-		}
-
-		public void setType(Integer type) {
-			this.type = type;
-		}
-
-		public String getFileUrl() {
-			return fileUrl;
-		}
-
-		public void setFileUrl(String fileUrl) {
-			this.fileUrl = fileUrl;
-		}
-
-		public String getDescription() {
-			return description;
-		}
-
-		public void setDescription(String description) {
-			this.description = description;
-		}
-
-		public Integer getFileSize() {
-			return fileSize;
-		}
-
-		public void setFileSize(Integer fileSize) {
-			this.fileSize = fileSize;
-		}
 	}
 
 	@Select("""
@@ -84,55 +41,19 @@ public interface SmfDownloadQueryMapper {
 			""")
 	List<DownloadRow> selectByResource(@Param("resourceId") Integer resourceId);
 
+	@Getter
+	@Setter
 	class CuratedCollectionRow {
 		private String code;
 		private String title;
 		private String kind;
-
-		public String getCode() {
-			return code;
-		}
-
-		public void setCode(String code) {
-			this.code = code;
-		}
-
-		public String getTitle() {
-			return title;
-		}
-
-		public void setTitle(String title) {
-			this.title = title;
-		}
-
-		public String getKind() {
-			return kind;
-		}
-
-		public void setKind(String kind) {
-			this.kind = kind;
-		}
 	}
 
+	@Getter
+	@Setter
 	class CuratedItemRow {
 		private String entityType;
 		private Integer legacyId;
-
-		public String getEntityType() {
-			return entityType;
-		}
-
-		public void setEntityType(String entityType) {
-			this.entityType = entityType;
-		}
-
-		public Integer getLegacyId() {
-			return legacyId;
-		}
-
-		public void setLegacyId(Integer legacyId) {
-			this.legacyId = legacyId;
-		}
 	}
 
 	@Select("""
@@ -141,43 +62,13 @@ public interface SmfDownloadQueryMapper {
 			""")
 	int curatedCollectionTableExists();
 
+	@Getter
+	@Setter
 	class CuratedMergeRow {
 		private String sourceEntityType;
 		private Integer sourceLegacyId;
 		private String targetEntityType;
 		private Integer targetLegacyId;
-
-		public String getSourceEntityType() {
-			return sourceEntityType;
-		}
-
-		public void setSourceEntityType(String sourceEntityType) {
-			this.sourceEntityType = sourceEntityType;
-		}
-
-		public Integer getSourceLegacyId() {
-			return sourceLegacyId;
-		}
-
-		public void setSourceLegacyId(Integer sourceLegacyId) {
-			this.sourceLegacyId = sourceLegacyId;
-		}
-
-		public String getTargetEntityType() {
-			return targetEntityType;
-		}
-
-		public void setTargetEntityType(String targetEntityType) {
-			this.targetEntityType = targetEntityType;
-		}
-
-		public Integer getTargetLegacyId() {
-			return targetLegacyId;
-		}
-
-		public void setTargetLegacyId(Integer targetLegacyId) {
-			this.targetLegacyId = targetLegacyId;
-		}
 	}
 
 	@Select("""
@@ -202,96 +93,32 @@ public interface SmfDownloadQueryMapper {
 			""")
 	List<CuratedItemRow> selectCuratedItems(@Param("code") String code);
 
+	@Getter
+	@Setter
 	class LegacyTeamRow {
 		private Integer id;
 		private String title;
 		private String description;
 		private Integer memberId;
 		private Integer time;
-
-		public Integer getId() {
-			return id;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public String getTitle() {
-			return title;
-		}
-
-		public void setTitle(String title) {
-			this.title = title;
-		}
-
-		public String getDescription() {
-			return description;
-		}
-
-		public void setDescription(String description) {
-			this.description = description;
-		}
-
-		public Integer getMemberId() {
-			return memberId;
-		}
-
-		public void setMemberId(Integer memberId) {
-			this.memberId = memberId;
-		}
-
-		public Integer getTime() {
-			return time;
-		}
-
-		public void setTime(Integer time) {
-			this.time = time;
-		}
 	}
 
+	@Getter
+	@Setter
 	class LegacyPairRow {
 		private Integer leftId;
 		private Integer rightId;
-
-		public Integer getLeftId() {
-			return leftId;
-		}
-
-		public void setLeftId(Integer leftId) {
-			this.leftId = leftId;
-		}
-
-		public Integer getRightId() {
-			return rightId;
-		}
-
-		public void setRightId(Integer rightId) {
-			this.rightId = rightId;
-		}
 	}
 
+	@Getter
+	@Setter
 	class LegacyTagRow {
 		private Integer id;
 		private String name;
-
-		public Integer getId() {
-			return id;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
 	}
 
+	@Getter
+	@Setter
 	class LegacyNewsRow {
 		private Integer id;
 		private Integer gameId;
@@ -299,54 +126,6 @@ public interface SmfDownloadQueryMapper {
 		private String subject;
 		private String body;
 		private Integer postTime;
-
-		public Integer getId() {
-			return id;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public Integer getGameId() {
-			return gameId;
-		}
-
-		public void setGameId(Integer gameId) {
-			this.gameId = gameId;
-		}
-
-		public Integer getMemberId() {
-			return memberId;
-		}
-
-		public void setMemberId(Integer memberId) {
-			this.memberId = memberId;
-		}
-
-		public String getSubject() {
-			return subject;
-		}
-
-		public void setSubject(String subject) {
-			this.subject = subject;
-		}
-
-		public String getBody() {
-			return body;
-		}
-
-		public void setBody(String body) {
-			this.body = body;
-		}
-
-		public Integer getPostTime() {
-			return postTime;
-		}
-
-		public void setPostTime(Integer postTime) {
-			this.postTime = postTime;
-		}
 	}
 
 	@Select("select id_team as id, title, description, id_member as memberId, time from ci_teams order by id_team")
@@ -367,34 +146,12 @@ public interface SmfDownloadQueryMapper {
 			""")
 	List<LegacyTagRow> selectMemberNames();
 
+	@Getter
+	@Setter
 	class WikiProjectLinkRow {
 		private String wikiTitle;
 		private String entityType;
 		private Integer legacyId;
-
-		public String getWikiTitle() {
-			return wikiTitle;
-		}
-
-		public void setWikiTitle(String wikiTitle) {
-			this.wikiTitle = wikiTitle;
-		}
-
-		public String getEntityType() {
-			return entityType;
-		}
-
-		public void setEntityType(String entityType) {
-			this.entityType = entityType;
-		}
-
-		public Integer getLegacyId() {
-			return legacyId;
-		}
-
-		public void setLegacyId(Integer legacyId) {
-			this.legacyId = legacyId;
-		}
 	}
 
 	@Select("""
@@ -406,6 +163,8 @@ public interface SmfDownloadQueryMapper {
 	@Select("select wiki_title as wikiTitle, entity_type as entityType, legacy_id as legacyId from curated_wiki_project_link")
 	List<WikiProjectLinkRow> selectWikiProjectLinks();
 
+	@Getter
+	@Setter
 	class WikiRevisionRow {
 		private Integer id;
 		private Integer pageId;
@@ -413,54 +172,6 @@ public interface SmfDownloadQueryMapper {
 		private String userText;
 		private String revTimestamp;
 		private String comment;
-
-		public Integer getId() {
-			return id;
-		}
-
-		public void setId(Integer id) {
-			this.id = id;
-		}
-
-		public Integer getPageId() {
-			return pageId;
-		}
-
-		public void setPageId(Integer pageId) {
-			this.pageId = pageId;
-		}
-
-		public Integer getTextId() {
-			return textId;
-		}
-
-		public void setTextId(Integer textId) {
-			this.textId = textId;
-		}
-
-		public String getUserText() {
-			return userText;
-		}
-
-		public void setUserText(String userText) {
-			this.userText = userText;
-		}
-
-		public String getRevTimestamp() {
-			return revTimestamp;
-		}
-
-		public void setRevTimestamp(String revTimestamp) {
-			this.revTimestamp = revTimestamp;
-		}
-
-		public String getComment() {
-			return comment;
-		}
-
-		public void setComment(String comment) {
-			this.comment = comment;
-		}
 	}
 
 	@Select("""

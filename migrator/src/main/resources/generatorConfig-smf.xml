@@ -27,26 +27,36 @@
       (BTW see CONTRIBUTING.md) you can run this command to regenerate this
       mvn -pl migrator -am initialize mybatis-generator:generate
     -->
-    <table tableName="smf_1log_karma" domainObjectName="SMFLogKarmaDb">
+    <table tableName="smf_1log_karma" domainObjectName="SMFLogKarmaDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="action" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1polls" domainObjectName="SMFPollsDb">
+    <table tableName="smf_1polls" domainObjectName="SMFPollsDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="max_votes" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="hide_results" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
       <columnOverride column="change_vote" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
       <columnOverride column="guest_vote" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
     </table>
 
-    <table tableName="smf_1poll_choices" domainObjectName="SMFPollChoicesDb">
+    <table tableName="smf_1poll_choices" domainObjectName="SMFPollChoicesDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="id_choice" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1log_polls" domainObjectName="SMFLogPollsDb">
+    <table tableName="smf_1log_polls" domainObjectName="SMFLogPollsDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="id_choice" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1members" domainObjectName="SMFMembersDb">
+    <table tableName="smf_1members" domainObjectName="SMFMembersDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="id_group" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="instant_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="unread_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
@@ -58,44 +68,69 @@
       <columnOverride column="show_online" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
     </table>
 
-    <table tableName="smf_1attachments" domainObjectName="SMFAttachmentsDb"/>
+    <table tableName="smf_1attachments" domainObjectName="SMFAttachmentsDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1messages_history" domainObjectName="SMFMessageHistoryDb"/>
+    <table tableName="smf_1messages_history" domainObjectName="SMFMessageHistoryDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false"/>
 
-    <table tableName="smf_1messages" domainObjectName="SMFMessageDb"/>
+    <table tableName="smf_1messages" domainObjectName="SMFMessageDb"
+           enableDeleteByExample="false" enableUpdateByExample="false"/>
 
-    <table tableName="smf_1topics" domainObjectName="SMFTopicDb"/>
+    <table tableName="smf_1topics" domainObjectName="SMFTopicDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1boards" domainObjectName="SMFBoardDb">
+    <table tableName="smf_1boards" domainObjectName="SMFBoardDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="id_cat" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="id_parent" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1categories" domainObjectName="SMFCategoryDb">
+    <table tableName="smf_1categories" domainObjectName="SMFCategoryDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="id_cat" jdbcType="TINYINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1games" domainObjectName="SMFGameDb"/>
+    <table tableName="smf_1games" domainObjectName="SMFGameDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1resources_main" domainObjectName="SMFResourceMainDb"/>
+    <table tableName="smf_1resources_main" domainObjectName="SMFResourceMainDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1game_comments" domainObjectName="SMFGameCommentDb"/>
+    <table tableName="smf_1game_comments" domainObjectName="SMFGameCommentDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1resource_comments" domainObjectName="SMFResourceCommentDb"/>
+    <table tableName="smf_1resource_comments" domainObjectName="SMFResourceCommentDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="smf_1personal_messages" domainObjectName="SMFPersonalMessageDb">
+    <table tableName="smf_1personal_messages" domainObjectName="SMFPersonalMessageDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="deleted_by_sender" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
     </table>
 
-    <table tableName="smf_1pm_recipients" domainObjectName="SMFPmRecipientDb">
+    <table tableName="smf_1pm_recipients" domainObjectName="SMFPmRecipientDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="bcc" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
       <columnOverride column="is_read" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="is_new" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="deleted" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
     </table>
 
-    <table tableName="smf_1membergroups" domainObjectName="SMFMembergroupDb">
+    <table tableName="smf_1membergroups" domainObjectName="SMFMembergroupDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="id_group" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="min_posts" jdbcType="INTEGER" javaType="java.lang.Integer"/>
       <columnOverride column="id_parent" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
@@ -104,16 +139,22 @@
       <columnOverride column="max_messages" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1log_notify" domainObjectName="SMFLogNotifyDb">
+    <table tableName="smf_1log_notify" domainObjectName="SMFLogNotifyDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="sent" jdbcType="SMALLINT" javaType="java.lang.Boolean"/>
     </table>
 
-    <table tableName="smf_1log_comments" domainObjectName="SMFLogCommentDb">
+    <table tableName="smf_1log_comments" domainObjectName="SMFLogCommentDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="counter" jdbcType="TINYINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="smf_1log_actions" domainObjectName="SMFLogActionDb">
+    <table tableName="smf_1log_actions" domainObjectName="SMFLogActionDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="id_log" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="id_board" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
@@ -131,23 +172,33 @@
     <sqlMapGenerator targetPackage="com.zfgc.zfgbb.migrator.ci.mappers" targetProject="src/main/resources"/>
     <javaClientGenerator targetPackage="com.zfgc.zfgbb.migrator.ci.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
 
-    <table tableName="ci_projects" domainObjectName="CiProjectDb">
+    <table tableName="ci_projects" domainObjectName="CiProjectDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="status" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="progress" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="views" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="downloads" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="ci_project_screenshots" domainObjectName="CiProjectScreenshotDb"/>
+    <table tableName="ci_project_screenshots" domainObjectName="CiProjectScreenshotDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="ci_project_downloads" domainObjectName="CiProjectDownloadDb"/>
+    <table tableName="ci_project_downloads" domainObjectName="CiProjectDownloadDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
-    <table tableName="ci_resources_backup" domainObjectName="CiResourceDb">
+    <table tableName="ci_resources_backup" domainObjectName="CiResourceDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="views" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
       <columnOverride column="downloads" jdbcType="SMALLINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="ci_potms" domainObjectName="CiPotmDb"/>
+    <table tableName="ci_potms" domainObjectName="CiPotmDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false"/>
 
   </context>
 
@@ -162,19 +213,25 @@
     <sqlMapGenerator targetPackage="com.zfgc.zfgbb.migrator.wiki.mappers" targetProject="src/main/resources"/>
     <javaClientGenerator targetPackage="com.zfgc.zfgbb.migrator.wiki.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
 
-    <table tableName="zfgc_wikipage" domainObjectName="MwPageDb">
+    <table tableName="zfgc_wikipage" domainObjectName="MwPageDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="page_is_redirect" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="page_is_new" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="page_touched" jdbcType="CHAR" javaType="java.lang.String"/>
     </table>
 
-    <table tableName="zfgc_wikirevision" domainObjectName="MwRevisionDb">
+    <table tableName="zfgc_wikirevision" domainObjectName="MwRevisionDb"
+           enableSelectByExample="false" enableCountByExample="false"
+           enableDeleteByExample="false" enableUpdateByExample="false">
       <columnOverride column="rev_timestamp" jdbcType="CHAR" javaType="java.lang.String"/>
       <columnOverride column="rev_minor_edit" jdbcType="TINYINT" javaType="java.lang.Integer"/>
       <columnOverride column="rev_deleted" jdbcType="TINYINT" javaType="java.lang.Integer"/>
     </table>
 
-    <table tableName="zfgc_wikitext" domainObjectName="MwTextDb">
+    <table tableName="zfgc_wikitext" domainObjectName="MwTextDb"
+           enableCountByExample="false" enableDeleteByExample="false"
+           enableUpdateByExample="false">
       <columnOverride column="old_text" jdbcType="LONGVARCHAR" javaType="java.lang.String"/>
       <columnOverride column="old_flags" jdbcType="VARCHAR" javaType="java.lang.String"/>
     </table>

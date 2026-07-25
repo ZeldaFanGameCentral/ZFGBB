@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,11 +19,11 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
+import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
@@ -45,35 +46,39 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
 @Component
 public class MessageHistoryConverter extends AbstractConverter<Void> {
 
-	@Autowired
-	private SmfResilientReadMapper resilientReads;
-
-	@Autowired
-	private SMFMessageDbMapper smfMsgMapper;
-
-	@Autowired
-	private SmfMessageStreamMapper smfMessageStreamMapper;
-
-	@Autowired
-	private MessageHistoryDboMapper msgHistoryMapper;
-
-	@Autowired
-	private IpAddressDboMapper ipMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	@Autowired
-	private SqlSessionFactory sqlSessionFactory;
-
-	@Value("${zfgbb.migrator.batch-size:5000}")
-	private int batchSize;
+	private final SmfResilientReadMapper resilientReads;
+	private final SMFMessageDbMapper smfMsgMapper;
+	private final SmfMessageStreamMapper smfMessageStreamMapper;
+	private final MessageHistoryDboMapper msgHistoryMapper;
+	private final IpAddressDboMapper ipMapper;
+	private final MigratorIdMapService idMap;
+	private final SqlSessionFactory sqlSessionFactory;
+	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageHistoryConverter.class);
 
 	private boolean freshRun;
 
 	private Map<Integer, Integer> messageIdMap;
+
+	public MessageHistoryConverter(
+			SmfResilientReadMapper resilientReads,
+			SMFMessageDbMapper smfMsgMapper,
+			SmfMessageStreamMapper smfMessageStreamMapper,
+			MessageHistoryDboMapper msgHistoryMapper,
+			IpAddressDboMapper ipMapper,
+			MigratorIdMapService idMap,
+			SqlSessionFactory sqlSessionFactory,
+			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
+		this.resilientReads = resilientReads;
+		this.smfMsgMapper = smfMsgMapper;
+		this.smfMessageStreamMapper = smfMessageStreamMapper;
+		this.msgHistoryMapper = msgHistoryMapper;
+		this.ipMapper = ipMapper;
+		this.idMap = idMap;
+		this.sqlSessionFactory = sqlSessionFactory;
+		this.batchSize = batchSize;
+	}
 
 	@Override
 	public JobType getType() {
@@ -177,6 +182,7 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 			row.setIpAddressId(ipAddressId);
 			row.setMessageId(zfgbbMessageId);
 			row.setMessageText(interval.body());
+			row.setContentFormat(ContentFormat.BBCODE.name());
 
 			row.setMigrationHash(MigrationHasher.hash(msg.getIdMsg().toString()
 					+ "history-" + String.valueOf(interval.createdTs())
@@ -231,7 +237,7 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 		Map<String, ArrayDeque<Integer>> byHash = new HashMap<>();
 		for (ExistingCandidate candidate : existing)
 			byHash.computeIfAbsent(candidate.hash(), ignored -> new ArrayDeque<>()).add(candidate.id());
-		Set<Integer> used = new java.util.HashSet<>();
+		Set<Integer> used = new HashSet<>();
 		List<Integer> assigned = new ArrayList<>();
 		for (String hash : desiredHashes) {
 			Integer id = pollUnused(byHash.get(hash), used);

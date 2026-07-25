@@ -4,35 +4,41 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
+import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
 import com.zfgc.zfgbb.mappers.custom.SearchQueryMapper;
 import com.zfgc.zfgbb.mappers.custom.SearchQueryMapper.Hit;
 import com.zfgc.zfgbb.model.search.SearchGroup;
 import com.zfgc.zfgbb.model.search.SearchHit;
 import com.zfgc.zfgbb.model.search.SearchRealm;
 import com.zfgc.zfgbb.model.search.SearchResults;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@BoardVisibilityChokepoint
 public class SearchService {
 
 	private static final int PER_TYPE_LIMIT = 6;
 	private static final int SNIPPET_RADIUS = 80;
 
-	private static final List<SearchRealm> REALMS = List.of(
-			new SearchRealm("forum", "Forum"),
-			new SearchRealm("wiki", "Wiki"),
-			new SearchRealm("project", "Projects"),
-			new SearchRealm("resource", "Resources"));
+	public static final List<SearchRealm> REALMS = List.of(
+			new SearchRealm("forum", "Forum Topics"),
+			new SearchRealm("wiki", "Wiki Pages"),
+			new SearchRealm("project", "CMS Projects"),
+			new SearchRealm("resource", "CMS Resources"));
 
 	private static final List<SearchRealm> REALM_FILTERS = Stream.concat(
 			Stream.of(new SearchRealm("", "All")), REALMS.stream()).toList();
 
-	@Autowired
-	private SearchQueryMapper searchMapper;
+	private final SearchQueryMapper searchMapper;
+
+	private final WikiDataProvider wikiPages;
 
 	public List<SearchRealm> getRealms() {
 		return REALM_FILTERS;
@@ -62,7 +68,8 @@ public class SearchService {
 			groups.add(forum);
 		}
 		if (all || types.contains("wiki")) {
-			SearchGroup wiki = cappedGroup("wiki", searchMapper.searchWiki(pattern, PER_TYPE_LIMIT + 1),
+			SearchGroup wiki = cappedGroup("wiki", searchMapper.searchWiki(pattern,
+					wikiPages.theNamespacesNoReaderViewShows(), PER_TYPE_LIMIT + 1),
 					hit -> new SearchHit("wiki", displayTitle(hit),
 							snippet(hit.getBody(), trimmed), namespaceLabel(hit.getContext()),
 							"/wiki/" + hit.getSlug()));
@@ -117,7 +124,7 @@ public class SearchService {
 	}
 
 	private SearchGroup cappedGroup(String type, List<Hit> found,
-			java.util.function.Function<Hit, SearchHit> toHit) {
+			Function<Hit, SearchHit> toHit) {
 		List<SearchHit> hits = new ArrayList<>(found.stream().limit(PER_TYPE_LIMIT).map(toHit).toList());
 		SearchGroup group = new SearchGroup(type, label(type), hits.size(), hits);
 		group.setMore(found.size() > PER_TYPE_LIMIT);

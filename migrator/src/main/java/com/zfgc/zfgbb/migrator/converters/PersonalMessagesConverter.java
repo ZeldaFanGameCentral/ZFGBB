@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -31,31 +30,23 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFPmRecipientDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFPersonalMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFPmRecipientDbMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class PersonalMessagesConverter extends AbstractConverter<Void> {
+
+	private final SMFPersonalMessageDbMapper smfPmMapper;
+	private final SMFPmRecipientDbMapper smfRecipientMapper;
+	private final PersonalMessageConversationDboMapper conversationMapper;
+	private final PersonalMessageDboMapper pmMapper;
+	private final PersonalMessageRecipientDboMapper recipientMapper;
+	private final MigratorIdMapService idMap;
 
 	@Override
 	public JobType getType() {
 		return JobType.PERSONAL_MESSAGES;
 	}
-
-	@Autowired
-	private SMFPersonalMessageDbMapper smfPmMapper;
-
-	@Autowired
-	private SMFPmRecipientDbMapper smfRecipientMapper;
-
-	@Autowired
-	private PersonalMessageConversationDboMapper conversationMapper;
-
-	@Autowired
-	private PersonalMessageDboMapper pmMapper;
-
-	@Autowired
-	private PersonalMessageRecipientDboMapper recipientMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
 
 	private Map<Integer, Integer> userMap;
 	private Map<Integer, Integer> conversationMap;

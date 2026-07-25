@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class WikiRevisionRefDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751412656-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751443175-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751470674-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751406276-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public WikiRevisionRefDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751416975-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751423055-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751455614-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751461414-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751473554-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751477544-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751481393-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751485163-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class WikiRevisionRefDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751488863-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751492613-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751498333-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -422,12 +428,12 @@ public class WikiRevisionRefDboExample {
         }
 
         public Criteria andAuthorNameLike(String value) {
-            addCriterion("author_name like", value, "authorName");
+            addCriterion("author_name ilike", value, "authorName");
             return (Criteria) this;
         }
 
         public Criteria andAuthorNameNotLike(String value) {
-            addCriterion("author_name not like", value, "authorName");
+            addCriterion("author_name not ilike", value, "authorName");
             return (Criteria) this;
         }
 
@@ -492,12 +498,12 @@ public class WikiRevisionRefDboExample {
         }
 
         public Criteria andSummaryLike(String value) {
-            addCriterion("summary like", value, "summary");
+            addCriterion("summary ilike", value, "summary");
             return (Criteria) this;
         }
 
         public Criteria andSummaryNotLike(String value) {
-            addCriterion("summary not like", value, "summary");
+            addCriterion("summary not ilike", value, "summary");
             return (Criteria) this;
         }
 
@@ -682,12 +688,12 @@ public class WikiRevisionRefDboExample {
         }
 
         public Criteria andStatusLike(String value) {
-            addCriterion("status like", value, "status");
+            addCriterion("status ilike", value, "status");
             return (Criteria) this;
         }
 
         public Criteria andStatusNotLike(String value) {
-            addCriterion("status not like", value, "status");
+            addCriterion("status not ilike", value, "status");
             return (Criteria) this;
         }
 
@@ -712,14 +718,14 @@ public class WikiRevisionRefDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751730206-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.751741425-04:00", comments="Source Table: zfgbb.wiki_revision_ref")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.wiki_revision_ref")
     public static class Criterion {
         private String condition;
 

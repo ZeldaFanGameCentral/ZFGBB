@@ -2,9 +2,17 @@ package com.zfgc.zfgbb.migrator.converters.cms;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,15 +20,20 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.WikiPageDbo;
 import com.zfgc.zfgbb.dbo.WikiPageDboExample;
+import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
+import com.zfgc.zfgbb.mappers.IpAddressDboMapper;
+import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
+import com.zfgc.zfgbb.mappers.ThreadDboMapper;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.mappers.UserDboMapper;
@@ -34,6 +47,7 @@ import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
 import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
+import com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper;
 import com.zfgc.zfgbb.migrator.markup.MarkupConverter;
 import com.zfgc.zfgbb.migrator.wiki.dbo.MwPageDb;
 import com.zfgc.zfgbb.migrator.wiki.dbo.MwPageDbExample;
@@ -44,12 +58,11 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfDownloadQueryMapper.WikiRevisionRo
 import com.zfgc.zfgbb.migrator.wiki.mappers.MwPageDbMapper;
 import com.zfgc.zfgbb.migrator.wiki.mappers.MwTextDbMapper;
 import com.zfgc.zfgbb.dbo.ContentEntityDbo;
-import com.zfgc.zfgbb.dbo.ProjectDbo;
+import com.zfgc.zfgbb.dbo.MessageDbo;
+import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.ProjectScreenshotDboExample;
+import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDbo;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
 import java.util.stream.Stream;
 import com.zfgc.zfgbb.dbo.ContentTemplateDbo;
 import com.zfgc.zfgbb.dbo.ContentTemplateDboExample;
@@ -62,12 +75,14 @@ import com.zfgc.zfgbb.mappers.ProjectScreenshotDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageCategoryDboMapper;
 import com.zfgc.zfgbb.mappers.ContentTemplateDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageRevisionDboMapper;
+import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 import com.zfgc.zfgbb.migrator.markup.Node;
-import java.util.ArrayList;
-import java.util.HashMap;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class WikiPagesConverter extends AbstractConverter<Void> {
 
 	private static final Pattern WIKI_FILE = Pattern.compile("\\[img\\]wiki-file:([^\\[\\]]+)\\[/img\\]");
@@ -77,84 +92,45 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 	private static final Pattern FILE_REF = Pattern.compile("\\[\\[(?:File|Image):([^\\]|]+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern BODY_IMG = Pattern.compile("\\[img\\]/content/(\\d+)\\[/img\\]");
 
-	private record SpecialRedirect(String slug, String title, String route) {}
+	private record SpecialRedirect(String localName, String title, String route) {}
 
 	private static final List<SpecialRedirect> SPECIAL_REDIRECTS = List.of(
-			new SpecialRedirect("Special:listusers", "ListUsers", "/forum/memberList/1"));
+			new SpecialRedirect("listusers", "ListUsers", "/forum/memberList/1"));
 
-	@Autowired
-	private MwPageDbMapper mwPageMapper;
+	private static final Logger logger = LoggerFactory.getLogger(WikiPagesConverter.class);
 
-	@Autowired
-	private MwTextDbMapper mwTextMapper;
+	private final MwPageDbMapper mwPageMapper;
+	private final MwTextDbMapper mwTextMapper;
+	private final WikiPageDboMapper wikiPageMapper;
+	private final UserDboMapper userMapper;
+	private final ContentResourceDboMapper contentMapper;
+	private final WikiPageStore wikiPages;
+	private final WikiPageCategoryDboMapper categoryMapper;
+	private final MigratorIdMapService idMap;
+	private final ThreadDboMapper threadMapper;
+	private final MessageDboMapper messageMapper;
+	private final MessageHistoryDboMapper messageHistoryMapper;
+	private final MigratorTimestampMapper migratorTimestampMapper;
+	private final IpAddressDboMapper ipAddressMapper;
+	private final SmfDownloadQueryMapper legacyQueries;
+	private final ProjectDboMapper projectMapper;
+	private final ContentEntityDboMapper contentEntityMapper;
+	private final ProjectScreenshotDboMapper screenshotMapper;
+	private final WikiPageRevisionDboMapper revisionMapper;
+	private final ContentTemplateDboMapper contentTemplateMapper;
+	private final TransactionTemplate transactionTemplate;
+	private final JdbcTemplate targetJdbc;
 
-	@Autowired
-	private WikiPageDboMapper wikiPageMapper;
-
-	@Autowired
-	private UserDboMapper userMapper;
-
-	@Autowired
-	private ContentResourceDboMapper contentMapper;
-
-	@Autowired
-	private WikiPageStore wikiPages;
-
-	@Autowired
-	private WikiPageCategoryDboMapper categoryMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.ThreadDboMapper threadMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.MessageDboMapper messageMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.MessageHistoryDboMapper messageHistoryMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper migratorTimestampMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.IpAddressDboMapper ipAddressMapper;
-
-	private final List<TalkPage> talkPages = new java.util.ArrayList<>();
-
-	private record TalkPage(String namespace, String title, String content, java.time.OffsetDateTime authoredTs,
-			String authorName) {
+	private record TalkPage(Integer sourceNamespaceId, String namespace, String title, String content,
+			OffsetDateTime authoredTs, String authorName) {
 	}
 
-	@Autowired
-	private SmfDownloadQueryMapper legacyQueries;
-
-	@Autowired
-	private ProjectDboMapper projectMapper;
-
-	@Autowired
-	private com.zfgc.zfgbb.mappers.ContentEntityDboMapper contentEntityMapper;
-
-	@Autowired
-	private ProjectScreenshotDboMapper screenshotMapper;
-
-	@Autowired
-	private WikiPageRevisionDboMapper revisionMapper;
-
-	@Autowired
-	private ContentTemplateDboMapper contentTemplateMapper;
-
-	private final Logger logger = LoggerFactory.getLogger(WikiPagesConverter.class);
-
-	private LegacyUrlRewriter urlRewriter;
-	private LegacyIdMaps urlMaps;
-	private Map<String, Integer> legacyMembersByName;
-
-	@Autowired
-	private TransactionTemplate transactionTemplate;
-	@Autowired
-	private JdbcTemplate targetJdbc;
+	private record RunContext(
+			LegacyUrlRewriter urlRewriter,
+			LegacyIdMaps urlMaps,
+			Map<String, Integer> legacyMembersByName,
+			List<TalkPage> talkPages) {
+	}
 
 	@Override
 	public JobType getType() {
@@ -177,17 +153,20 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		if (legacyQueries.wikiProjectLinkTableExists() > 0) {
 			legacyQueries.selectWikiProjectLinks().forEach(row -> wikiProjectLinks.put(row.getWikiTitle(), row));
 		}
-		urlMaps = new LegacyIdMaps(
+		LegacyIdMaps urlMaps = new LegacyIdMaps(
 				idMap.getAllForType(LegacyEntityType.THREAD),
 				idMap.getAllForType(LegacyEntityType.MESSAGE),
 				idMap.getAllForType(LegacyEntityType.BOARD),
 				idMap.getAllForType(LegacyEntityType.USER),
-				idMap.getAllForType(LegacyEntityType.ATTACHMENT));
-		urlRewriter = LegacyUrlRewriter.forLegacyHost(
+				idMap.getAllForType(LegacyEntityType.ATTACHMENT),
+				idMap.getAllForType(LegacyEntityType.GAME));
+		LegacyUrlRewriter urlRewriter = LegacyUrlRewriter.forLegacyHost(
 				JobContextHolder.getLegacyHost(), JobContextHolder.getAppBaseUrl());
-		legacyMembersByName = new HashMap<>();
+		Map<String, Integer> legacyMembersByName = new HashMap<>();
 		legacyQueries.selectMemberNames().forEach(
 				row -> legacyMembersByName.put(row.getName().toLowerCase(Locale.ROOT), row.getId()));
+		RunContext runContext = new RunContext(
+				urlRewriter, urlMaps, legacyMembersByName, new ArrayList<>());
 
 		String imagesSourcePath = JobContextHolder.getWikiImagesSourcePath();
 		CmsAssetStore assets = null;
@@ -211,7 +190,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		for (MwPageDb page : pages) {
 			Cancellable.check();
 			Boolean written = transactionTemplate.execute(status -> convertOne(page, revById, revsByPage,
-					textByOldId, categoryLinks, wikiProjectLinks, pageAssets, pageImagesRoot));
+					textByOldId, categoryLinks, wikiProjectLinks, pageAssets, pageImagesRoot, runContext));
 			if (Boolean.TRUE.equals(written)) {
 				converted++;
 			}
@@ -222,21 +201,36 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 			if (JobContextHolder.isCreateMemberWikiPages()) {
 				seedMemberPages();
 			}
-			convertTalkPages();
+			convertTalkPages(runContext);
 		});
 		return null;
 	}
 
+	private String unheldEngineRole(Integer sourceNamespaceId) {
+		String role = CmsSupport.engineRoleName(sourceNamespaceId);
+		if (role == null)
+			return null;
+		Integer held = targetJdbc.queryForObject(
+				"select count(*) from zfgbb.wiki_namespace where engine_role = ?", Integer.class, role);
+		return held != null && held > 0 ? null : role;
+	}
+
 	private void registerDiscoveredNamespaces(List<MwPageDb> pages) {
-		pages.stream().map(MwPageDb::getPageNamespace).map(CmsSupport::wikiNamespace)
-				.distinct().sorted(String.CASE_INSENSITIVE_ORDER).forEach(namespace -> {
+		pages.stream().map(MwPageDb::getPageNamespace).distinct()
+				.sorted(Comparator.comparing(CmsSupport::wikiNamespace, String.CASE_INSENSITIVE_ORDER))
+				.forEach(sourceNamespaceId -> {
+			String namespace = CmsSupport.wikiNamespace(sourceNamespaceId);
 			if (targetJdbc.queryForObject("select count(*) from zfgbb.wiki_namespace where lower(name)=lower(?)",
 					Integer.class, namespace) == 0) targetJdbc.update(
-					"insert into zfgbb.wiki_namespace(name,case_mode) values (?,?)", namespace,
-					JobContextHolder.getWikiNamespaceCaseMode(namespace).name());
+					"insert into zfgbb.wiki_namespace(name,case_mode,edit_permission_code,engine_role) "
+					+ "values (?,?,?,?)", namespace,
+					JobContextHolder.getWikiNamespaceCaseMode(namespace).name(),
+					CmsSupport.defaultEditPermissionCode(sourceNamespaceId),
+					unheldEngineRole(sourceNamespaceId));
 		});
+		targetJdbc.queryForObject("select zfgbb.sync_wiki_namespace_space_aliases()", Integer.class);
 		Map<String, String> resolved = targetJdbc.query("select name,case_mode from zfgbb.wiki_namespace", rs -> {
-			Map<String, String> result = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+			Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 			while (rs.next()) result.put(rs.getString(1), rs.getString(2));
 			return result;
 		});
@@ -268,7 +262,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 					.map(target -> key + " <- source " + page.getPageId() + ":" + page.getPageTitle()
 							+ ", target " + target.getWikiPageId() + ":" + target.getSlug());
 		}).sorted().toList();
-		if (!targetConflicts.isEmpty())
+		if (!targetConflicts.isEmpty() && !JobContextHolder.isForce())
 			throw new IllegalStateException("MediaWiki titles conflict with target pages; resolve before migration: "
 					+ targetConflicts);
 	}
@@ -278,6 +272,27 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		if (members.isEmpty()) {
 			return;
 		}
+		Map<Integer, Integer> existingPagesByUserId = new HashMap<>();
+		targetJdbc.query("""
+				select p.wiki_page_id, p.slug, p.migration_hash, r.content
+				from zfgbb.wiki_page p
+				join zfgbb.wiki_page_revision r
+					on r.wiki_page_id = p.wiki_page_id and r.current_flag
+				where p.namespace = 'User'
+				""", rs -> {
+			String generatedHash = MigrationHasher.hash("entitypageUser" + rs.getString("slug"));
+			if (!generatedHash.equals(rs.getString("migration_hash"))) {
+				return;
+			}
+			Matcher block = USER_PROFILE_BLOCK.matcher(rs.getString("content"));
+			while (block.find()) {
+				Matcher param = USERID_PARAM.matcher(block.group(1));
+				if (param.find() && !param.group(1).isEmpty()) {
+					existingPagesByUserId.putIfAbsent(
+							Integer.parseInt(param.group(1)), rs.getInt("wiki_page_id"));
+				}
+			}
+		});
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdIn(new ArrayList<>(members.values()));
 		int seeded = 0;
@@ -287,7 +302,10 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 				continue;
 			}
 			String slug = "User:" + name.trim().replace(' ', '_');
-			Integer pageId = wikiPages.ensurePage("User", name, slug);
+			Integer pageId = existingPagesByUserId.get(user.getUserId());
+			if (pageId == null) {
+				pageId = wikiPages.ensurePage("User", name, slug);
+			}
 			wikiPages.upsertCurrentRevision(pageId,
 					"[template=UserProfile]\nuserid=" + user.getUserId() + "\n[/template]",
 					user.getCreatedTs());
@@ -297,24 +315,13 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		logger.info("Seeded {} member wiki page(s)", seeded);
 	}
 
-	private static final Map<String, String> TALK_SUBJECT_NAMESPACES = Map.of(
-			"Talk", "MAIN",
-			"UserTalk", "User",
-			"CategoryTalk", "Category",
-			"TemplateTalk", "Template",
-			"ZFGCpediaTalk", "ZFGCpedia",
-			"KOTTalk", "KOT");
-
-	private void convertTalkPages() {
-		if (talkPages.isEmpty()) {
+	private void convertTalkPages(RunContext runContext) {
+		if (runContext.talkPages().isEmpty()) {
 			return;
 		}
-		for (TalkPage talk : talkPages) {
-			String subjectNamespace = TALK_SUBJECT_NAMESPACES.get(talk.namespace());
-			if (subjectNamespace == null) {
-				logger.warn("talk page '{}' has no subject namespace mapping for {}", talk.title(), talk.namespace());
-				continue;
-			}
+		for (TalkPage talk : runContext.talkPages()) {
+			String subjectNamespace = CmsSupport.wikiNamespace(
+					WikiNamespaceRole.subjectNamespaceId(talk.sourceNamespaceId()));
 			Integer legacyBoardId = JobContextHolder.getTalkBoardId(subjectNamespace);
 			Integer boardId = legacyBoardId == null ? null
 					: idMap.lookupOrNull(LegacyEntityType.BOARD, legacyBoardId);
@@ -339,10 +346,10 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		if (displayName == null || displayName.isBlank()) {
 			return null;
 		}
-		com.zfgc.zfgbb.dbo.UserDboExample ex = new com.zfgc.zfgbb.dbo.UserDboExample();
+		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andDisplayNameEqualTo(displayName.trim());
 		return userMapper.selectByExample(ex).stream().findFirst()
-				.map(com.zfgc.zfgbb.dbo.UserDbo::getUserId).orElse(null);
+				.map(UserDbo::getUserId).orElse(null);
 	}
 
 	private WikiPageDbo findPage(String namespace, String slug) {
@@ -354,7 +361,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 	private Integer createTalkThread(Integer boardId, String subjectTitle, TalkPage talk) {
 		Integer authorUserId = userIdByDisplayName(talk.authorName());
 
-		com.zfgc.zfgbb.dbo.ThreadDbo thread = new com.zfgc.zfgbb.dbo.ThreadDbo();
+		ThreadDbo thread = new ThreadDbo();
 		thread.setBoardId(boardId);
 		thread.setThreadName("Talk: " + subjectTitle);
 		thread.setCreatedUserId(authorUserId);
@@ -364,7 +371,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		thread.setMigrationHash(MigrationHasher.hash("talkthread" + talk.namespace() + talk.title()));
 		threadMapper.insert(thread);
 
-		com.zfgc.zfgbb.dbo.MessageDbo message = new com.zfgc.zfgbb.dbo.MessageDbo();
+		MessageDbo message = new MessageDbo();
 		message.setThreadId(thread.getThreadId());
 		message.setBoardId(boardId);
 		message.setOwnerId(authorUserId);
@@ -372,9 +379,10 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		message.setMigrationHash(MigrationHasher.hash("talkmsg" + talk.namespace() + talk.title()));
 		messageMapper.insert(message);
 
-		com.zfgc.zfgbb.dbo.MessageHistoryDbo history = new com.zfgc.zfgbb.dbo.MessageHistoryDbo();
+		MessageHistoryDbo history = new MessageHistoryDbo();
 		history.setMessageId(message.getMessageId());
 		history.setMessageText(talk.content());
+		history.setContentFormat(ContentFormat.BBCODE.name());
 		history.setCurrentFlag(true);
 		history.setIpAddressId(CmsSupport.ensureIpAddress(ipAddressMapper, "127.0.0.1"));
 		messageHistoryMapper.insert(history);
@@ -387,17 +395,24 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		return thread.getThreadId();
 	}
 
+	private String namespaceForRole(WikiNamespaceRole role, String fallback) {
+		return targetJdbc.query("select name from zfgbb.wiki_namespace where engine_role = ?",
+				rs -> rs.next() ? rs.getString(1) : fallback, role.name());
+	}
+
 	private void seedSpecialRedirects() {
+		String specialNamespace = namespaceForRole(WikiNamespaceRole.SPECIAL, "Special");
 		for (SpecialRedirect redirect : SPECIAL_REDIRECTS) {
+			String slug = specialNamespace + ":" + redirect.localName();
 			WikiPageDboExample ex = new WikiPageDboExample();
-			ex.createCriteria().andNamespaceEqualTo("Special").andSlugEqualTo(redirect.slug());
+			ex.createCriteria().andNamespaceEqualTo(specialNamespace).andSlugEqualTo(slug);
 			WikiPageDbo existing = wikiPageMapper.selectByExample(ex).stream().findFirst().orElse(null);
-			String hash = MigrationHasher.hash("special:" + redirect.slug() + redirect.route());
+			String hash = MigrationHasher.hash("special:" + slug + redirect.route());
 			if (existing == null) {
 				WikiPageDbo page = new WikiPageDbo();
-				page.setNamespace("Special");
+				page.setNamespace(specialNamespace);
 				page.setTitle(redirect.title());
-				page.setSlug(redirect.slug());
+				page.setSlug(slug);
 				page.setRedirectTo(redirect.route());
 				page.setMigrationHash(hash);
 				wikiPageMapper.insert(page);
@@ -415,7 +430,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 			Map<Integer, List<WikiRevisionRow>> revsByPage, Map<Integer, String> textByOldId,
 			Map<Integer, List<String>> categoryLinks,
 			Map<String, SmfDownloadQueryMapper.WikiProjectLinkRow> wikiProjectLinks,
-			CmsAssetStore assets, Path imagesRoot) {
+			CmsAssetStore assets, Path imagesRoot, RunContext runContext) {
 		WikiRevisionRow rev = revById.get(page.getPageLatest());
 		if (rev == null) {
 			return false;
@@ -423,21 +438,22 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		String wikitext = textByOldId.getOrDefault(rev.getTextId(), "");
 		Node.Document document = MarkupConverter.parse(wikitext);
 		String namespace = CmsSupport.wikiNamespace(page.getPageNamespace());
-		String content = remapUserIds(urlRewriter.rewriteBody(
-				resolveImages(MarkupConverter.toBbCode(document), assets, imagesRoot), urlMaps),
-				namespace, page.getPageTitle());
+		String content = remapUserIds(runContext.urlRewriter().rewriteBody(
+				resolveImages(MarkupConverter.toBBCode(document), assets, imagesRoot), runContext.urlMaps()),
+				namespace, page.getPageTitle(), runContext);
 
 		WikiTitle canonicalTitle = WikiTitle.of(namespace, page.getPageTitle(), JobContextHolder.getWikiNamespaceCaseMode(namespace));
 		namespace = canonicalTitle.namespace();
 		String slug = CmsSupport.wikiSlug(namespace, page.getPageTitle());
 
-		if (namespace.endsWith("Talk")) {
-			talkPages.add(new TalkPage(namespace, page.getPageTitle(), content,
+		if (WikiNamespaceRole.isTalkNamespaceId(page.getPageNamespace())) {
+			runContext.talkPages().add(new TalkPage(page.getPageNamespace(), namespace, page.getPageTitle(), content,
 					CmsSupport.parseMwTimestamp(rev.getRevTimestamp()), rev.getUserText()));
 			return false;
 		}
 
-		boolean templatePage = "Template".equals(namespace);
+		WikiNamespaceRole sourceRole = WikiNamespaceRole.ofMediaWikiNamespaceId(page.getPageNamespace());
+		boolean templatePage = sourceRole == WikiNamespaceRole.TEMPLATE;
 		if (templatePage) {
 			content = CmsSupport.mustacheBody(content);
 		}
@@ -449,7 +465,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		wikiPage.setRedirectTo(page.getPageIsRedirect() != null && page.getPageIsRedirect() > 0
 				? CmsSupport.redirectTarget(wikitext)
 				: null);
-		if ("File".equals(namespace) && assets != null && imagesRoot != null) {
+		if (sourceRole == WikiNamespaceRole.FILE && assets != null && imagesRoot != null) {
 			wikiPage.setContentResourceId(assets.store(
 					CmsSupport.wikiImagePath(imagesRoot, page.getPageTitle()), 1,
 					fileContentType(page.getPageTitle())));
@@ -496,10 +512,10 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 			}
 			try {
 				String oldWikitext = textByOldId.getOrDefault(oldRev.getTextId(), "");
-				String oldContent = remapUserIds(urlRewriter.rewriteBody(
-						resolveImages(MarkupConverter.toBbCode(MarkupConverter.parse(oldWikitext)), assets,
+				String oldContent = remapUserIds(runContext.urlRewriter().rewriteBody(
+						resolveImages(MarkupConverter.toBBCode(MarkupConverter.parse(oldWikitext)), assets,
 								imagesRoot),
-						urlMaps), namespace, page.getPageTitle());
+						runContext.urlMaps()), namespace, page.getPageTitle(), runContext);
 				if (templatePage) {
 					oldContent = CmsSupport.mustacheBody(oldContent);
 				}
@@ -614,7 +630,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 
 	private void publishTemplate(String pageTitle, Integer wikiPageId, String migratedBody) {
 		String code = WikiTitle.normalizeTitle(CmsSupport.wikiTitleDisplay(pageTitle),
-				JobContextHolder.getWikiNamespaceCaseMode("Template"));
+				JobContextHolder.getWikiNamespaceCaseMode(namespaceForRole(WikiNamespaceRole.TEMPLATE, "Template")));
 		ContentTemplateDboExample ex = new ContentTemplateDboExample();
 		ex.createCriteria().andWikiPageIdEqualTo(wikiPageId).andContentFormatEqualTo("BBCODE");
 		ContentTemplateDbo existing = contentTemplateMapper.selectByExample(ex).stream().findFirst().orElse(null);
@@ -658,17 +674,17 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		return name.startsWith("Wikipedia ") || PLUMBING_CATEGORIES.contains(name);
 	}
 
-	private String remapUserIds(String content, String namespace, String pageTitle) {
+	private String remapUserIds(String content, String namespace, String pageTitle, RunContext runContext) {
 		Matcher block = USER_PROFILE_BLOCK.matcher(content);
 		StringBuilder out = new StringBuilder();
-		Integer pageMember = memberByPageTitle(namespace, pageTitle);
+		Integer pageMember = memberByPageTitle(namespace, pageTitle, runContext);
 		while (block.find()) {
 			Matcher param = USERID_PARAM.matcher(block.group(1));
 			StringBuilder params = new StringBuilder();
 			while (param.find()) {
 				Integer userId = param.group(1).isEmpty()
 						? pageMember
-						: urlMaps.userMap().get(Integer.parseInt(param.group(1)));
+						: runContext.urlMaps().userMap().get(Integer.parseInt(param.group(1)));
 				if (userId == null) {
 					userId = pageMember;
 				}
@@ -683,13 +699,13 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		return out.toString();
 	}
 
-	private Integer memberByPageTitle(String namespace, String pageTitle) {
+	private Integer memberByPageTitle(String namespace, String pageTitle, RunContext runContext) {
 		if (!"User".equals(namespace) || pageTitle == null) {
 			return null;
 		}
-		Integer legacyId = legacyMembersByName.get(
+		Integer legacyId = runContext.legacyMembersByName().get(
 				CmsSupport.wikiTitleDisplay(pageTitle).toLowerCase(Locale.ROOT));
-		return legacyId == null ? null : urlMaps.userMap().get(legacyId);
+		return legacyId == null ? null : runContext.urlMaps().userMap().get(legacyId);
 	}
 
 	private static String revAuthor(WikiRevisionRow rev) {

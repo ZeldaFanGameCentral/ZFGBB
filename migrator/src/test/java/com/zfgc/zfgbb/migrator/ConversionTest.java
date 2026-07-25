@@ -8,15 +8,21 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,7 +32,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.BeansException;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 
+import com.zfgc.zfgbb.mappers.BrBoardPermissionDboMapper;
+import com.zfgc.zfgbb.mappers.BrUserPermissionDboMapper;
+import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
+import com.zfgc.zfgbb.mappers.PermissionDboMapper;
 import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
 import com.zfgc.zfgbb.migrator.converters.LegacyIdMaps;
 import com.zfgc.zfgbb.migrator.converters.LegacyUrlRewriter;
@@ -34,7 +47,12 @@ import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
+import com.zfgc.zfgbb.migrator.jobs.DistributedLeaseManager;
 import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
+import com.zfgc.zfgbb.migrator.jobs.QuoteStripPlanner;
+import com.zfgc.zfgbb.migrator.jobs.QuoteStripService;
+import com.zfgc.zfgbb.migrator.jobs.SourceReferenceOperations;
+import com.zfgc.zfgbb.migrator.mappers.QuoteStripConversionMapper;
 import com.zfgc.zfgbb.migrator.markup.MarkupConverter;
 
 class ConversionTest {
@@ -51,20 +69,11 @@ class ConversionTest {
 			}
 		}
 
-		@Test
-		void convertsItemInfoboxPage() throws IOException {
-			String wt = fixture("Master_Sword.wiki");
-			String bb = MarkupConverter.toBbCode(wt);
-			assertTrue(bb.contains("[template=ItemInfobox]"), bb);
-			assertTrue(bb.contains("Master Sword"), bb);
-			assertTrue(bb.contains("[wiki="), bb);
-			assertFalse(bb.contains("@@ZTPL"), "sentinel leaked into output");
-		}
 
 		@Test
 		void convertsWikilinksInsideTemplateParams() {
 			String wt = "{{ItemInfobox\n|title=Bomb cannon\n|obtained=[[KOT:Goron Mines|Goron Mines]]\n}}";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertTrue(bb.contains("[template=ItemInfobox]"), bb);
 			assertTrue(bb.contains("obtained=[wiki=KOT:Goron_Mines]Goron Mines[/wiki]"), bb);
 			assertFalse(bb.contains("[[KOT:Goron Mines"), "raw wikilink must not remain in a param: " + bb);
@@ -73,16 +82,38 @@ class ConversionTest {
 		@Test
 		void convertsGameTemplatePage() throws IOException {
 			String wt = fixture("Project_Zelda_Engine.wiki");
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertTrue(bb.contains("[template=Game]"), "expected Game template");
 			assertTrue(bb.contains("[h2]"), "expected a heading");
 			assertFalse(bb.contains("@@ZTPL"), "sentinel leaked into output");
 		}
 
 		@Test
+		void convertsNestedBulletsInTheSidebar() throws IOException {
+			String wt = fixture("MediaWiki_Sidebar.wiki");
+			String bb = MarkupConverter.toBBCode(wt);
+			assertFalse(bb.contains("**"), "nested wikitext bullets must not survive: " + bb);
+			assertTrue(bb.contains("[li]navigation [list]"),
+					"a '*' heading owning '**' children becomes an [li] wrapping a nested [list]: " + bb);
+			assertTrue(bb.contains("[li]mainpage|mainpage-description[/li]"),
+					"magic-word entries stay intact for the nav parser: " + bb);
+			assertTrue(bb.contains("[li]Category:Members|List of Members[/li]"),
+					"the leading colon on :Category: links is dropped so the target resolves: " + bb);
+			assertTrue(bb.contains("[url=http://zfgc.com/index.php/chat]"),
+					"bare legacy urls autolink: " + bb);
+			assertEquals(3, countNestedSidebarSections(bb),
+					"navigation, Content and ZFGC each own exactly one nested list: " + bb);
+		}
+
+		private static int countNestedSidebarSections(String bb) {
+			return (int) Pattern.compile("\\[li\\][^\\[]+?\\[list\\]")
+					.matcher(bb).results().count();
+		}
+
+		@Test
 		void convertsWikitablePage() throws IOException {
 			String wt = fixture("Zelda_II.wiki");
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertTrue(bb.contains("[table"), "expected a table: " + bb);
 			assertTrue(bb.contains("[tr]"), "expected table rows: " + bb);
 		}
@@ -90,7 +121,7 @@ class ConversionTest {
 		@Test
 		void templateCallsInsidePreBlocksBecomeLiteralSource() {
 			String wt = "Documentation:\n {{Game\n |title=Skyward Sword\n |genre=Action\n }}\nDone.";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertFalse(bb.contains("@@ZT"), "template sentinel must never leak: " + bb);
 			assertTrue(bb.contains("{{Game"), "pre blocks should show the literal template source: " + bb);
 			assertTrue(bb.contains("title=Skyward Sword"), bb);
@@ -99,7 +130,7 @@ class ConversionTest {
 		@Test
 		void templateCallsInsideLinkTargetsNeverLeakSentinels() {
 			String wt = "This box: [[{{FULLPAGENAMEE}}|view]] and [http://example.com/w?title={{FULLPAGENAMEE}} edit].";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertFalse(bb.contains("@@ZT"), "sentinel leaked into link targets: " + bb);
 			assertFalse(bb.contains("%40%40ZT"), "url-encoded sentinel leaked: " + bb);
 		}
@@ -107,14 +138,14 @@ class ConversionTest {
 		@Test
 		void nestedTemplateCallsInsideParamsNeverLeakSentinels() {
 			String wt = "[[{{TALKPAGENAME:{{FULLPAGENAME}}}}|talk]] and {{Outer|inner={{Inner|x=1}}}}";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertFalse(bb.contains("@@ZT"), "nested sentinel leaked: " + bb);
 		}
 
 		@Test
 		void layoutTablesKeepStructure() {
 			String wt = "{|style=\"width:100%\"\n|-\n! Header One\n|-\n| left cell\n|}";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertTrue(bb.contains("[table=full]"), "full-width tables should carry the layout flag: " + bb);
 			assertTrue(bb.contains("[th]"), "header cells should emit [th]: " + bb);
 		}
@@ -122,20 +153,20 @@ class ConversionTest {
 		@Test
 		void nestedTablesDoNotDuplicateRows() {
 			String wt = "{|\n| outer-a\n{|\n| inner-x\n|}\n| outer-b\n|}";
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			int count = bb.split("inner-x", -1).length - 1;
 			assertTrue(count == 1, "nested rows must not be captured twice: " + bb);
 		}
 
 		@Test
 		void articleCountMagicWordBecomesPageCountTemplate() {
-			String bb = MarkupConverter.toBbCode("There are {{NUMBEROFARTICLES}} articles.");
+			String bb = MarkupConverter.toBBCode("There are {{NUMBEROFARTICLES}} articles.");
 			assertTrue(bb.contains("[template=PageCount][/template]"), bb);
 		}
 
 		@Test
 		void inlineTemplateCallsStayInline() {
-			String bb = MarkupConverter.toBbCode("* {{tl|stub}} - Add this to articles that are too short");
+			String bb = MarkupConverter.toBBCode("* {{tl|stub}} - Add this to articles that are too short");
 			assertTrue(bb.contains("[/template] - Add this"), "no blank lines may follow an inline template call: " + bb);
 		}
 
@@ -158,7 +189,7 @@ class ConversionTest {
 
 		@Test
 		void urlParserFunctionsBecomeWikiLinks() {
-			String bb = MarkupConverter.toBbCode(
+			String bb = MarkupConverter.toBBCode(
 					"See the [{{canonicalurl:Special:AllPages|namespace=100}} list of KOT articles] here.");
 			assertTrue(bb.contains("[wiki=Special:AllPages]list of KOT articles[/wiki]"), bb);
 			assertFalse(bb.contains("canonicalurl"), bb);
@@ -166,15 +197,15 @@ class ConversionTest {
 
 		@Test
 		void tocDirectivesSurviveConversion() {
-			assertTrue(MarkupConverter.toBbCode("__NOTOC__\n= A =\ntext").contains("[notoc]"));
-			assertTrue(MarkupConverter.toBbCode("__TOC__\n= A =\ntext").contains("[toc]"));
-			assertFalse(MarkupConverter.toBbCode("= A =\ntext").contains("[notoc]"));
+			assertTrue(MarkupConverter.toBBCode("__NOTOC__\n= A =\ntext").contains("[notoc]"));
+			assertTrue(MarkupConverter.toBBCode("__TOC__\n= A =\ntext").contains("[toc]"));
+			assertFalse(MarkupConverter.toBBCode("= A =\ntext").contains("[notoc]"));
 		}
 
 		@Test
 		void convertsLorePage() throws IOException {
 			String wt = fixture("Raj_Naidu.wiki");
-			String bb = MarkupConverter.toBbCode(wt);
+			String bb = MarkupConverter.toBBCode(wt);
 			assertTrue(bb.contains("[b]"), "expected bold");
 			assertTrue(bb.contains("[h1]") || bb.contains("[h2]"), "expected a heading");
 		}
@@ -189,6 +220,7 @@ class ConversionTest {
 			private Map<Integer, Integer> boards = Map.of();
 			private Map<Integer, Integer> users = Map.of();
 			private Map<Integer, Integer> attachments = Map.of();
+			private Map<Integer, Integer> gamesToProjects = Map.of();
 
 			MapsBuilder thread(int legacyId, int zfgbbId) {
 				threads = Map.of(legacyId, zfgbbId);
@@ -215,8 +247,13 @@ class ConversionTest {
 				return this;
 			}
 
+			MapsBuilder gameProject(int legacyGameId, int projectId) {
+				gamesToProjects = Map.of(legacyGameId, projectId);
+				return this;
+			}
+
 			LegacyIdMaps build() {
-				return new LegacyIdMaps(threads, messages, boards, users, attachments);
+				return new LegacyIdMaps(threads, messages, boards, users, attachments, gamesToProjects);
 			}
 		}
 
@@ -272,14 +309,34 @@ class ConversionTest {
 							"[url=https://en.wikipedia.org/wiki/X]wiki[/url]",
 							LegacyIdMaps.empty(),
 							"[url=https://en.wikipedia.org/wiki/X]wiki[/url]"),
-					arguments("quoteLinkRewrittenToThreadMsgAttrsDropsAuthorAndDate",
+					arguments("quoteLinkRewrittenToThreadMsgPreservesAuthorDropsDate",
 							"[quote author=Foo link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
 							maps().thread(42, 42).message(128, 128).build(),
-							"[quote thread=42 msg=128]body[/quote]"),
+							"[quote author=Foo thread=42 msg=128]body[/quote]"),
 					arguments("quoteLinkRemapsIds",
 							"[quote author=Foo link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
 							maps().thread(42, 1042).message(128, 2128).build(),
-							"[quote thread=1042 msg=2128]body[/quote]"),
+							"[quote author=Foo thread=1042 msg=2128]body[/quote]"),
+					arguments("quoteAuthorWithSpacesSurvivesWhole",
+							"[quote author=Hammer Bro. Mike link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
+							maps().thread(42, 42).message(128, 128).build(),
+							"[quote author=Hammer Bro. Mike thread=42 msg=128]body[/quote]"),
+					arguments("quoteAuthorBearingEqualsSignsSurvivesWhole",
+							"[quote author=-=Limey=- link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
+							maps().thread(42, 42).message(128, 128).build(),
+							"[quote author=-=Limey=- thread=42 msg=128]body[/quote]"),
+					arguments("quoteAuthorBearingABracketIsStrippedSoTheRendererCanStillReadTheTag",
+							"[quote author=-x-[Sir Lunatic link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
+							maps().thread(42, 42).message(128, 128).build(),
+							"[quote author=-x-Sir Lunatic thread=42 msg=128]body[/quote]"),
+					arguments("quoteAuthorFollowingTheLinkStopsAtTheDateAttribute",
+							"[quote link=topic=42.msg128#msg128 author=Foo date=1234567890]body[/quote]",
+							maps().thread(42, 42).message(128, 128).build(),
+							"[quote author=Foo thread=42 msg=128]body[/quote]"),
+					arguments("quoteWithoutAnAuthorEmitsThreadAndMsgOnly",
+							"[quote link=topic=42.msg128#msg128 date=1234567890]body[/quote]",
+							maps().thread(42, 42).message(128, 128).build(),
+							"[quote thread=42 msg=128]body[/quote]"),
 					arguments("quoteWithoutLinkLeftAlone",
 							"[quote author=Foo date=123]body[/quote]",
 							LegacyIdMaps.empty(),
@@ -321,15 +378,19 @@ class ConversionTest {
 							"[url=http://www.zfgc.com/index.php#?action=resources&sa=view&id=42]Sword tileset[/url]",
 							LegacyIdMaps.empty(),
 							"[resource=42]Sword tileset[/resource]"),
-					arguments("urlToGame",
+					arguments("urlToAMigratedGameBecomesItsProject",
+							"[url=http://www.zfgc.com/index.php#?action=games&sa=view&id=99]Triforce Saga[/url]",
+							maps().gameProject(99, 7).build(),
+							"[project=7]Triforce Saga[/project]"),
+					arguments("urlToAGameThatMigratedToNoProjectStaysAnOrdinaryUrl",
 							"[url=http://www.zfgc.com/index.php#?action=games&sa=view&id=99]Triforce Saga[/url]",
 							LegacyIdMaps.empty(),
-							"[game=99]Triforce Saga[/game]"),
+							"[url=http://www.zfgc.com/index.php#?action=games&sa=view&id=99]Triforce Saga[/url]"),
 					arguments("templateParamUrlsRewriteToThreadLinks",
 							"Thread=http://zfgc.com/forum/index.php?topic=7.0",
 							maps().thread(7, 42).build(),
 							"Thread=[thread=42]http://zfgc.com/forum/thread/42/1[/thread]"),
-					arguments("unmappedUrlBbcodeTargetsStayIntact",
+					arguments("unmappedUrlBBCodeTargetsStayIntact",
 							"[url=http://zfgc.com/forum/index.php?topic=9999.0]dead[/url]",
 							maps().thread(7, 42).build(),
 							"[url=http://zfgc.com/forum/index.php?topic=9999.0]dead[/url]"),
@@ -399,7 +460,7 @@ class ConversionTest {
 		}
 
 		@Test
-		void rewritingIsIdempotentForUrlInsideAlreadyRewrittenBbcode() {
+		void rewritingIsIdempotentForUrlInsideAlreadyRewrittenBBCode() {
 			LegacyUrlRewriter rewriter = LegacyUrlRewriter.forLegacyHost("localhost:8090");
 			String body = "[url=http://localhost:8090/index.php?board=2.0]http://localhost:8090/index.php?board=2.0[/url]";
 			LegacyIdMaps idMaps = maps().board(2, 2).build();
@@ -453,7 +514,8 @@ class ConversionTest {
 					.collect(Collectors.toList());
 
 			IllegalStateException ex = assertThrows(IllegalStateException.class,
-					() -> new JobService(partial));
+					() -> new JobService(partial, null, null, mock(ExecutorService.class),
+							Optional.empty()));
 			assertTrue(ex.getMessage().contains("CATEGORIES"),
 					"missing-converter list should call out CATEGORIES; was: " + ex.getMessage());
 		}
@@ -465,7 +527,8 @@ class ConversionTest {
 					.map(StubConverter::new)
 					.collect(Collectors.toList());
 
-			new JobService(full);
+			new JobService(full, null, null, mock(ExecutorService.class),
+					Optional.empty());
 		}
 
 		private static final class StubConverter extends AbstractConverter<Void> {
@@ -490,7 +553,10 @@ class ConversionTest {
 	@Nested
 	class GroupPermissionMapping {
 
-		private final MigratorPermissionService permissions = new MigratorPermissionService();
+		private final MigratorPermissionService permissions = new MigratorPermissionService(
+				mock(PermissionDboMapper.class),
+				mock(BrBoardPermissionDboMapper.class),
+				mock(BrUserPermissionDboMapper.class));
 
 		@AfterEach
 		void clearJobContext() {
@@ -542,6 +608,163 @@ class ConversionTest {
 				assertEquals(Set.of(MigratorPermissionService.CODE_SITE_ADMIN), permissions.mapSmfGroupToCodes(12));
 			} finally {
 				JobContextHolder.clear();
+			}
+		}
+	}
+
+	@Nested
+	class QuoteStripping {
+
+		private AnnotationConfigApplicationContext theMigratorHalfOfTheStrip() {
+			AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+			context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("theStripIsEnabled",
+					Map.of("zfgbb.migrator.enabled", "true")));
+			context.registerBean(QuoteStripConversionMapper.class, () -> mock(QuoteStripConversionMapper.class));
+			context.registerBean(MessageHistoryDboMapper.class, () -> mock(MessageHistoryDboMapper.class));
+			context.registerBean(DistributedLeaseManager.class, () -> mock(DistributedLeaseManager.class));
+			context.registerBean(QuoteStripPlanner.class, () -> mock(QuoteStripPlanner.class));
+			context.register(QuoteStripService.class);
+			return context;
+		}
+
+		private String everyMessageOf(Throwable thrown) {
+			StringBuilder messages = new StringBuilder();
+			for (Throwable cause = thrown; cause != null; cause = cause.getCause())
+				messages.append(cause.getMessage()).append('\n');
+			return messages.toString();
+		}
+
+		@Test
+		void theStripRefusesToStartWhenTheAppRegistersNoSourceReferencePort() {
+			try (AnnotationConfigApplicationContext context = theMigratorHalfOfTheStrip()) {
+				BeansException refused = assertThrows(BeansException.class, context::refresh);
+
+				assertTrue(everyMessageOf(refused).contains(SourceReferenceOperations.class.getName()),
+						"the strip walks parsed bodies through a port only the app can implement, so an app that "
+								+ "stops registering the adapter must be told at startup and by name; a port held "
+								+ "as an optional or a nullable field turns that into a NullPointerException "
+								+ "somewhere inside a migration run: " + everyMessageOf(refused));
+			}
+		}
+
+		@Test
+		void theStripStartsOnceTheAppRegistersTheSourceReferencePort() {
+			try (AnnotationConfigApplicationContext context = theMigratorHalfOfTheStrip()) {
+				context.registerBean(SourceReferenceOperations.class, () -> mock(SourceReferenceOperations.class));
+				context.refresh();
+
+				assertNotNull(context.getBean(QuoteStripService.class),
+						"the refusal above only says something while the very same context starts with the port "
+								+ "present; otherwise it could be failing on any of the other collaborators");
+			}
+		}
+
+		@ParameterizedTest(name = "{0}")
+		@MethodSource("everyDecisionThePlannerMakesAboutAnEmbeddedBody")
+		void thePlannerKeepsAnEmbeddedBodyUnlessItIsAFaithfulCopyOfItsSource(String caseName, String embeddedBody,
+				String sourceBody, boolean theEmbeddedBodyNestsAQuote, boolean theSourceBodyNestsAQuote,
+				String expectedOutcome) {
+			RecordedDecision decision = new RecordedDecision(sourceBody);
+			QuoteStripPlanner planner = new QuoteStripPlanner(
+					new OneSourceReference(theEmbeddedBodyNestsAQuote, theSourceBodyNestsAQuote));
+
+			assertEquals(expectedOutcome.equals(STRIPPED) ? "" : embeddedBody,
+					planner.stripFaithfulMsgQuotes(embeddedBody, decision));
+			assertEquals(expectedOutcome, decision.outcome, caseName);
+		}
+
+		static final String STRIPPED = "stripped";
+
+		static Stream<Arguments> everyDecisionThePlannerMakesAboutAnEmbeddedBody() {
+			return Stream.of(
+					arguments("a faithful copy is stripped", "hello", "hello", false, false, STRIPPED),
+					arguments("an embedded body that nests a quote is kept", "hello", "hello", true, false,
+							QuoteStripPlanner.KEEP_NESTED_EMBEDDED),
+					arguments("a blank embedded body is kept", "   ", "hello", false, false,
+							QuoteStripPlanner.KEEP_BLANK_EMBEDDED),
+					arguments("an unavailable source is kept", "hello", null, false, false,
+							QuoteStripPlanner.KEEP_SOURCE_UNAVAILABLE),
+					arguments("a blank source is kept", "hello", "  ", false, false,
+							QuoteStripPlanner.KEEP_SOURCE_UNAVAILABLE),
+					arguments("a source that nests a quote is kept", "hello", "hello", false, true,
+							QuoteStripPlanner.KEEP_SOURCE_NESTED),
+					arguments("a body the author edited is kept", "hello", "hello there", false, false,
+							QuoteStripPlanner.KEEP_MODIFIED));
+		}
+
+		@Test
+		void thePlannerLeavesANullBodyAlone() {
+			assertNull(new QuoteStripPlanner(new OneSourceReference(false, false))
+					.stripFaithfulMsgQuotes(null, new RecordedDecision("hello")));
+		}
+
+		private static final class RecordedDecision implements QuoteStripPlanner.StripContext {
+
+			private final String sourceBody;
+
+			private String outcome;
+
+			private RecordedDecision(String sourceBody) {
+				this.sourceBody = sourceBody;
+			}
+
+			@Override
+			public String resolveFloorBody(Integer msgId) {
+				return sourceBody;
+			}
+
+			@Override
+			public String normalize(String text) {
+				return QuoteStripService.normalize(text);
+			}
+
+			@Override
+			public void recordStrip(Integer msgId) {
+				outcome = STRIPPED;
+			}
+
+			@Override
+			public void recordKeep(Integer msgId, String reason) {
+				outcome = reason;
+			}
+		}
+
+		private static final class OneSourceReference implements SourceReferenceOperations {
+
+			private final boolean theEmbeddedBodyNestsAQuote;
+
+			private final boolean theSourceBodyNestsAQuote;
+
+			private boolean theEmbeddedBodyWasAskedAbout;
+
+			private OneSourceReference(boolean theEmbeddedBodyNestsAQuote, boolean theSourceBodyNestsAQuote) {
+				this.theEmbeddedBodyNestsAQuote = theEmbeddedBodyNestsAQuote;
+				this.theSourceBodyNestsAQuote = theSourceBodyNestsAQuote;
+			}
+
+			@Override
+			public Set<Integer> collectSourceReferenceIds(String body) {
+				return Set.of(7);
+			}
+
+			@Override
+			public boolean containsSourceReference(String body) {
+				if (!theEmbeddedBodyWasAskedAbout) {
+					theEmbeddedBodyWasAskedAbout = true;
+					return theEmbeddedBodyNestsAQuote;
+				}
+				return theSourceBodyNestsAQuote;
+			}
+
+			@Override
+			public String rewriteSourceReferenceBodies(String body, SourceBodyRewriter rewriter) {
+				return rewriter.rewrite(7, body);
+			}
+
+			@Override
+			public Map<Integer, NavigableMap<OffsetDateTime, String>> everyRevisionOfTheSourcesNamed(
+					Set<Integer> sourceIds) {
+				return Map.of();
 			}
 		}
 	}

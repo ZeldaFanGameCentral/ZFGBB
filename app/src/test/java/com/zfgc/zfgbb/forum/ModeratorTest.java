@@ -3,17 +3,21 @@ package com.zfgc.zfgbb.forum;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,40 +25,61 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
-import com.zfgc.zfgbb.services.core.AccountDeletionService;
+import com.zfgc.zfgbb.dbo.*;
+import com.zfgc.zfgbb.mappers.*;
+import com.zfgc.zfgbb.services.users.AccountDeletionService;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
 import tools.jackson.databind.JsonNode;
 
 class ModeratorTest extends PostgresIntegrationTest {
 
-	@Autowired
-	private AccountDeletionService accountDeletionService;
+	private static final String RECYCLE_BOARD_CONFIG_KEY = "recycle_board_id";
+
+	@Autowired private AccountDeletionService accountDeletionService;
+	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
+	@Autowired private BoardSummaryViewDboMapper boardSummaryViewDboMapper;
+	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
+	@Autowired private ContentResourceTypeDboMapper contentResourceTypeDboMapper;
+	@Autowired private FileAttachmentDboMapper fileAttachmentDboMapper;
+	@Autowired private MessageDboMapper messageDboMapper;
+	@Autowired private MessageHistoryDboMapper messageHistoryDboMapper;
+	@Autowired private MigratorAttachmentRefRewriteDboMapper migratorAttachmentRefRewriteDboMapper;
+	@Autowired private MigratorIdMapDboMapper migratorIdMapDboMapper;
+	@Autowired private ModerationLogDboMapper moderationLogDboMapper;
+	@Autowired private PollChoiceDboMapper pollChoiceDboMapper;
+	@Autowired private PollDboMapper pollDboMapper;
+	@Autowired private ReactionDboMapper reactionDboMapper;
+	@Autowired private ReactionTypeDboMapper reactionTypeDboMapper;
+	@Autowired private SystemConfigDboMapper systemConfigDboMapper;
+	@Autowired private ThreadDboMapper threadDboMapper;
+	@Autowired private UserDboMapper userDboMapper;
+	@Autowired private UserPollChoiceDboMapper userPollChoiceDboMapper;
 
 	@Nested
 	class RecycleAndRestore {
 
 		@Test
 		void ownerRecyclesMiddlePostAndOnlyModeratorMayPurgeIt() throws Exception {
-			String ownerName = "midp_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("midp_" + suffix);
+			String adminToken = getAdminToken();
 			int binBoardId = recycleBoardId();
 
-			int threadId = postThread(ownerToken, "Middle post " + suffix, "OP body " + suffix);
+			int threadId = postThread(owner.token(), "Middle post " + suffix, "OP body " + suffix);
 			for (int replyNumber = 2; replyNumber <= 11; replyNumber++)
-				postReply(ownerToken, threadId, "reply number " + replyNumber);
+				postReply(owner.token(), threadId, "reply number " + replyNumber);
 			int middleMessageId = messageIdAt(threadId, 6);
 			String secretBody = "SECRET_MIDDLE_BODY_" + suffix;
-			jdbcTemplate.update("update zfgbb.message_history set message_text = ? where message_id = ?",
-					secretBody, middleMessageId);
+			MessageHistoryDbo secretRevision = new MessageHistoryDbo();
+			secretRevision.setMessageText(secretBody);
+			messageHistoryDboMapper.updateByExampleSelective(secretRevision,
+					messageHistoryWhere(criteria -> criteria.andMessageIdEqualTo(middleMessageId)));
 
-			long board1PostsBefore = boardSummaryValue(1, "post_count");
-			long binPostsBefore = boardSummaryValue(binBoardId, "post_count");
+			long board1PostsBefore = boardSummaryValue(1, BoardSummaryViewDbo::getPostCount);
+			long binPostsBefore = boardSummaryValue(binBoardId, BoardSummaryViewDbo::getPostCount);
 
 			MvcResult recycleResult = mockMvc.perform(delete("/message/" + middleMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"))
 					.andExpect(jsonPath("$.originThreadRecycled").value(false))
@@ -68,34 +93,32 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 			assertEquals(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), postPositionsIn(threadId),
 					"origin thread must be densely resequenced after the middle post moves out");
-			assertEquals(1, count("zfgbb.thread where thread_id = " + wrapperThreadId
-					+ " and board_id = " + binBoardId
-					+ " and recycled_from_board_id = 1 and recycled_from_thread_id = " + threadId),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(wrapperThreadId)
+					.andBoardIdEqualTo(binBoardId).andRecycledFromBoardIdEqualTo(1)
+					.andRecycledFromThreadIdEqualTo(threadId)),
 					"wrapper thread must live in the bin and carry origin provenance");
-			assertEquals(1, count("zfgbb.message where message_id = " + middleMessageId
-					+ " and thread_id = " + wrapperThreadId + " and board_id = " + binBoardId
-					+ " and post_in_thread = 1"),
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(middleMessageId)
+					.andThreadIdEqualTo(wrapperThreadId).andBoardIdEqualTo(binBoardId).andPostInThreadEqualTo(1)),
 					"recycled message must be re-parented to position 1 of the wrapper");
 
-			assertEquals(board1PostsBefore - 1, boardSummaryValue(1, "post_count"),
+			assertEquals(board1PostsBefore - 1, boardSummaryValue(1, BoardSummaryViewDbo::getPostCount),
 					"board_summary post_count of the origin board must drop by one");
-			assertEquals(binPostsBefore + 1, boardSummaryValue(binBoardId, "post_count"),
+			assertEquals(binPostsBefore + 1, boardSummaryValue(binBoardId, BoardSummaryViewDbo::getPostCount),
 					"board_summary post_count of the bin must grow by one");
 
-			assertEquals(1, count("zfgbb.moderation_log where action = 'MESSAGE_RECYCLED'"
-					+ " and message_id = " + middleMessageId + " and thread_id = " + threadId
-					+ " and board_id = 1 and actor_user_id = " + userIdOf(ownerName)
-					+ " and target_user_id = " + userIdOf(ownerName)));
-			String logDetail = jdbcTemplate.queryForObject(
-					"select detail from zfgbb.moderation_log where action = 'MESSAGE_RECYCLED' and message_id = ?",
-					String.class, middleMessageId);
+			int ownerUserId = userIdOf(owner.userName());
+			assertEquals(1, moderationLogs(criteria -> criteria.andActionEqualTo("MESSAGE_RECYCLED")
+					.andMessageIdEqualTo(middleMessageId).andThreadIdEqualTo(threadId).andBoardIdEqualTo(1)
+					.andActorUserIdEqualTo(ownerUserId).andTargetUserIdEqualTo(ownerUserId)).size());
+			String logDetail = moderationLogs(criteria -> criteria.andActionEqualTo("MESSAGE_RECYCLED")
+					.andMessageIdEqualTo(middleMessageId)).get(0).getDetail();
 			assertNotNull(logDetail);
 			assertFalse(logDetail.contains(secretBody), "the moderation log must never contain the post body");
 
 			mockMvc.perform(delete("/message/" + middleMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
-			assertEquals(1, count("zfgbb.message where message_id = " + middleMessageId),
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(middleMessageId)),
 					"a non-moderator second delete must not destroy the binned message");
 
 			mockMvc.perform(delete("/message/" + middleMessageId)
@@ -104,60 +127,56 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.outcome").value("PURGED"))
 					.andExpect(jsonPath("$.originThreadDeleted").value(true))
 					.andExpect(jsonPath("$.boardId").value(binBoardId));
-			assertEquals(0, count("zfgbb.message where message_id = " + middleMessageId));
-			assertEquals(0, count("zfgbb.message_history where message_id = " + middleMessageId));
-			assertEquals(0, count("zfgbb.thread where thread_id = " + wrapperThreadId),
+			assertEquals(0, messageCount(criteria -> criteria.andMessageIdEqualTo(middleMessageId)));
+			assertEquals(0, messageHistoryCount(criteria -> criteria.andMessageIdEqualTo(middleMessageId)));
+			assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(wrapperThreadId)),
 					"the emptied wrapper thread must be garbage-collected by the purge");
-			assertEquals(1, count("zfgbb.moderation_log where action = 'MESSAGE_PURGED'"
-					+ " and detail like '%message_id=" + middleMessageId + " %'"));
+			assertEquals(1, moderationLogCount("MESSAGE_PURGED",
+					log -> log.getDetail().contains("message_id=" + middleMessageId + " ")));
 		}
 
 		@Test
 		void ownerDeletesOpWithRepliesAndTheThreadSurvivesHeadless() throws Exception {
-			String ownerName = "opdel_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("opdel_" + suffix);
+			String adminToken = getAdminToken();
 			int binBoardId = recycleBoardId();
 
-			int threadId = postThread(ownerToken, "Headless " + suffix, "The doomed OP");
+			int threadId = postThread(owner.token(), "Headless " + suffix, "The doomed OP");
 			postReply(adminToken, threadId, "first reply becomes the new OP");
 			postReply(adminToken, threadId, "second reply");
 			int opMessageId = messageIdAt(threadId, 1);
 			int promotedMessageId = messageIdAt(threadId, 2);
 
 			mockMvc.perform(delete("/message/" + opMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"))
 					.andExpect(jsonPath("$.originThreadRecycled").value(false))
 					.andExpect(jsonPath("$.threadId").value(threadId));
 
-			assertEquals(1, count("zfgbb.thread where thread_id = " + threadId + " and board_id = 1"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId).andBoardIdEqualTo(1)),
 					"the origin thread must survive its OP's deletion");
 			assertEquals(List.of(1, 2), postPositionsIn(threadId));
-			assertEquals(1, count("zfgbb.message where message_id = " + promotedMessageId
-					+ " and thread_id = " + threadId + " and post_in_thread = 1"),
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(promotedMessageId)
+					.andThreadIdEqualTo(threadId).andPostInThreadEqualTo(1)),
 					"the old post 2 must be promoted to post 1");
-			assertEquals(1, count("zfgbb.message where message_id = " + opMessageId
-					+ " and board_id = " + binBoardId + " and post_in_thread = 1"),
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(opMessageId)
+					.andBoardIdEqualTo(binBoardId).andPostInThreadEqualTo(1)),
 					"the recycled OP must sit in a wrapper thread in the bin");
 		}
 
 		@Test
 		void solePostDeleteRecyclesTheThreadAndTheForumCacheReflectsIt() throws Exception {
-			String ownerName = "sole_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("sole_" + suffix);
+			String adminToken = getAdminToken();
 			int binBoardId = recycleBoardId();
 
-			int survivorThreadId = postThread(ownerToken, "Survivor sole " + suffix, "I stay behind");
-			int doomedThreadId = postThread(ownerToken, "Doomed sole " + suffix, "I am the only post");
+			int survivorThreadId = postThread(owner.token(), "Survivor sole " + suffix, "I stay behind");
+			int doomedThreadId = postThread(owner.token(), "Doomed sole " + suffix, "I am the only post");
 			int soleMessageId = messageIdAt(doomedThreadId, 1);
 
-			long board1ThreadsBefore = boardSummaryValue(1, "thread_count");
-			assertEquals(doomedThreadId, (int) boardSummaryValue(1, "latest_thread_id"),
+			long board1ThreadsBefore = boardSummaryValue(1, BoardSummaryViewDbo::getThreadCount);
+			assertEquals(doomedThreadId, (int) boardSummaryValue(1, BoardSummaryViewDbo::getLatestThreadId),
 					"the doomed thread must hold the board's latest post before deletion");
 
 			JsonNode board1Before = forumBoardSummary(adminToken, 1);
@@ -165,19 +184,19 @@ class ModeratorTest extends PostgresIntegrationTest {
 			long cachedThreadCount = board1Before.get("threadCount").asLong();
 
 			mockMvc.perform(delete("/message/" + soleMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"))
 					.andExpect(jsonPath("$.originThreadRecycled").value(true))
 					.andExpect(jsonPath("$.boardId").value(1))
 					.andExpect(jsonPath("$.recycleThreadId").value(doomedThreadId));
 
-			assertEquals(1, count("zfgbb.thread where thread_id = " + doomedThreadId
-					+ " and board_id = " + binBoardId
-					+ " and recycled_from_board_id = 1 and recycled_from_thread_id is null"));
-			assertEquals(board1ThreadsBefore - 1, boardSummaryValue(1, "thread_count"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(doomedThreadId)
+					.andBoardIdEqualTo(binBoardId).andRecycledFromBoardIdEqualTo(1)
+					.andRecycledFromThreadIdIsNull()));
+			assertEquals(board1ThreadsBefore - 1, boardSummaryValue(1, BoardSummaryViewDbo::getThreadCount),
 					"board_summary thread_count must drop when the sole-post thread is recycled");
-			assertEquals(survivorThreadId, (int) boardSummaryValue(1, "latest_thread_id"),
+			assertEquals(survivorThreadId, (int) boardSummaryValue(1, BoardSummaryViewDbo::getLatestThreadId),
 					"the latest post must promote to the surviving thread");
 
 			JsonNode board1After = forumBoardSummary(adminToken, 1);
@@ -189,56 +208,94 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void attachmentAndPollBearingThreadRecyclesWithoutFkAbortAndPurgeDestroysEverything() throws Exception {
-			String ownerName = "atpol_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("atpol_" + suffix);
+			String adminToken = getAdminToken();
 			int binBoardId = recycleBoardId();
-			int ownerId = userIdOf(ownerName);
 			int adminId = userIdOf(ADMIN_USER);
 
-			int threadId = postThread(ownerToken, "Loaded thread " + suffix, "OP with attachment");
-			postReply(ownerToken, threadId, "a reply riding along");
+			int threadId = postThread(owner.token(), "Loaded thread " + suffix, "OP with attachment");
+			postReply(owner.token(), threadId, "a reply riding along");
 			int opMessageId = messageIdAt(threadId, 1);
 			int replyMessageId = messageIdAt(threadId, 2);
-			Integer opHistoryId = jdbcTemplate.queryForObject(
-					"select min(message_history_id) from zfgbb.message_history where message_id = ?",
-					Integer.class, opMessageId);
+			Integer opHistoryId = messageHistoryDboMapper
+					.selectByExample(messageHistoryWhere(criteria -> criteria.andMessageIdEqualTo(opMessageId)))
+					.stream().map(MessageHistoryDbo::getMessageHistoryId).min(Integer::compareTo).orElse(null);
 
-			Integer resourceId = jdbcTemplate.queryForObject(
-					"""
-							insert into zfgbb.content_resource (content_type_id, uploaded_user_id, filename, checksum,
-								file_ext, mime_type, file_size)
-							values ((select content_resource_type_id from zfgbb.content_resource_type where content_code = 'ATC'),
-								?, 'evidence.png', 'cafebabe', 'png', 'image/png', 123)
-							returning content_resource_id
-							""",
-					Integer.class, ownerId);
-			Integer attachmentId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.file_attachments (message_id, active_flag, content_resource_id)"
-							+ " values (?, true, ?) returning file_attachment_id",
-					Integer.class, opMessageId, resourceId);
-			jdbcTemplate.update("insert into zfgbb.migrator_attachment_ref_rewrites (message_history_id) values (?)",
-					opHistoryId);
-			Integer pollId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.poll (poll_question, thread_id, created_user_id)"
-							+ " values ('Best sword?', ?, ?) returning poll_id",
-					Integer.class, threadId, ownerId);
-			Integer pollChoiceId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.poll_choice (poll_id, choice_text, active_flag, votes)"
-							+ " values (?, 'Master Sword', true, 1) returning poll_choice_id",
-					Integer.class, pollId);
-			jdbcTemplate.update("insert into zfgbb.user_poll_choice (user_poll_choice_id, user_id, poll_choice_id)"
-					+ " values ((select coalesce(max(user_poll_choice_id), 0) + 1 from zfgbb.user_poll_choice), ?, ?)",
-					adminId, pollChoiceId);
-			jdbcTemplate.update("insert into zfgbb.reaction (reactable_type, reactable_id, reactor_user_id,"
-					+ " reaction_type_id) values ('MESSAGE', ?, ?,"
-					+ " (select min(reaction_type_id) from zfgbb.reaction_type))", opMessageId, adminId);
-			jdbcTemplate.update("insert into zfgbb.migrator_id_map (entity_type, legacy_id, zfgbb_id) values"
-					+ " ('MESSAGE', 910001, ?), ('THREAD', 910002, ?), ('ATTACHMENT', 910003, ?), ('POLL', 910004, ?)",
-					opMessageId, threadId, attachmentId, pollId);
-			int historyRowsBefore = count("zfgbb.message_history where message_id in (" + opMessageId + ", "
-					+ replyMessageId + ")");
+			ContentResourceTypeDboExample attachmentTypeScope = new ContentResourceTypeDboExample();
+			attachmentTypeScope.createCriteria().andContentCodeEqualTo("ATC");
+			ContentResourceDbo resource = new ContentResourceDbo();
+			resource.setContentTypeId(contentResourceTypeDboMapper.selectByExample(attachmentTypeScope).get(0)
+					.getContentResourceTypeId());
+			resource.setUploadedUserId(owner.id());
+			resource.setFilename("evidence.png");
+			resource.setChecksum("cafebabe");
+			resource.setFileExt("png");
+			resource.setMimeType("image/png");
+			resource.setFileSize(123L);
+			contentResourceDboMapper.insertSelective(resource);
+			Integer resourceId = resource.getContentResourceId();
+
+			FileAttachmentDbo attachment = new FileAttachmentDbo();
+			attachment.setMessageId(opMessageId);
+			attachment.setActiveFlag(true);
+			attachment.setContentResourceId(resourceId);
+			fileAttachmentDboMapper.insertSelective(attachment);
+			Integer attachmentId = attachment.getFileAttachmentId();
+
+			MigratorAttachmentRefRewriteDbo attachmentRefRewrite = new MigratorAttachmentRefRewriteDbo();
+			attachmentRefRewrite.setMessageHistoryId(opHistoryId);
+			migratorAttachmentRefRewriteDboMapper.insertSelective(attachmentRefRewrite);
+
+			PollDbo poll = new PollDbo();
+			poll.setPollQuestion("Best sword?");
+			poll.setThreadId(threadId);
+			poll.setCreatedUserId(owner.id());
+			pollDboMapper.insertSelective(poll);
+			Integer pollId = poll.getPollId();
+
+			PollChoiceDbo pollChoice = new PollChoiceDbo();
+			pollChoice.setPollId(pollId);
+			pollChoice.setChoiceText("Master Sword");
+			pollChoice.setActiveFlag(true);
+			pollChoice.setVotes(1);
+			pollChoiceDboMapper.insertSelective(pollChoice);
+			Integer pollChoiceId = pollChoice.getPollChoiceId();
+
+			UserPollChoiceDbo adminVote = new UserPollChoiceDbo();
+			adminVote.setUserId(adminId);
+			adminVote.setPollChoiceId(pollChoiceId);
+			userPollChoiceDboMapper.insertSelective(adminVote);
+
+			ReactionDbo adminReaction = new ReactionDbo();
+			adminReaction.setReactableType("MESSAGE");
+			adminReaction.setReactableId(opMessageId);
+			adminReaction.setReactorUserId(adminId);
+			adminReaction.setReactionTypeId(anyReactionTypeId());
+			reactionDboMapper.insertSelective(adminReaction);
+
+			insertLegacyIdMapping("MESSAGE", 910001, opMessageId);
+			insertLegacyIdMapping("THREAD", 910002, threadId);
+			insertLegacyIdMapping("ATTACHMENT", 910003, attachmentId);
+			insertLegacyIdMapping("POLL", 910004, pollId);
+
+			ContentResourceDboExample resourceScope = new ContentResourceDboExample();
+			resourceScope.createCriteria().andContentResourceIdEqualTo(resourceId);
+			FileAttachmentDboExample attachmentScope = new FileAttachmentDboExample();
+			attachmentScope.createCriteria().andFileAttachmentIdEqualTo(attachmentId);
+			MigratorAttachmentRefRewriteDboExample rewriteScope = new MigratorAttachmentRefRewriteDboExample();
+			rewriteScope.createCriteria().andMessageHistoryIdEqualTo(opHistoryId);
+			PollDboExample pollScope = new PollDboExample();
+			pollScope.createCriteria().andPollIdEqualTo(pollId);
+			PollChoiceDboExample pollChoiceScope = new PollChoiceDboExample();
+			pollChoiceScope.createCriteria().andPollIdEqualTo(pollId);
+			UserPollChoiceDboExample voteScope = new UserPollChoiceDboExample();
+			voteScope.createCriteria().andPollChoiceIdEqualTo(pollChoiceId);
+			ReactionDboExample reactionScope = new ReactionDboExample();
+			reactionScope.createCriteria().andReactableTypeEqualTo("MESSAGE").andReactableIdEqualTo(opMessageId);
+			MigratorIdMapDboExample legacyIdScope = new MigratorIdMapDboExample();
+			legacyIdScope.createCriteria().andLegacyIdIn(List.of(910001, 910002, 910003, 910004));
+			long historyRowsBefore = messageHistoryCount(
+					criteria -> criteria.andMessageIdIn(List.of(opMessageId, replyMessageId)));
 
 			mockMvc.perform(delete("/thread/" + threadId)
 					.header("Authorization", "Bearer " + adminToken))
@@ -247,18 +304,20 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.boardId").value(1))
 					.andExpect(jsonPath("$.recycleThreadId").value(threadId));
 
-			assertEquals(1, count("zfgbb.thread where thread_id = " + threadId + " and board_id = " + binBoardId
-					+ " and recycled_from_board_id = 1 and recycled_from_thread_id is null"));
-			assertEquals(2, count("zfgbb.message where thread_id = " + threadId + " and board_id = " + binBoardId),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId)
+					.andBoardIdEqualTo(binBoardId).andRecycledFromBoardIdEqualTo(1)
+					.andRecycledFromThreadIdIsNull()));
+			assertEquals(2, messageCount(criteria -> criteria.andThreadIdEqualTo(threadId)
+					.andBoardIdEqualTo(binBoardId)),
 					"both messages must follow the thread into the bin");
-			assertEquals(1, count("zfgbb.file_attachments where file_attachment_id = " + attachmentId),
+			assertEquals(1, fileAttachmentDboMapper.countByExample(attachmentScope),
 					"recycling must not touch attachments");
-			assertEquals(1, count("zfgbb.migrator_attachment_ref_rewrites where message_history_id = " + opHistoryId));
-			assertEquals(1, count("zfgbb.poll where poll_id = " + pollId), "recycling must not touch the poll");
-			assertEquals(1, count("zfgbb.reaction where reactable_type = 'MESSAGE' and reactable_id = " + opMessageId),
+			assertEquals(1, migratorAttachmentRefRewriteDboMapper.countByExample(rewriteScope));
+			assertEquals(1, pollDboMapper.countByExample(pollScope), "recycling must not touch the poll");
+			assertEquals(1, reactionDboMapper.countByExample(reactionScope),
 					"reactions must move with the recycled thread");
-			assertEquals(historyRowsBefore, count("zfgbb.message_history where message_id in (" + opMessageId + ", "
-					+ replyMessageId + ")"));
+			assertEquals(historyRowsBefore, messageHistoryCount(
+					criteria -> criteria.andMessageIdIn(List.of(opMessageId, replyMessageId))));
 
 			mockMvc.perform(delete("/thread/" + threadId)
 					.header("Authorization", "Bearer " + adminToken))
@@ -266,21 +325,21 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.outcome").value("PURGED"))
 					.andExpect(jsonPath("$.boardId").value(binBoardId));
 
-			assertEquals(0, count("zfgbb.thread where thread_id = " + threadId));
-			assertEquals(0, count("zfgbb.message where thread_id = " + threadId));
-			assertEquals(0, count("zfgbb.message_history where message_id in (" + opMessageId + ", "
-					+ replyMessageId + ")"));
-			assertEquals(0, count("zfgbb.file_attachments where file_attachment_id = " + attachmentId));
-			assertEquals(0, count("zfgbb.content_resource where content_resource_id = " + resourceId),
+			assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId)));
+			assertEquals(0, messageCount(criteria -> criteria.andThreadIdEqualTo(threadId)));
+			assertEquals(0, messageHistoryCount(
+					criteria -> criteria.andMessageIdIn(List.of(opMessageId, replyMessageId))));
+			assertEquals(0, fileAttachmentDboMapper.countByExample(attachmentScope));
+			assertEquals(0, contentResourceDboMapper.countByExample(resourceScope),
 					"the unreferenced attachment blob row must be released");
-			assertEquals(0, count("zfgbb.migrator_attachment_ref_rewrites where message_history_id = " + opHistoryId));
-			assertEquals(0, count("zfgbb.reaction where reactable_type = 'MESSAGE' and reactable_id = " + opMessageId));
-			assertEquals(0, count("zfgbb.poll where poll_id = " + pollId));
-			assertEquals(0, count("zfgbb.poll_choice where poll_id = " + pollId));
-			assertEquals(0, count("zfgbb.user_poll_choice where poll_choice_id = " + pollChoiceId));
-			assertEquals(0, count("zfgbb.migrator_id_map where legacy_id in (910001, 910002, 910003, 910004)"));
-			assertEquals(1, count("zfgbb.moderation_log where action = 'THREAD_PURGED'"
-					+ " and detail like 'thread_id=" + threadId + " %'"));
+			assertEquals(0, migratorAttachmentRefRewriteDboMapper.countByExample(rewriteScope));
+			assertEquals(0, reactionDboMapper.countByExample(reactionScope));
+			assertEquals(0, pollDboMapper.countByExample(pollScope));
+			assertEquals(0, pollChoiceDboMapper.countByExample(pollChoiceScope));
+			assertEquals(0, userPollChoiceDboMapper.countByExample(voteScope));
+			assertEquals(0, migratorIdMapDboMapper.countByExample(legacyIdScope));
+			assertEquals(1, moderationLogCount("THREAD_PURGED",
+					log -> log.getDetail().startsWith("thread_id=" + threadId + " ")));
 
 			mockMvc.perform(delete("/thread/" + threadId)
 					.header("Authorization", "Bearer " + adminToken))
@@ -289,20 +348,17 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void restoreCoversLivingOriginGoneOriginAndNonRecycledRejection() throws Exception {
-			String ownerName = "resto_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("resto_" + suffix);
+			String adminToken = getAdminToken();
 
-			int livingOriginId = postThread(ownerToken, "Living origin " + suffix, "OP");
-			postReply(ownerToken, livingOriginId, "middle post to recycle");
-			postReply(ownerToken, livingOriginId, "tail post");
+			int livingOriginId = postThread(owner.token(), "Living origin " + suffix, "OP");
+			postReply(owner.token(), livingOriginId, "middle post to recycle");
+			postReply(owner.token(), livingOriginId, "tail post");
 			int recycledMessageId = messageIdAt(livingOriginId, 2);
 			mockMvc.perform(delete("/message/" + recycledMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk());
-			Integer wrapperThreadId = jdbcTemplate.queryForObject(
-					"select thread_id from zfgbb.message where message_id = ?", Integer.class, recycledMessageId);
+			int wrapperThreadId = messageDboMapper.selectByPrimaryKey(recycledMessageId).getThreadId();
 
 			mockMvc.perform(put("/message/" + recycledMessageId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
@@ -311,23 +367,25 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.threadId").value(livingOriginId))
 					.andExpect(jsonPath("$.boardId").value(1))
 					.andExpect(jsonPath("$.postInThread").value(3));
-			assertEquals(1, count("zfgbb.message where message_id = " + recycledMessageId
-					+ " and thread_id = " + livingOriginId + " and board_id = 1 and post_in_thread = 3"),
+
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(recycledMessageId)
+					.andThreadIdEqualTo(livingOriginId).andBoardIdEqualTo(1).andPostInThreadEqualTo(3)),
 					"the restored post must be appended at the end of the living origin thread");
 			assertEquals(List.of(1, 2, 3), postPositionsIn(livingOriginId));
-			assertEquals(0, count("zfgbb.thread where thread_id = " + wrapperThreadId),
-					"the emptied wrapper must be garbage-collected on restore");
-			assertEquals(1, count("zfgbb.moderation_log where action = 'MESSAGE_RESTORED'"
-					+ " and message_id = " + recycledMessageId));
 
-			int goneOriginId = postThread(ownerToken, "Gone origin " + suffix, "OP");
-			postReply(ownerToken, goneOriginId, "orphan-to-be");
+			assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(wrapperThreadId)),
+					"the emptied wrapper must be garbage-collected on restore");
+
+			assertEquals(1, moderationLogs(criteria -> criteria.andActionEqualTo("MESSAGE_RESTORED")
+					.andMessageIdEqualTo(recycledMessageId)).size());
+
+			int goneOriginId = postThread(owner.token(), "Gone origin " + suffix, "OP");
+			postReply(owner.token(), goneOriginId, "orphan-to-be");
 			int orphanMessageId = messageIdAt(goneOriginId, 2);
 			mockMvc.perform(delete("/message/" + orphanMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk());
-			Integer orphanWrapperId = jdbcTemplate.queryForObject(
-					"select thread_id from zfgbb.message where message_id = ?", Integer.class, orphanMessageId);
+			int orphanWrapperId = messageDboMapper.selectByPrimaryKey(orphanMessageId).getThreadId();
 			mockMvc.perform(delete("/thread/" + goneOriginId)
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
@@ -336,36 +394,42 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("PURGED"));
-			assertEquals(1, count("zfgbb.thread where thread_id = " + orphanWrapperId
-					+ " and recycled_from_thread_id is null and recycled_from_board_id = 1"),
-					"purging the origin must null the wrapper's thread provenance via the SET NULL FK");
+
+			ThreadDbo orphanThread = threadDboMapper.selectByPrimaryKey(orphanWrapperId);
+			assertNotNull(orphanThread);
+			assertNull(orphanThread.getRecycledFromThreadId());
+			assertEquals(1, orphanThread.getRecycledFromBoardId());
 
 			mockMvc.perform(put("/message/" + orphanMessageId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isConflict())
-					.andExpect(content().string("RESTORE_THREAD_INSTEAD"));
+					.andExpect(jsonPath("$.detail").value("RESTORE_THREAD_INSTEAD"));
 			mockMvc.perform(put("/thread/" + orphanWrapperId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.mode").value("THREAD_RESTORED"))
 					.andExpect(jsonPath("$.threadId").value(orphanWrapperId))
 					.andExpect(jsonPath("$.boardId").value(1));
-			assertEquals(1, count("zfgbb.thread where thread_id = " + orphanWrapperId
-					+ " and board_id = 1 and recycled_from_board_id is null and recycled_from_thread_id is null"),
-					"the orphaned wrapper must come back as a live thread on the origin board");
-			assertEquals(1, count("zfgbb.message where message_id = " + orphanMessageId + " and board_id = 1"));
+
+			ThreadDbo restoredOrphanThread = threadDboMapper.selectByPrimaryKey(orphanWrapperId);
+			assertEquals(1, restoredOrphanThread.getBoardId());
+			assertNull(restoredOrphanThread.getRecycledFromBoardId());
+			assertNull(restoredOrphanThread.getRecycledFromThreadId());
+
+			MessageDbo restoredMsg = messageDboMapper.selectByPrimaryKey(orphanMessageId);
+			assertEquals(1, restoredMsg.getBoardId());
 
 			mockMvc.perform(put("/thread/" + livingOriginId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isConflict())
-					.andExpect(content().string("NOT_RECYCLED"));
+					.andExpect(jsonPath("$.detail").value("NOT_RECYCLED"));
 			mockMvc.perform(put("/message/" + recycledMessageId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isConflict())
-					.andExpect(content().string("NOT_RECYCLED"));
+					.andExpect(jsonPath("$.detail").value("NOT_RECYCLED"));
 
 			for (String action : new String[] { "THREAD_RECYCLED", "THREAD_RESTORED" })
-				assertTrue(count("zfgbb.moderation_log where action = '" + action + "'") >= 1,
+				assertTrue(!moderationLogs(criteria -> criteria.andActionEqualTo(action)).isEmpty(),
 						action + " must be written to the moderation log");
 		}
 	}
@@ -375,13 +439,11 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void moderatorOverridesLocksAndTogglesThreadLock() throws Exception {
-			String ownerName = "authz_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("authz_" + suffix);
+			String adminToken = getAdminToken();
 
-			int threadId = postThread(ownerToken, "Authz matrix " + suffix, "OP");
-			postReply(ownerToken, threadId, "first reply");
+			int threadId = postThread(owner.token(), "Authz matrix " + suffix, "OP");
+			postReply(owner.token(), threadId, "first reply");
 			int firstReplyId = messageIdAt(threadId, 2);
 
 			mockMvc.perform(put("/thread/" + threadId + "/lockToggle")
@@ -407,14 +469,12 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void reRecyclingARestoredMessageRecyclesAndPurgesAgain() throws Exception {
-			String ownerName = "rb_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("rb_" + suffix);
+			String adminToken = getAdminToken();
 			int recycleBoardId = recycleBoardId();
 
-			int threadId = postThread(ownerToken, "Recycle smoke " + suffix, "First post!");
-			int replyMessageId = postAndRecycle(ownerToken, threadId, "A reply!");
+			int threadId = postThread(owner.token(), "Recycle smoke " + suffix, "First post!");
+			int replyMessageId = postAndRecycle(owner.token(), threadId, "A reply!");
 
 			mockMvc.perform(put("/message/" + replyMessageId + "/restore")
 					.header("Authorization", "Bearer " + adminToken))
@@ -422,7 +482,7 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.mode").value("MERGED_INTO_ORIGIN"));
 
 			mockMvc.perform(delete("/message/" + replyMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"));
 
@@ -436,34 +496,33 @@ class ModeratorTest extends PostgresIntegrationTest {
 			mockMvc.perform(delete("/message/" + replyMessageId)
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isNotFound());
-			assertEquals(0, count("zfgbb.message where message_id = " + replyMessageId),
+			assertEquals(0, messageCount(criteria -> criteria.andMessageIdEqualTo(replyMessageId)),
 					"purged message row must be gone");
-			assertEquals(0, count("zfgbb.message_history where message_id = " + replyMessageId),
+			assertEquals(0, messageHistoryCount(criteria -> criteria.andMessageIdEqualTo(replyMessageId)),
 					"purged message history must be gone");
 		}
 
 		@Test
 		void moderatorMovesStickiesAndSplitsThreadsOverHttp() throws Exception {
-			String ownerName = "modop_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("modop_" + suffix);
+			String adminToken = getAdminToken();
 
-			int threadId = postThread(ownerToken, "Mod ops " + suffix, "OP");
+			int threadId = postThread(owner.token(), "Mod ops " + suffix, "OP");
 			for (int replyNumber = 2; replyNumber <= 5; replyNumber++)
-				postReply(ownerToken, threadId, "reply number " + replyNumber);
+				postReply(owner.token(), threadId, "reply number " + replyNumber);
 			int splitTailStartId = messageIdAt(threadId, 4);
 			int splitTailEndId = messageIdAt(threadId, 5);
 
 			mockMvc.perform(put("/thread/" + threadId + "/stickyToggle")
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
 
 			mockMvc.perform(put("/thread/" + threadId + "/stickyToggle")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.pinnedFlag").value(true));
-			assertEquals(1, count("zfgbb.thread where thread_id = " + threadId + " and pinned_flag"));
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId)
+					.andPinnedFlagEqualTo(true)));
 			mockMvc.perform(put("/thread/" + threadId + "/stickyToggle")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
@@ -473,8 +532,8 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.boardId").value(2));
-			assertEquals(1, count("zfgbb.thread where thread_id = " + threadId + " and board_id = 2"));
-			assertEquals(5, count("zfgbb.message where thread_id = " + threadId + " and board_id = 2"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId).andBoardIdEqualTo(2)));
+			assertEquals(5, messageCount(criteria -> criteria.andThreadIdEqualTo(threadId).andBoardIdEqualTo(2)),
 					"every message must follow its thread to the destination board");
 
 			String splitBody = """
@@ -489,12 +548,12 @@ class ModeratorTest extends PostgresIntegrationTest {
 			int splitThreadId = json.readTree(splitResult.getResponse().getContentAsString())
 					.get("id").asInt();
 
-			assertEquals(1, count("zfgbb.thread where thread_id = " + splitThreadId
-					+ " and board_id = 1 and thread_name = 'Split off " + suffix + "'"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(splitThreadId).andBoardIdEqualTo(1)
+					.andThreadNameEqualTo("Split off " + suffix)),
 					"the split must open a fresh thread on the requested board");
-			assertEquals(2, count("zfgbb.message where thread_id = " + splitThreadId + " and board_id = 1"),
+			assertEquals(2, messageCount(criteria -> criteria.andThreadIdEqualTo(splitThreadId).andBoardIdEqualTo(1)),
 					"the selected tail messages must move into the split thread");
-			assertEquals(3, count("zfgbb.message where thread_id = " + threadId),
+			assertEquals(3, messageCount(criteria -> criteria.andThreadIdEqualTo(threadId)),
 					"the origin thread must keep its unselected messages");
 			assertEquals(List.of(1, 2), postPositionsIn(splitThreadId),
 					"the split thread must be densely resequenced");
@@ -504,14 +563,12 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void splitResequencesBothThreadsAndKeepsEveryPageReachable() throws Exception {
-			String ownerName = "splitseq_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("splitseq_" + suffix);
+			String adminToken = getAdminToken();
 
-			int threadId = postThread(ownerToken, "Split resequence " + suffix, "OP body");
+			int threadId = postThread(owner.token(), "Split resequence " + suffix, "OP body");
 			for (int replyNumber = 2; replyNumber <= 12; replyNumber++)
-				postReply(ownerToken, threadId, "reply number " + replyNumber);
+				postReply(owner.token(), threadId, "reply number " + replyNumber);
 
 			int highSourcePost11Id = messageIdAt(threadId, 11);
 			int highSourcePost12Id = messageIdAt(threadId, 12);
@@ -559,22 +616,21 @@ class ModeratorTest extends PostgresIntegrationTest {
 			assertEquals(6, json.readTree(splitPage.getResponse().getContentAsString()).get("messages").size(),
 					"all moved posts must be reachable on page 1 of the split thread");
 
-			assertEquals(1, count("zfgbb.moderation_log where action = 'THREAD_SPLIT' and thread_id = " + splitThreadId
-					+ " and detail like '%thread_id=" + threadId + " split:%'"));
+			assertEquals(1, moderationLogCount("THREAD_SPLIT",
+					log -> log.getThreadId() != null && log.getThreadId() == splitThreadId
+							&& log.getDetail().contains("thread_id=" + threadId + " split:")));
 		}
 
 		@Test
 		void splitIgnoresForeignMessagesAndGarbageCollectsAnEmptiedSource() throws Exception {
-			String ownerName = "splitfgn_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("splitfgn_" + suffix);
+			String adminToken = getAdminToken();
 
-			int threadA = postThread(ownerToken, "Split A " + suffix, "A op");
-			postReply(ownerToken, threadA, "A reply 1");
-			postReply(ownerToken, threadA, "A reply 2");
-			int threadB = postThread(ownerToken, "Split B " + suffix, "B op");
-			postReply(ownerToken, threadB, "B reply 1");
+			int threadA = postThread(owner.token(), "Split A " + suffix, "A op");
+			postReply(owner.token(), threadA, "A reply 1");
+			postReply(owner.token(), threadA, "A reply 2");
+			int threadB = postThread(owner.token(), "Split B " + suffix, "B op");
+			postReply(owner.token(), threadB, "B reply 1");
 			int foreignId = messageIdAt(threadB, 2);
 			int validAtailId = messageIdAt(threadA, 3);
 
@@ -589,9 +645,10 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andReturn();
 			int dragSplitThreadId = json.readTree(dragResult.getResponse().getContentAsString()).get("id").asInt();
 
-			assertEquals(1, count("zfgbb.message where message_id = " + foreignId + " and thread_id = " + threadB),
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(foreignId)
+					.andThreadIdEqualTo(threadB)),
 					"a foreign message must not be dragged out of its own thread");
-			assertEquals(1, count("zfgbb.message where thread_id = " + dragSplitThreadId),
+			assertEquals(1, messageCount(criteria -> criteria.andThreadIdEqualTo(dragSplitThreadId)),
 					"only the source-thread member may move into the split thread");
 			assertEquals(List.of(1, 2), postPositionsIn(threadB), "the foreign thread must stay intact");
 
@@ -606,8 +663,8 @@ class ModeratorTest extends PostgresIntegrationTest {
 			assertEquals(List.of(1, 2), postPositionsIn(threadB),
 					"a rejected foreign-only split must not touch the foreign thread");
 
-			int threadC = postThread(ownerToken, "Split C " + suffix, "C op");
-			postReply(ownerToken, threadC, "C reply 1");
+			int threadC = postThread(owner.token(), "Split C " + suffix, "C op");
+			postReply(owner.token(), threadC, "C reply 1");
 			String fullSplitBody = """
 					{"threadId": %d, "boardId": 1, "messageIdsToMove": [%d, %d], "newThreadTitle": "Full split %s"}
 					""".formatted(threadC, messageIdAt(threadC, 1), messageIdAt(threadC, 2), suffix);
@@ -619,12 +676,12 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andReturn();
 			int fullSplitThreadId = json.readTree(fullResult.getResponse().getContentAsString()).get("id").asInt();
 
-			assertEquals(0, count("zfgbb.thread where thread_id = " + threadC),
+			assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(threadC)),
 					"a fully-emptied source thread must be garbage-collected");
 			assertEquals(List.of(1, 2), postPositionsIn(fullSplitThreadId),
 					"the new thread must hold every moved post densely resequenced");
-			assertEquals(1, count("zfgbb.moderation_log where action = 'THREAD_SPLIT' and thread_id = "
-					+ fullSplitThreadId),
+			assertEquals(1, moderationLogs(criteria -> criteria.andActionEqualTo("THREAD_SPLIT")
+					.andThreadIdEqualTo(fullSplitThreadId)).size(),
 					"the split log must reference the surviving new thread, not the deleted source");
 		}
 	}
@@ -634,105 +691,153 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 		@Test
 		void withoutARecycleBinOwnerDeletesPurgePermanently() throws Exception {
-			String ownerName = "nobin_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String configuredBin = jdbcTemplate.queryForObject(
-					"select config_value from zfgbb.system_config where config_key = 'recycle_board_id'", String.class);
-			jdbcTemplate.update("delete from zfgbb.system_config where config_key = 'recycle_board_id'");
+			TestUser owner = createUser("nobin_" + suffix);
+			String configuredBin = systemConfigDboMapper.selectByPrimaryKey(RECYCLE_BOARD_CONFIG_KEY)
+					.getConfigValue();
+			systemConfigDboMapper.deleteByPrimaryKey(RECYCLE_BOARD_CONFIG_KEY);
 			try {
-				int threadId = postThread(ownerToken, "No bin " + suffix, "OP survives one round");
-				postReply(ownerToken, threadId, "purged straight away");
+				int threadId = postThread(owner.token(), "No bin " + suffix, "OP survives one round");
+				postReply(owner.token(), threadId, "purged straight away");
 				int replyMessageId = messageIdAt(threadId, 2);
 				int opMessageId = messageIdAt(threadId, 1);
-				long binThreadsBefore = count("zfgbb.thread where board_id = " + Integer.parseInt(configuredBin));
+				int configuredBinId = Integer.parseInt(configuredBin);
+				long binThreadsBefore = threadCount(criteria -> criteria.andBoardIdEqualTo(configuredBinId));
 
 				mockMvc.perform(delete("/message/" + replyMessageId)
-						.header("Authorization", "Bearer " + ownerToken))
+						.header("Authorization", "Bearer " + owner.token()))
 						.andExpect(status().isOk())
 						.andExpect(jsonPath("$.outcome").value("PURGED"))
 						.andExpect(jsonPath("$.originThreadDeleted").value(false))
 						.andExpect(jsonPath("$.threadId").value(threadId))
 						.andExpect(jsonPath("$.pageCount").value(1));
-				assertEquals(0, count("zfgbb.message where message_id = " + replyMessageId),
+				assertEquals(0, messageCount(criteria -> criteria.andMessageIdEqualTo(replyMessageId)),
 						"without a bin the owner delete must destroy the message");
-				assertEquals(0, count("zfgbb.message_history where message_id = " + replyMessageId));
-				assertEquals(binThreadsBefore,
-						count("zfgbb.thread where board_id = " + Integer.parseInt(configuredBin)),
+				assertEquals(0, messageHistoryCount(criteria -> criteria.andMessageIdEqualTo(replyMessageId)));
+				assertEquals(binThreadsBefore, threadCount(criteria -> criteria.andBoardIdEqualTo(configuredBinId)),
 						"no wrapper thread may be created in no-bin mode");
 				assertEquals(List.of(1), postPositionsIn(threadId));
 
 				mockMvc.perform(delete("/message/" + opMessageId)
-						.header("Authorization", "Bearer " + ownerToken))
+						.header("Authorization", "Bearer " + owner.token()))
 						.andExpect(status().isOk())
 						.andExpect(jsonPath("$.outcome").value("PURGED"))
 						.andExpect(jsonPath("$.originThreadDeleted").value(true))
 						.andExpect(jsonPath("$.boardId").value(1));
-				assertEquals(0, count("zfgbb.message where message_id = " + opMessageId));
-				assertEquals(0, count("zfgbb.thread where thread_id = " + threadId),
+				assertEquals(0, messageCount(criteria -> criteria.andMessageIdEqualTo(opMessageId)));
+				assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(threadId)),
 						"the emptied thread must be garbage-collected in no-bin mode");
-				assertEquals(2, count("zfgbb.moderation_log where action = 'MESSAGE_PURGED'"
-						+ " and message_id is null and detail like '%thread_id=" + threadId + " %'"));
+				assertEquals(2, moderationLogCount("MESSAGE_PURGED", log -> log.getMessageId() == null
+						&& log.getDetail().contains("thread_id=" + threadId + " ")));
 			} finally {
-				jdbcTemplate.update("insert into zfgbb.system_config (config_key, config_value)"
-						+ " values ('recycle_board_id', ?)", configuredBin);
+				SystemConfigDbo restoredBin = new SystemConfigDbo();
+				restoredBin.setConfigKey(RECYCLE_BOARD_CONFIG_KEY);
+				restoredBin.setConfigValue(configuredBin);
+				systemConfigDboMapper.insertSelective(restoredBin);
 			}
 		}
 
 		@Test
 		void accountWipePurgesTheSubjectsRecycledPosts() throws Exception {
-			String victimName = "wiperc_" + suffix;
-			register(victimName, "password123");
-			String victimToken = login(victimName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
-			int victimId = userIdOf(victimName);
+			TestUser victim = createUser("wiperc_" + suffix);
+			String adminToken = getAdminToken();
 
 			int hostThreadId = postThread(adminToken, "Host thread " + suffix, "Admin OP");
-			postReply(victimToken, hostThreadId, "recycled before the wipe");
-			postReply(victimToken, hostThreadId, "still live at wipe time");
+			postReply(victim.token(), hostThreadId, "recycled before the wipe");
+			postReply(victim.token(), hostThreadId, "still live at wipe time");
 			int recycledMessageId = messageIdAt(hostThreadId, 2);
 			mockMvc.perform(delete("/message/" + recycledMessageId)
-					.header("Authorization", "Bearer " + victimToken))
+					.header("Authorization", "Bearer " + victim.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"));
-			Integer wrapperThreadId = jdbcTemplate.queryForObject(
-					"select thread_id from zfgbb.message where message_id = ?", Integer.class, recycledMessageId);
-			assertEquals(1, count("zfgbb.message where message_id = " + recycledMessageId
-					+ " and owner_id = " + victimId),
+			Integer wrapperThreadId = messageDboMapper.selectByPrimaryKey(recycledMessageId).getThreadId();
+			assertEquals(1, messageCount(criteria -> criteria.andMessageIdEqualTo(recycledMessageId)
+					.andOwnerIdEqualTo(victim.id())),
 					"the recycled post must still belong to its author while it sits in the bin");
 
-			Integer requestId = jdbcTemplate.queryForObject(
-					"""
-							insert into zfgbb.account_deletion_request (user_id, mode, status, token_sha256, requested_ts, expires_ts)
-							values (?, 'WIPE', 'CONFIRMED', ?, current_timestamp, current_timestamp + interval '24 hours')
-							returning account_deletion_request_id
-							""",
-					Integer.class, victimId, UUID.randomUUID().toString());
-			accountDeletionService.executeConfirmedDeletion(requestId);
+			AccountDeletionRequestDbo wipeRequest = new AccountDeletionRequestDbo();
+			wipeRequest.setUserId(victim.id());
+			wipeRequest.setMode("WIPE");
+			wipeRequest.setStatus("CONFIRMED");
+			wipeRequest.setTokenSha256(UUID.randomUUID().toString());
+			wipeRequest.setRequestedTs(OffsetDateTime.now());
+			wipeRequest.setExpiresTs(OffsetDateTime.now().plusHours(24));
+			accountDeletionRequestDboMapper.insertSelective(wipeRequest);
+			accountDeletionService.executeConfirmedDeletion(wipeRequest.getAccountDeletionRequestId());
 
-			assertEquals(0, count("zfgbb.\"user\" where user_id = " + victimId));
-			assertEquals(0, count("zfgbb.message where message_id = " + recycledMessageId),
+			UserDboExample victimScope = new UserDboExample();
+			victimScope.createCriteria().andUserIdEqualTo(victim.id());
+			assertEquals(0, userDboMapper.countByExample(victimScope));
+			assertEquals(0, messageCount(criteria -> criteria.andMessageIdEqualTo(recycledMessageId)),
 					"account deletion must purge the recycled post out of the bin");
-			assertEquals(0, count("zfgbb.message where owner_id = " + victimId));
-			assertEquals(0, count("zfgbb.thread where thread_id = " + wrapperThreadId),
+			assertEquals(0, messageCount(criteria -> criteria.andOwnerIdEqualTo(victim.id())));
+			assertEquals(0, threadCount(criteria -> criteria.andThreadIdEqualTo(wrapperThreadId)),
 					"the emptied wrapper thread must be garbage-collected by the wipe");
-			assertEquals(1, count("zfgbb.thread where thread_id = " + hostThreadId));
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(hostThreadId)));
 		}
 	}
 
 	private int recycleBoardId() {
-		Integer boardId = jdbcTemplate.queryForObject(
-				"select config_value::integer from zfgbb.system_config where config_key = 'recycle_board_id'",
-				Integer.class);
-		assertNotNull(boardId, "installSampleData must configure the recycle bin");
-		return boardId;
+		SystemConfigDbo recycleBin = systemConfigDboMapper.selectByPrimaryKey(RECYCLE_BOARD_CONFIG_KEY);
+		assertNotNull(recycleBin, "installSampleData must configure the recycle bin");
+		return Integer.parseInt(recycleBin.getConfigValue());
 	}
 
-	private long boardSummaryValue(int boardId, String column) {
-		Long value = jdbcTemplate.queryForObject(
-				"select " + column + " from zfgbb.board_summary where board_id = " + boardId, Long.class);
+	private int anyReactionTypeId() {
+		Integer reactionTypeId = reactionTypeDboMapper.selectByExample(new ReactionTypeDboExample()).stream()
+				.map(ReactionTypeDbo::getReactionTypeId).min(Integer::compareTo).orElse(null);
+		assertNotNull(reactionTypeId);
+		return reactionTypeId;
+	}
+
+	private void insertLegacyIdMapping(String entityType, int legacyId, int zfgbbId) {
+		MigratorIdMapDbo mapping = new MigratorIdMapDbo();
+		mapping.setEntityType(entityType);
+		mapping.setLegacyId(legacyId);
+		mapping.setZfgbbId(zfgbbId);
+		migratorIdMapDboMapper.insertSelective(mapping);
+	}
+
+	private long threadCount(Consumer<ThreadDboExample.Criteria> criteria) {
+		ThreadDboExample example = new ThreadDboExample();
+		criteria.accept(example.createCriteria());
+		return threadDboMapper.countByExample(example);
+	}
+
+	private long messageCount(Consumer<MessageDboExample.Criteria> criteria) {
+		MessageDboExample example = new MessageDboExample();
+		criteria.accept(example.createCriteria());
+		return messageDboMapper.countByExample(example);
+	}
+
+	private MessageHistoryDboExample messageHistoryWhere(Consumer<MessageHistoryDboExample.Criteria> criteria) {
+		MessageHistoryDboExample example = new MessageHistoryDboExample();
+		criteria.accept(example.createCriteria());
+		return example;
+	}
+
+	private long messageHistoryCount(Consumer<MessageHistoryDboExample.Criteria> criteria) {
+		return messageHistoryDboMapper.countByExample(messageHistoryWhere(criteria));
+	}
+
+	private List<ModerationLogDbo> moderationLogs(Consumer<ModerationLogDboExample.Criteria> criteria) {
+		ModerationLogDboExample example = new ModerationLogDboExample();
+		criteria.accept(example.createCriteria());
+		return moderationLogDboMapper.selectByExample(example);
+	}
+
+	private long moderationLogCount(String action, Predicate<ModerationLogDbo> matcher) {
+		return moderationLogs(criteria -> criteria.andActionEqualTo(action)).stream()
+				.filter(log -> log.getDetail() != null).filter(matcher).count();
+	}
+
+	private long boardSummaryValue(int boardId, Function<BoardSummaryViewDbo, Number> field) {
+		BoardSummaryViewDboExample example = new BoardSummaryViewDboExample();
+		example.createCriteria().andBoardIdEqualTo(boardId);
+		List<BoardSummaryViewDbo> summaries = boardSummaryViewDboMapper.selectByExample(example);
+		assertEquals(1, summaries.size(), "board_summary must carry exactly one row per board");
+		Number value = field.apply(summaries.get(0));
 		assertNotNull(value);
-		return value;
+		return value.longValue();
 	}
 
 	private JsonNode forumBoardSummary(String accessToken, int boardId) throws Exception {

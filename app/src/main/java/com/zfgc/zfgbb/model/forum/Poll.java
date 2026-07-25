@@ -9,8 +9,10 @@ import com.zfgc.zfgbb.model.BaseModel;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder(toBuilder=true)
 public class Poll extends BaseModel {
 	@JsonIgnore

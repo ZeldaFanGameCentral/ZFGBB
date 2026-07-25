@@ -4,15 +4,8 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogActionDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogActionDbExample;
 import jakarta.annotation.Generated;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
 
 public interface SMFLogActionDbMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041794565-04:00", comments="Source Table: smf_1log_actions")
-    long countByExample(SMFLogActionDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041809995-04:00", comments="Source Table: smf_1log_actions")
-    int deleteByExample(SMFLogActionDbExample example);
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041824764-04:00", comments="Source Table: smf_1log_actions")
     int deleteByPrimaryKey(Integer idAction);
 
@@ -30,15 +23,6 @@ public interface SMFLogActionDbMapper {
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041896002-04:00", comments="Source Table: smf_1log_actions")
     SMFLogActionDb selectByPrimaryKey(Integer idAction);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041913151-04:00", comments="Source Table: smf_1log_actions")
-    int updateByExampleSelective(@Param("row") SMFLogActionDb row, @Param("example") SMFLogActionDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.041989539-04:00", comments="Source Table: smf_1log_actions")
-    int updateByExampleWithBLOBs(@Param("row") SMFLogActionDb row, @Param("example") SMFLogActionDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.042008578-04:00", comments="Source Table: smf_1log_actions")
-    int updateByExample(@Param("row") SMFLogActionDb row, @Param("example") SMFLogActionDbExample example);
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.042032997-04:00", comments="Source Table: smf_1log_actions")
     int updateByPrimaryKeySelective(SMFLogActionDb row);

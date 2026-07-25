@@ -1,15 +1,16 @@
 package com.zfgc.zfgbb.services.system;
 
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import com.zfgc.zfgbb.dao.system.SystemConfigDao;
+import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.SystemConfigDbo;
-import com.zfgc.zfgbb.dbo.SystemConfigDboExample;
+import com.zfgc.zfgbb.mappers.SystemConfigDboMapper;
 
 @Service
 @Transactional
@@ -22,17 +23,23 @@ public class SystemConfigService {
 		public static final String INSTALLED_BY_USER_ID = "installed_by_user_id";
 		public static final String CMS_DISCUSSION_BOARD_ID = "cms_discussion_board_id";
 		public static final String RECYCLE_BOARD_ID = "recycle_board_id";
+		public static final String CONTENT_GENERATION = "content_generation";
+		public static final String AUTHORING_DEFAULT_CONTENT_FORMAT = "authoring_default_content_format";
 
 		private Keys() {
 		}
 	}
 
-	private final SystemConfigDao dao;
+	private record CachedSiteName(long invalidations, Optional<String> siteName) {
+	}
 
-	private final AtomicReference<Optional<String>> cachedSiteName = new AtomicReference<>();
+	private final SystemConfigDboMapper systemConfigDboMapper;
 
-	public SystemConfigService(SystemConfigDao dao) {
-		this.dao = dao;
+	private final AtomicReference<CachedSiteName> cachedSiteName =
+			new AtomicReference<>(new CachedSiteName(0, Optional.empty()));
+
+	public SystemConfigService(SystemConfigDboMapper systemConfigDboMapper) {
+		this.systemConfigDboMapper = systemConfigDboMapper;
 	}
 
 	@Transactional(readOnly = true)
@@ -43,54 +50,90 @@ public class SystemConfigService {
 	}
 
 	@Transactional(readOnly = true)
+	public ContentFormat authoringDefaultContentFormat() {
+		return ContentFormat.parse(readConfigValue(Keys.AUTHORING_DEFAULT_CONTENT_FORMAT))
+				.orElse(ContentFormat.BBCODE);
+	}
+
+	public void setAuthoringDefaultContentFormat(ContentFormat authoringDefault) {
+		set(Keys.AUTHORING_DEFAULT_CONTENT_FORMAT, authoringDefault.name());
+	}
+
+	@Transactional(readOnly = true)
 	public String get(String key) {
-		if (Keys.SITE_NAME.equals(key)) {
-			Optional<String> cachedValue = cachedSiteName.get();
-			if (cachedValue == null) {
-				cachedValue = Optional.ofNullable(readConfigValue(key));
-				cachedSiteName.set(cachedValue);
-			}
-			return cachedValue.orElse(null);
-		}
+		if (Keys.SITE_NAME.equals(key))
+			return siteName();
 		return readConfigValue(key);
 	}
 
+	private String siteName() {
+		CachedSiteName cached = cachedSiteName.get();
+		if (cached.siteName().isPresent())
+			return cached.siteName().get();
+		String stored = readConfigValue(Keys.SITE_NAME);
+		if (stored != null)
+			cachedSiteName.compareAndSet(cached,
+					new CachedSiteName(cached.invalidations(), Optional.of(stored)));
+		return stored;
+	}
+
 	private String readConfigValue(String key) {
-		SystemConfigDboExample ex = new SystemConfigDboExample();
-		ex.createCriteria().andConfigKeyEqualTo(key);
-		return dao.get(ex).stream().findFirst().map(SystemConfigDbo::getConfigValue).orElse(null);
+		return Optional.ofNullable(systemConfigDboMapper.selectByPrimaryKey(key))
+				.map(SystemConfigDbo::getConfigValue)
+				.orElse(null);
 	}
 
 	public void set(String key, String value) {
-		OffsetDateTime now = OffsetDateTime.now(java.time.ZoneOffset.UTC);
-		SystemConfigDboExample ex = new SystemConfigDboExample();
-		ex.createCriteria().andConfigKeyEqualTo(key);
-		Optional<SystemConfigDbo> existing = dao.get(ex).stream().findFirst();
-
-		if (existing.isPresent()) {
-			SystemConfigDbo dbo = existing.get();
-			dbo.setConfigValue(value);
-			dbo.setUpdatedTs(now);
-			dao.getMapper().updateByPrimaryKey(dbo);
+		SystemConfigDbo existing = systemConfigDboMapper.selectByPrimaryKey(key);
+		if (existing != null) {
+			existing.setConfigValue(value);
+			systemConfigDboMapper.updateByPrimaryKey(existing);
 		} else {
-			SystemConfigDbo dbo = new SystemConfigDbo();
-			dbo.setConfigKey(key);
-			dbo.setConfigValue(value);
-			dbo.setCreatedTs(now);
-			dbo.setUpdatedTs(now);
-			dao.getMapper().insert(dbo);
+			SystemConfigDbo inserted = new SystemConfigDbo();
+			inserted.setConfigKey(key);
+			inserted.setConfigValue(value);
+			systemConfigDboMapper.insert(inserted);
 		}
 
 		if (Keys.SITE_NAME.equals(key))
-			cachedSiteName.set(null);
+			invalidateSiteNameOnceCommitted();
 	}
 
 	public void unset(String key) {
-		SystemConfigDboExample ex = new SystemConfigDboExample();
-		ex.createCriteria().andConfigKeyEqualTo(key);
-		dao.getMapper().deleteByExample(ex);
+		systemConfigDboMapper.deleteByPrimaryKey(key);
 
 		if (Keys.SITE_NAME.equals(key))
-			cachedSiteName.set(null);
+			invalidateSiteNameOnceCommitted();
+	}
+
+	private void invalidateSiteNameOnceCommitted() {
+		if (TransactionSynchronizationManager.isSynchronizationActive()) {
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCompletion(int status) {
+					invalidateSiteName();
+				}
+			});
+		} else {
+			invalidateSiteName();
+		}
+	}
+
+	private void invalidateSiteName() {
+		cachedSiteName.updateAndGet(stale ->
+				new CachedSiteName(stale.invalidations() + 1, Optional.empty()));
+	}
+
+	public record CmsConfig(String discussionBoardId) {
+	}
+
+	@Transactional(readOnly = true)
+	public CmsConfig getCmsConfig() {
+		return new CmsConfig(get(Keys.CMS_DISCUSSION_BOARD_ID));
+	}
+
+	public CmsConfig setCmsConfig(CmsConfig config) {
+		set(Keys.CMS_DISCUSSION_BOARD_ID, config.discussionBoardId());
+		return getCmsConfig();
 	}
 }

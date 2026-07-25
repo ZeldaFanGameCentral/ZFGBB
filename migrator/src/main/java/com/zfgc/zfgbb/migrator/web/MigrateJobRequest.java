@@ -1,5 +1,8 @@
 package com.zfgc.zfgbb.migrator.web;
 
+import java.util.List;
+import java.util.Map;
+
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -16,6 +19,7 @@ public class MigrateJobRequest {
 	private String smfPassword;
 	private String smfTablePrefix;
 	private String smfLegacyHost;
+	private String wikiLegacyHost;
 	private String appBaseUrl;
 	private String attachmentsSourcePath;
 	private String attachmentsTargetPath;
@@ -26,11 +30,11 @@ public class MigrateJobRequest {
 	private Boolean createMemberWikiPages;
 	private Integer discussionBoardId;
 	private Integer resourcesBoardId;
-	private java.util.Map<String, Integer> talkBoardIds;
-	private java.util.Map<Integer, java.util.List<String>> groupPermissionMap;
-	private java.util.Map<String, String> wikiNamespaceCaseModes;
-	private java.util.Map<String, String> wikiNamespaceAliases;
-	private java.util.Map<Integer, String> wikiNamespaceIds;
+	private Map<String, Integer> talkBoardIds;
+	private Map<Integer, List<String>> groupPermissionMap;
+	private Map<String, String> wikiNamespaceCaseModes;
+	private Map<String, String> wikiNamespaceAliases;
+	private Map<Integer, String> wikiNamespaceIds;
 
 	@JsonAnySetter
 	public void rejectUnknownParameter(String name, Object value) {

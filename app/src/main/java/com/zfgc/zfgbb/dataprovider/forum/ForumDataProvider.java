@@ -6,18 +6,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.CategoryDao;
 import com.zfgc.zfgbb.dao.ThreadDao;
 import com.zfgc.zfgbb.dbo.BoardDbo;
-import com.zfgc.zfgbb.dbo.BoardDboExample;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.BoardSummaryViewDboExample;
@@ -25,10 +22,9 @@ import com.zfgc.zfgbb.dbo.CategoryDboExample;
 import com.zfgc.zfgbb.dbo.ChildBoardViewDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
+import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.BoardSummaryViewDboMapper;
 import com.zfgc.zfgbb.mappers.ChildBoardViewDboMapper;
-import com.zfgc.zfgbb.mappers.custom.ThreadCountMapper;
-import com.zfgc.zfgbb.mappers.custom.ThreadCountMapper.BoardThreadCount;
 import com.zfgc.zfgbb.mapstruct.forum.BoardMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.model.forum.Board;
@@ -38,42 +34,33 @@ import com.zfgc.zfgbb.model.forum.ChildBoard;
 import com.zfgc.zfgbb.model.forum.Forum;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.users.Permission;
+import lombok.RequiredArgsConstructor;
 
 @Repository
+@RequiredArgsConstructor
+@BoardVisibilityChokepoint
 public class ForumDataProvider {
-	
-	@Autowired
-	private BoardDao boardDao;
-	
-	@Autowired
-	private CategoryDao categoryDao;
-	
-	@Autowired
-	private ThreadDao threadDao;
-	
-	@Autowired
-	private ThreadDataProvider threadDataProvider;
-	
-	@Autowired
-	private BoardPermissionViewDao boardPermissionDao;
-	
-	@Autowired
-	private ThreadCountMapper threadCountMapper;
-	
-	@Autowired
-	private BoardSummaryViewDboMapper boardSummaryMapper;
-	
-	@Autowired
-	private ChildBoardViewDboMapper childBoardMapper;
 
-	@Autowired
-	private BoardMap boardMap;
+	private final BoardDao boardDao;
 
-	@Autowired
-	private PermissionMap permissionMap;
+	private final CategoryDao categoryDao;
+
+	private final ThreadDao threadDao;
+
+	private final ThreadDataProvider threadDataProvider;
+
+	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+
+	private final BoardSummaryViewDboMapper boardSummaryMapper;
+
+	private final ChildBoardViewDboMapper childBoardMapper;
+
+	private final BoardMap boardMap;
+
+	private final PermissionMap permissionMap;
 
 	public Board getBoard(Integer boardId, Integer pageNumber, Integer pageSize) {
-		Optional<BoardDbo> boardDbo = boardDao.get(boardId);
+		Optional<BoardDbo> boardDbo = boardDao.find(boardId);
 		Board board = boardDbo.map(boardMap::toModel).orElseThrow(() -> new ZfgcNotFoundException());
 		
 		List<Thread> unstickyThreads = threadDataProvider.getThreadsByBoardId(boardId, pageNumber, pageSize, false);
@@ -84,7 +71,7 @@ public class ForumDataProvider {
 		
 		ThreadDboExample threadEx = new ThreadDboExample();
 		threadEx.createCriteria().andBoardIdEqualTo(boardId).andPinnedFlagEqualTo(false);
-		Long threadCount = threadDao.getMapper().countByExample(threadEx);
+		Long threadCount = threadDao.count(threadEx);
 		board.setThreadCount(threadCount);
 
 		board.setChildBoards(getBoardSummaries(board.getBoardId()));
@@ -95,50 +82,31 @@ public class ForumDataProvider {
 		return board;
 	}
 	
-	private List<BoardSummary> getBoardSummaries(Integer parentBoardId){
-		return getBoardSummaries(Arrays.asList(parentBoardId));
+	private List<BoardSummary> getBoardSummaries(Integer parentBoardId) {
+		BoardSummaryViewDboExample childrenOf = new BoardSummaryViewDboExample();
+		childrenOf.createCriteria().andParentBoardIdIn(Arrays.asList(parentBoardId));
+		return boardSummariesWithChildBoards(childrenOf);
 	}
-	
-	private List<BoardSummary> getBoardSummaries(List<Integer> parentBoardId){
-		BoardSummaryViewDboExample boardSummaryEx = new BoardSummaryViewDboExample();
-		boardSummaryEx.createCriteria().andParentBoardIdIn(parentBoardId);
+
+	private List<BoardSummary> boardSummariesWithChildBoards(BoardSummaryViewDboExample boardSummaryEx) {
 		List<BoardSummary> result = boardMap.toBoardSummaryList(boardSummaryMapper.selectByExample(boardSummaryEx));
+
+		List<Integer> loadedBoardIds = result.stream().map(BoardSummary::getBoardId).toList();
+		if (loadedBoardIds.isEmpty())
+			return result;
 
 		ChildBoardViewDboExample childBoardEx = new ChildBoardViewDboExample();
-		childBoardEx.createCriteria().andParentBoardIdIn(parentBoardId);
+		childBoardEx.createCriteria().andParentBoardIdIn(loadedBoardIds);
+		Map<Integer, List<ChildBoard>> childBoards =
+				boardMap.toChildBoardList(childBoardMapper.selectByExample(childBoardEx)).stream()
+						.collect(Collectors.groupingBy(ChildBoard::getParentBoardId));
 
-		Map<Integer, List<ChildBoard>> childBoards = boardMap.toChildBoardList(childBoardMapper.selectByExample(childBoardEx)).stream()
-																					.collect(Collectors.groupingBy(ChildBoard::getParentBoardId));
-		
-		result.forEach(bs -> {
-			bs.setChildBoards(childBoards.get(bs.getBoardId()));
-		});
-		
-		
+		for (BoardSummary summary : result)
+			summary.setChildBoards(childBoards.get(summary.getBoardId()));
+
 		return result;
 	}
-	
-	private List<BoardSummary> getBoardSummariesByCategory(List<Integer> categoryId){
-		BoardSummaryViewDboExample boardSummaryEx = new BoardSummaryViewDboExample();
-		boardSummaryEx.createCriteria().andCategoryIdIn(categoryId);
-		List<BoardSummary> result = boardMap.toBoardSummaryList(boardSummaryMapper.selectByExample(boardSummaryEx));
-		
-		if(!result.isEmpty()) {
-			ChildBoardViewDboExample childBoardEx = new ChildBoardViewDboExample();
-			childBoardEx.createCriteria().andParentBoardIdIn(result.stream().map(BoardSummary::getBoardId).collect(Collectors.toList()));
 
-			Map<Integer, List<ChildBoard>> childBoards = boardMap.toChildBoardList(childBoardMapper.selectByExample(childBoardEx)).stream()
-																						.collect(Collectors.groupingBy(ChildBoard::getParentBoardId));
-			
-			result.forEach(bs -> {
-				bs.setChildBoards(childBoards.get(bs.getBoardId()));
-			});
-		}
-		
-		
-		return result;
-	}
-	
 	public Forum getForum() {
 		Forum forum = new Forum();
 
@@ -176,36 +144,22 @@ public class ForumDataProvider {
 		return categories;
 	}
 
-	private List<BoardSummary> getTopLevelBoardSummaries(){
-		BoardSummaryViewDboExample boardSummaryEx = new BoardSummaryViewDboExample();
-		boardSummaryEx.createCriteria().andParentBoardIdIsNull();
-		List<BoardSummary> result = boardMap.toBoardSummaryList(boardSummaryMapper.selectByExample(boardSummaryEx));
-
-		if (result.isEmpty()) {
-			return result;
-		}
-
-		ChildBoardViewDboExample childBoardEx = new ChildBoardViewDboExample();
-		childBoardEx.createCriteria().andParentBoardIdIn(result.stream().map(BoardSummary::getBoardId).toList());
-
-		Map<Integer, List<ChildBoard>> childBoards = boardMap.toChildBoardList(childBoardMapper.selectByExample(childBoardEx)).stream()
-				.collect(Collectors.groupingBy(ChildBoard::getParentBoardId));
-
-		result.forEach(bs -> bs.setChildBoards(childBoards.get(bs.getBoardId())));
-
-		return result;
+	private List<BoardSummary> getTopLevelBoardSummaries() {
+		BoardSummaryViewDboExample topLevel = new BoardSummaryViewDboExample();
+		topLevel.createCriteria().andParentBoardIdIsNull();
+		return boardSummariesWithChildBoards(topLevel);
 	}
 	
 	public List<Permission> getBoardPermissions(Integer boardId){
 		BoardPermissionViewDboExample bEx = new BoardPermissionViewDboExample();
 		bEx.createCriteria().andBoardIdEqualTo(boardId);
-		return boardPermissionDao.get(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
+		return boardPermissionViewDboMapper.selectByExample(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
 	}
 	
 	public Map<Integer, List<Permission>> getBoardPermissions(List<Integer> boardIds){
 		BoardPermissionViewDboExample bEx = new BoardPermissionViewDboExample();
 		bEx.createCriteria().andBoardIdIn(boardIds);
-		Map<Integer, List<BoardPermissionViewDbo>> result = boardPermissionDao.get(bEx).stream()
+		Map<Integer, List<BoardPermissionViewDbo>> result = boardPermissionViewDboMapper.selectByExample(bEx).stream()
 						  				  									  .collect(Collectors.groupingBy(BoardPermissionViewDbo::getBoardId));
 		
 		Map<Integer, List<Permission>> response = new HashMap<>();
@@ -215,25 +169,7 @@ public class ForumDataProvider {
 		});
 		
 		return response;
-		
+
 	}
-	
-	public List<Board> getBoardsByParent(Integer parentBoardId){
-		BoardDboExample bEx = new BoardDboExample();
-		bEx.createCriteria().andParentBoardIdEqualTo(parentBoardId);
-		
-		List<Board> result = boardDao.get(bEx).stream().map(boardMap::toModel).collect(Collectors.toList());
-		
-		if (!result.isEmpty()) {
-			List<Integer> boardIds = result.stream().map(Board::getBoardId).collect(Collectors.toList());
-			Map<Integer, Long> threadCounts = threadCountMapper.countThreadsByBoardIds(boardIds).stream()
-					.collect(Collectors.toMap(BoardThreadCount::getBoardId, BoardThreadCount::getThreadCount));
-			
-			result.forEach(b -> b.setThreadCount(threadCounts.getOrDefault(b.getBoardId(), 0L)));
-		}
-		
-		return result;
-		
-	}
-	
+
 }

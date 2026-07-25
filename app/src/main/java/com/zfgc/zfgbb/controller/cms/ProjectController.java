@@ -1,9 +1,9 @@
 package com.zfgc.zfgbb.controller.cms;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,17 +16,17 @@ import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Project;
 import com.zfgc.zfgbb.model.cms.ProjectShowcase;
-import com.zfgc.zfgbb.services.cms.ProjectService;
+import com.zfgc.zfgbb.services.cms.catalog.ProjectService;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/projects")
+@RequiredArgsConstructor
 public class ProjectController extends BaseController {
 
-	@Autowired
-	private ProjectService projectService;
+	private final ProjectService projectService;
 
 	@GetMapping
 	@AllowAnonymous
@@ -49,12 +49,6 @@ public class ProjectController extends BaseController {
 		return ResponseEntity.ok(Map.of(
 				"languages", toFacet(facets.get("languages")),
 				"statuses", toFacet(facets.get("statuses"))));
-	}
-
-	private static List<Map<String, Object>> toFacet(List<Map.Entry<String, Long>> values) {
-		return values.stream()
-				.map(entry -> Map.<String, Object>of("value", entry.getKey(), "count", entry.getValue()))
-				.toList();
 	}
 
 	@GetMapping("/showcase")

@@ -4,42 +4,39 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.zfgc.zfgbb.dbo.AttachmentBoardViewDbo;
-import com.zfgc.zfgbb.dbo.AttachmentBoardViewDboExample;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
-import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
-import com.zfgc.zfgbb.dbo.RecentActivityViewDbo;
-import com.zfgc.zfgbb.dbo.RecentActivityViewDboExample;
-import com.zfgc.zfgbb.mappers.AttachmentBoardViewDboMapper;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
-import com.zfgc.zfgbb.mappers.RecentActivityViewDboMapper;
+import com.zfgc.zfgbb.dbo.*;
+import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
+import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
 
 class ForumViewIntegrationTest extends PostgresIntegrationTest {
 
-	@Autowired
-	private RecentActivityViewDboMapper recentActivityMapper;
-
-	@Autowired
-	private AttachmentBoardViewDboMapper attachmentBoardMapper;
-
-	@Autowired
-	private BoardPermissionViewDboMapper boardPermissionMapper;
+	@Autowired private RecentActivityViewDboMapper recentActivityMapper;
+	@Autowired private AttachmentBoardViewDboMapper attachmentBoardMapper;
+	@Autowired private BoardPermissionViewDboMapper boardPermissionMapper;
+	@Autowired private BrBoardPermissionDboMapper brBoardPermissionMapper;
+	@Autowired private BoardDboMapper boardDboMapper;
+	@Autowired private ThreadDboMapper threadDboMapper;
+	@Autowired private MessageDboMapper messageDboMapper;
+	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
+	@Autowired private FileAttachmentDboMapper fileAttachmentDboMapper;
+	@Autowired private TestSystemInfoMapper testSystemInfoMapper;
 
 	private String adminToken;
 
 	@BeforeEach
 	void loginAsAdmin() throws Exception {
-		adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+		adminToken = getAdminToken();
 	}
 
 	@Test
@@ -50,25 +47,44 @@ class ForumViewIntegrationTest extends PostgresIntegrationTest {
 		postReply(adminToken, secondThread, "second latest");
 
 		Integer firstBoard = boardId(firstThread);
-		Integer secondBoard = jdbcTemplate.queryForObject(
-				"select board_id from zfgbb.board where board_id <> ? order by board_id limit 1",
-				Integer.class, firstBoard);
-		jdbcTemplate.update("update zfgbb.thread set board_id = ? where thread_id = ?", secondBoard, secondThread);
+		BoardDboExample boardEx = new BoardDboExample();
+		boardEx.createCriteria().andBoardIdNotEqualTo(firstBoard);
+		boardEx.setOrderByClause("board_id limit 1");
+		Integer secondBoard = boardDboMapper.selectByExample(boardEx).get(0).getBoardId();
 
-		jdbcTemplate.update(
-				"update zfgbb.message set created_ts = current_timestamp - interval '4 hours' where thread_id = ?",
-				firstThread);
-		jdbcTemplate.update("""
-				update zfgbb.message set created_ts = current_timestamp - interval '2 hours'
-				where message_id = (select max(message_id) from zfgbb.message where thread_id = ?)
-				""", firstThread);
-		jdbcTemplate.update(
-				"update zfgbb.message set created_ts = current_timestamp - interval '3 hours' where thread_id = ?",
-				secondThread);
-		jdbcTemplate.update("""
-				update zfgbb.message set created_ts = current_timestamp - interval '1 hour'
-				where message_id = (select max(message_id) from zfgbb.message where thread_id = ?)
-				""", secondThread);
+		ThreadDbo tUpdate = new ThreadDbo();
+		tUpdate.setThreadId(secondThread);
+		tUpdate.setBoardId(secondBoard);
+		threadDboMapper.updateByPrimaryKeySelective(tUpdate);
+
+		OffsetDateTime now = OffsetDateTime.now();
+		MessageDboExample mEx1 = new MessageDboExample();
+		mEx1.createCriteria().andThreadIdEqualTo(firstThread);
+		for (MessageDbo msg : messageDboMapper.selectByExample(mEx1)) {
+			msg.setCreatedTs(now.minusHours(4));
+			messageDboMapper.updateByPrimaryKeySelective(msg);
+		}
+
+		MessageDboExample mEx1Max = new MessageDboExample();
+		mEx1Max.createCriteria().andThreadIdEqualTo(firstThread);
+		mEx1Max.setOrderByClause("message_id desc limit 1");
+		MessageDbo maxMsg1 = messageDboMapper.selectByExample(mEx1Max).get(0);
+		maxMsg1.setCreatedTs(now.minusHours(2));
+		messageDboMapper.updateByPrimaryKeySelective(maxMsg1);
+
+		MessageDboExample mEx2 = new MessageDboExample();
+		mEx2.createCriteria().andThreadIdEqualTo(secondThread);
+		for (MessageDbo msg : messageDboMapper.selectByExample(mEx2)) {
+			msg.setCreatedTs(now.minusHours(3));
+			messageDboMapper.updateByPrimaryKeySelective(msg);
+		}
+
+		MessageDboExample mEx2Max = new MessageDboExample();
+		mEx2Max.createCriteria().andThreadIdEqualTo(secondThread);
+		mEx2Max.setOrderByClause("message_id desc limit 1");
+		MessageDbo maxMsg2 = messageDboMapper.selectByExample(mEx2Max).get(0);
+		maxMsg2.setCreatedTs(now.minusHours(1));
+		messageDboMapper.updateByPrimaryKeySelective(maxMsg2);
 
 		RecentActivityViewDboExample bothBoards = new RecentActivityViewDboExample();
 		bothBoards.createCriteria()
@@ -99,19 +115,30 @@ class ForumViewIntegrationTest extends PostgresIntegrationTest {
 	@Test
 	void attachmentBoardViewResolvesTheAttachmentsThreadBoard() throws Exception {
 		int threadId = postThread(adminToken, "Attachment view " + suffix);
-		Integer messageId = jdbcTemplate.queryForObject(
-				"select max(message_id) from zfgbb.message where thread_id = ?", Integer.class, threadId);
-		Integer resourceId = jdbcTemplate.queryForObject("""
-				insert into zfgbb.content_resource
-					(content_type_id, uploaded_user_id, filename, checksum, file_ext, mime_type)
-				values (2, ?, ?, 'view-test', 'txt', 'text/plain')
-				returning content_resource_id
-				""", Integer.class, userIdOf(ADMIN_USER), "view-" + suffix + ".txt");
-		jdbcTemplate.update("insert into zfgbb.file_attachments (content_resource_id, message_id) values (?, ?)",
-				resourceId, messageId);
-		assertEquals(0, jdbcTemplate.queryForObject(
-				"select downloads from zfgbb.file_attachments where content_resource_id = ?",
-				Integer.class, resourceId));
+		MessageDboExample mEx = new MessageDboExample();
+		mEx.createCriteria().andThreadIdEqualTo(threadId);
+		mEx.setOrderByClause("message_id desc limit 1");
+		Integer messageId = messageDboMapper.selectByExample(mEx).get(0).getMessageId();
+
+		ContentResourceDbo resource = new ContentResourceDbo();
+		resource.setContentTypeId(2);
+		resource.setUploadedUserId(userIdOf(ADMIN_USER));
+		resource.setFilename("view-" + suffix + ".txt");
+		resource.setChecksum("view-test");
+		resource.setFileExt("txt");
+		resource.setMimeType("text/plain");
+		contentResourceDboMapper.insertSelective(resource);
+		Integer resourceId = resource.getContentResourceId();
+
+		FileAttachmentDbo attachment = new FileAttachmentDbo();
+		attachment.setContentResourceId(resourceId);
+		attachment.setMessageId(messageId);
+		attachment.setDownloads(0);
+		fileAttachmentDboMapper.insertSelective(attachment);
+
+		FileAttachmentDboExample faEx = new FileAttachmentDboExample();
+		faEx.createCriteria().andContentResourceIdEqualTo(resourceId);
+		assertEquals(0, fileAttachmentDboMapper.selectByExample(faEx).get(0).getDownloads());
 
 		AttachmentBoardViewDboExample example = new AttachmentBoardViewDboExample();
 		example.createCriteria().andContentResourceIdEqualTo(resourceId);
@@ -123,22 +150,13 @@ class ForumViewIntegrationTest extends PostgresIntegrationTest {
 
 	@Test
 	void generatedPermissionQueryMatchesTheOldRootAndChildUnionSet() {
-		List<Integer> permissionIds = jdbcTemplate.queryForList(
-				"select distinct permission_id from zfgbb.br_board_permission order by permission_id", Integer.class);
-		String placeholders = String.join(",", permissionIds.stream().map(ignored -> "?").toList());
-		List<Object> args = new ArrayList<>(permissionIds);
-		Set<Integer> oldUnion = new LinkedHashSet<>(jdbcTemplate.queryForList("""
-				select b.board_id
-				from zfgbb.board b
-				join zfgbb.br_board_permission bp on bp.board_id = b.board_id
-				where b.parent_board_id is null and bp.permission_id in (%s)
-				union
-				select b.board_id
-				from zfgbb.board b
-				join zfgbb.br_board_permission bp on bp.board_id = b.board_id
-				where b.parent_board_id is not null and bp.permission_id in (%s)
-				""".formatted(placeholders, placeholders), Integer.class,
-				concat(args, args).toArray()));
+		List<BrBoardPermissionDbo> perms = brBoardPermissionMapper.selectByExample(null);
+		List<Integer> permissionIds = perms.stream()
+				.map(BrBoardPermissionDbo::getPermissionId)
+				.distinct().sorted().toList();
+		Set<Integer> oldUnion = perms.stream()
+				.map(BrBoardPermissionDbo::getBoardId)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
 
 		BoardPermissionViewDboExample example = new BoardPermissionViewDboExample();
 		example.createCriteria().andPermissionIdIn(permissionIds);
@@ -159,23 +177,10 @@ class ForumViewIntegrationTest extends PostgresIntegrationTest {
 	}
 
 	private Integer boardId(int threadId) {
-		return jdbcTemplate.queryForObject("select board_id from zfgbb.thread where thread_id = ?", Integer.class,
-				threadId);
+		return threadDboMapper.selectByPrimaryKey(threadId).getBoardId();
 	}
 
 	private List<String> viewColumns(String viewName) {
-		return jdbcTemplate.queryForList("""
-				select column_name
-				from information_schema.columns
-				where table_schema = 'zfgbb' and table_name = ?
-				order by ordinal_position
-				""", String.class, viewName);
-	}
-
-	private static List<Object> concat(List<Object> first, List<Object> second) {
-		List<Object> result = new ArrayList<>(first.size() + second.size());
-		result.addAll(first);
-		result.addAll(second);
-		return result;
+		return testSystemInfoMapper.getViewColumns(viewName);
 	}
 }

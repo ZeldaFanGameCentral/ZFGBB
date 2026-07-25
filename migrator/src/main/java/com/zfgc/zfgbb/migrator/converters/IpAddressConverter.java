@@ -1,10 +1,11 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -18,19 +19,23 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageDistinctIpsMapper;
 @Component
 public class IpAddressConverter extends AbstractConverter<Void> {
 
-	@Autowired
-	private SmfMessageDistinctIpsMapper smfDistinctIpsMapper;
-
-	@Autowired
-	private IpAddressDboMapper ipAddressMapper;
-
-	@Autowired
-	private TransactionTemplate transactionTemplate;
-
-	@Value("${zfgbb.migrator.batch-size:5000}")
-	private int batchSize;
+	private final SmfMessageDistinctIpsMapper smfDistinctIpsMapper;
+	private final IpAddressDboMapper ipAddressMapper;
+	private final TransactionTemplate transactionTemplate;
+	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(IpAddressConverter.class);
+
+	public IpAddressConverter(
+			SmfMessageDistinctIpsMapper smfDistinctIpsMapper,
+			IpAddressDboMapper ipAddressMapper,
+			TransactionTemplate transactionTemplate,
+			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
+		this.smfDistinctIpsMapper = smfDistinctIpsMapper;
+		this.ipAddressMapper = ipAddressMapper;
+		this.transactionTemplate = transactionTemplate;
+		this.batchSize = batchSize;
+	}
 
 	@Override
 	public JobType getType() {
@@ -39,14 +44,14 @@ public class IpAddressConverter extends AbstractConverter<Void> {
 
 	@Override
 	public Void convertToZfgbb() {
-		java.util.LinkedHashSet<String> ipSet = new java.util.LinkedHashSet<>(smfDistinctIpsMapper.selectDistinctPosterIps());
+		LinkedHashSet<String> ipSet = new LinkedHashSet<>(smfDistinctIpsMapper.selectDistinctPosterIps());
 		if (smfDistinctIpsMapper.gameCommentsTableExists() > 0) {
 			ipSet.addAll(smfDistinctIpsMapper.selectDistinctGameCommentIps());
 		}
 		if (smfDistinctIpsMapper.resourceCommentsTableExists() > 0) {
 			ipSet.addAll(smfDistinctIpsMapper.selectDistinctResourceCommentIps());
 		}
-		List<String> ips = new java.util.ArrayList<>(ipSet);
+		List<String> ips = new ArrayList<>(ipSet);
 		logger.info("Beginning conversion of {} distinct IPs", ips.size());
 
 		for (int from = 0; from < ips.size(); from += batchSize) {

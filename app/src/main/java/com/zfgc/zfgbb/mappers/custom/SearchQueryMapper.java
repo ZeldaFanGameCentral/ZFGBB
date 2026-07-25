@@ -7,54 +7,19 @@ import org.apache.ibatis.annotations.Select;
 
 import com.zfgc.zfgbb.dbo.CurrentMessageDbo;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public interface SearchQueryMapper {
 
+	@Getter
+	@Setter
 	class Hit {
 		private String refId;
 		private String slug;
 		private String title;
 		private String context;
 		private String body;
-
-		public String getRefId() {
-			return refId;
-		}
-
-		public void setRefId(String refId) {
-			this.refId = refId;
-		}
-
-		public String getSlug() {
-			return slug;
-		}
-
-		public void setSlug(String slug) {
-			this.slug = slug;
-		}
-
-		public String getTitle() {
-			return title;
-		}
-
-		public void setTitle(String title) {
-			this.title = title;
-		}
-
-		public String getContext() {
-			return context;
-		}
-
-		public void setContext(String context) {
-			this.context = context;
-		}
-
-		public String getBody() {
-			return body;
-		}
-
-		public void setBody(String body) {
-			this.body = body;
-		}
 	}
 
 	@Select("""
@@ -114,17 +79,25 @@ public interface SearchQueryMapper {
 			@Param("offset") int offset);
 
 	@Select("""
+			<script>
 			select p.wiki_page_id as refId, p.slug as slug, p.title as title,
 			       p.namespace as context, r.content as body
 			from zfgbb.wiki_page p
 			join zfgbb.wiki_page_revision r on r.wiki_page_id = p.wiki_page_id and r.current_flag
 			where p.redirect_to is null
-			  and p.namespace not in ('Project', 'Resource', 'ZFGC')
+			  <if test="hiddenNamespaces != null and !hiddenNamespaces.isEmpty()">
+			  and p.namespace not in
+			  <foreach item="namespace" collection="hiddenNamespaces" open="(" separator="," close=")">
+			  #{namespace}
+			  </foreach>
+			  </if>
 			  and (p.title ilike #{pattern} or r.content ilike #{pattern})
 			order by (p.title ilike #{pattern}) desc, p.title
 			limit #{limit}
+			</script>
 			""")
-	List<Hit> searchWiki(@Param("pattern") String pattern, @Param("limit") int limit);
+	List<Hit> searchWiki(@Param("pattern") String pattern,
+			@Param("hiddenNamespaces") List<String> hiddenNamespaces, @Param("limit") int limit);
 
 	@Select("""
 			select e.content_entity_id as refId, e.slug as slug, e.title as title,

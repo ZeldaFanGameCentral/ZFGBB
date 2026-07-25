@@ -7,18 +7,43 @@ import org.junit.jupiter.api.Test;
 
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.zfgc.zfgbb.dbo.ContentTemplateDboExample;
+import com.zfgc.zfgbb.dbo.WikiPageDbo;
+import com.zfgc.zfgbb.dbo.WikiPageDboExample;
+import com.zfgc.zfgbb.mappers.ContentTemplateDboMapper;
+import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
+import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper;
+import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
+
 class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
+
+	@Autowired
+	private ContentTemplateDboMapper contentTemplateDboMapper;
+
+	@Autowired
+	private WikiPageDboMapper wikiPageDboMapper;
+
+	@Autowired
+	private WikiNamespaceCustomMapper wikiNamespaceCustomMapper;
+
+	@Autowired
+	private TestSystemInfoMapper testSystemInfoMapper;
+
 	@Test
 	void templateCaseModeTransitionRecanonicalizesFromPreservedLiteralCode() {
-		jdbcTemplate.update("update zfgbb.wiki_namespace set case_mode='CASE_SENSITIVE' where name='Template'");
+		wikiNamespaceCustomMapper.updateCaseMode("Template", "CASE_SENSITIVE");
 		try {
-			assertEquals(1, jdbcTemplate.queryForObject("select count(*) from zfgbb.content_template "
-					+ "where wiki_page_id is null and source_code='featuredproject' and code='featuredproject'",
-					Integer.class));
-			assertEquals(0, jdbcTemplate.queryForObject("select count(*) from zfgbb.content_template "
-					+ "where wiki_page_id is null and code='Featuredproject'", Integer.class));
+			ContentTemplateDboExample ex1 = new ContentTemplateDboExample();
+			ex1.createCriteria().andWikiPageIdIsNull().andCodeEqualTo("featuredproject");
+			assertEquals(1, contentTemplateDboMapper.countByExample(ex1));
+
+			ContentTemplateDboExample ex2 = new ContentTemplateDboExample();
+			ex2.createCriteria().andWikiPageIdIsNull().andCodeEqualTo("Featuredproject");
+			assertEquals(0, contentTemplateDboMapper.countByExample(ex2));
 		} finally {
-			jdbcTemplate.update("update zfgbb.wiki_namespace set case_mode='FIRST_LETTER' where name='Template'");
+			wikiNamespaceCustomMapper.updateCaseMode("Template", "FIRST_LETTER");
 		}
 	}
 
@@ -27,24 +52,35 @@ class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
 		String namespace = "CaseTest" + suffix;
 		String aliasOne = "AliasOne" + suffix;
 		String aliasTwo = "AliasTwo" + suffix;
-		jdbcTemplate.update("insert into zfgbb.wiki_namespace(name,case_mode) values (?,'CASE_SENSITIVE')", namespace);
-		jdbcTemplate.update("insert into zfgbb.wiki_namespace_alias(alias,namespace_name) values (?,?),(?,?)",
-				aliasOne, namespace, aliasTwo, namespace);
+		wikiNamespaceCustomMapper.insertNamespace(namespace, "CASE_SENSITIVE");
+		wikiNamespaceCustomMapper.insertAlias(aliasOne, namespace);
+		wikiNamespaceCustomMapper.insertAlias(aliasTwo, namespace);
 		try {
-			assertEquals(2, jdbcTemplate.queryForObject(
-					"select count(*) from zfgbb.wiki_namespace_alias where namespace_name=?", Integer.class, namespace));
-			String lower = jdbcTemplate.queryForObject("select zfgbb.wiki_title_key(?,'Onlinegame','CASE_SENSITIVE')",
-					String.class, namespace);
-			String upper = jdbcTemplate.queryForObject("select zfgbb.wiki_title_key(?,'OnlineGame','CASE_SENSITIVE')",
-					String.class, namespace);
+			assertEquals(2, wikiNamespaceCustomMapper.countAliasesByNamespace(namespace));
+			String lower = testSystemInfoMapper.wikiTitleKey(namespace, "Onlinegame", "CASE_SENSITIVE");
+			String upper = testSystemInfoMapper.wikiTitleKey(namespace, "OnlineGame", "CASE_SENSITIVE");
 			assertNotEquals(lower, upper);
-			jdbcTemplate.update("insert into zfgbb.wiki_page(namespace,title,slug) values (?,?,?),(?,?,?)",
-					namespace, "Onlinegame", namespace + ":Onlinegame", namespace, "OnlineGame", namespace + ":OnlineGame");
-			assertEquals(2, jdbcTemplate.queryForObject(
-					"select count(*) from zfgbb.wiki_page where namespace=?", Integer.class, namespace));
+
+			WikiPageDbo page1 = new WikiPageDbo();
+			page1.setNamespace(namespace);
+			page1.setTitle("Onlinegame");
+			page1.setSlug(namespace + ":Onlinegame");
+			wikiPageDboMapper.insertSelective(page1);
+
+			WikiPageDbo page2 = new WikiPageDbo();
+			page2.setNamespace(namespace);
+			page2.setTitle("OnlineGame");
+			page2.setSlug(namespace + ":OnlineGame");
+			wikiPageDboMapper.insertSelective(page2);
+
+			WikiPageDboExample ex = new WikiPageDboExample();
+			ex.createCriteria().andNamespaceEqualTo(namespace);
+			assertEquals(2, wikiPageDboMapper.countByExample(ex));
 		} finally {
-			jdbcTemplate.update("delete from zfgbb.wiki_page where namespace=?", namespace);
-			jdbcTemplate.update("delete from zfgbb.wiki_namespace where name=?", namespace);
+			WikiPageDboExample pageEx = new WikiPageDboExample();
+			pageEx.createCriteria().andNamespaceEqualTo(namespace);
+			wikiPageDboMapper.deleteByExample(pageEx);
+			wikiNamespaceCustomMapper.deleteNamespaceByName(namespace);
 		}
 	}
 }

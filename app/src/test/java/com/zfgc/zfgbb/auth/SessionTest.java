@@ -12,6 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.List;
@@ -31,9 +35,14 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
+import com.zfgc.zfgbb.dbo.UserDbo;
+import com.zfgc.zfgbb.dbo.UserDboExample;
+import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
+import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.mappers.UserRefreshTokenDboMapper;
 import com.zfgc.zfgbb.model.users.TokenPair;
-import com.zfgc.zfgbb.services.core.AuthService;
-import com.zfgc.zfgbb.services.core.RefreshTokenService;
+import com.zfgc.zfgbb.services.auth.AuthService;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
 import jakarta.servlet.http.Cookie;
@@ -45,25 +54,35 @@ class SessionTest extends PostgresIntegrationTest {
 	private AuthService authService;
 
 	@Autowired
-	private RefreshTokenService refreshTokenService;
-
-	@Autowired
 	private PlatformTransactionManager transactionManager;
 
 	private static Cookie accessCookie() {
 		return new Cookie("zfgbb_access_token", "fake-jwt-value");
 	}
 
+	@Autowired
+	private UserRefreshTokenDboMapper userRefreshTokenDboMapper;
+
+	@Autowired
+	private UserDboMapper userDboMapper;
+
+	@Autowired
+	private UserDataProvider userDataProvider;
+
 	private int activeTokens(Integer userId) {
-		Integer count = jdbcTemplate.queryForObject("select count(*) from zfgbb.user_refresh_token "
-				+ "where user_id = ? and revoked_flag = false", Integer.class, userId);
-		return count == null ? 0 : count;
+		UserRefreshTokenDboExample ex = new UserRefreshTokenDboExample();
+		ex.createCriteria().andUserIdEqualTo(userId).andRevokedFlagEqualTo(false);
+		return (int) userRefreshTokenDboMapper.countByExample(ex);
 	}
 
 	private int failedLoginCount(String userName) {
-		Integer value = jdbcTemplate.queryForObject(
-				"select failed_login_count from zfgbb.\"user\" where user_name = ?", Integer.class, userName);
-		return value == null ? 0 : value;
+		UserDboExample ex = new UserDboExample();
+		ex.createCriteria().andUserNameEqualTo(userName);
+		var users = userDboMapper.selectByExample(ex);
+		if (users.isEmpty() || users.get(0).getFailedLoginCount() == null) {
+			return 0;
+		}
+		return users.get(0).getFailedLoginCount();
 	}
 
 	@Nested
@@ -141,8 +160,7 @@ class SessionTest extends PostgresIntegrationTest {
 			register(username, "password123");
 			JsonNode login = login(username, "password123");
 			String original = login.get("refreshToken").asString();
-			Integer userId = jdbcTemplate.queryForObject("select user_id from zfgbb.user where user_name = ?",
-					Integer.class, username);
+			Integer userId = userIdOf(username);
 			int baselineActive = activeTokens(userId);
 
 			int contenders = 8;
@@ -203,8 +221,7 @@ class SessionTest extends PostgresIntegrationTest {
 			String username = "refresh_reuse_" + UUID.randomUUID().toString().substring(0, 8);
 			register(username, "password123");
 			String tokenA = login(username, "password123").get("refreshToken").asString();
-			Integer userId = jdbcTemplate.queryForObject("select user_id from zfgbb.user where user_name = ?",
-					Integer.class, username);
+			Integer userId = userIdOf(username);
 
 			TokenPair tokenB = authService.refresh(tokenA);
 			TokenPair tokenC = authService.refresh(tokenB.refreshToken());
@@ -222,8 +239,7 @@ class SessionTest extends PostgresIntegrationTest {
 			String username = "refresh_benign_" + UUID.randomUUID().toString().substring(0, 8);
 			register(username, "password123");
 			String tokenA = login(username, "password123").get("refreshToken").asString();
-			Integer userId = jdbcTemplate.queryForObject("select user_id from zfgbb.user where user_name = ?",
-					Integer.class, username);
+			Integer userId = userIdOf(username);
 			int baselineActive = activeTokens(userId);
 
 			TokenPair first = authService.refresh(tokenA);
@@ -242,7 +258,7 @@ class SessionTest extends PostgresIntegrationTest {
 
 			TransactionTemplate transaction = new TransactionTemplate(transactionManager);
 			assertThrows(IllegalStateException.class, () -> transaction.executeWithoutResult(status -> {
-				refreshTokenService.consume(original);
+				authService.consume(original);
 				throw new IllegalStateException("simulated issuance failure");
 			}));
 
@@ -356,12 +372,12 @@ class SessionTest extends PostgresIntegrationTest {
 					.andExpect(jsonPath("$.accessToken").isString())
 					.andExpect(jsonPath("$.refreshToken").isString());
 
-			jdbcTemplate.update("""
-					update zfgbb.user_refresh_token
-					set rotated_ts = rotated_ts - interval '10 minutes'
-					where rotated_ts is not null
-					and user_id = (select user_id from zfgbb."user" where user_name = ?)
-					""", userName);
+			UserRefreshTokenDboExample tokenEx = new UserRefreshTokenDboExample();
+			tokenEx.createCriteria().andUserIdEqualTo(userIdOf(userName)).andRotatedTsIsNotNull();
+			for (var token : userRefreshTokenDboMapper.selectByExample(tokenEx)) {
+				token.setRotatedTs(token.getRotatedTs().minus(Duration.ofMinutes(10)));
+				userRefreshTokenDboMapper.updateByPrimaryKeySelective(token);
+			}
 
 			mockMvc.perform(post("/users/auth/refresh")
 					.cookie(xsrf)
@@ -394,8 +410,9 @@ class SessionTest extends PostgresIntegrationTest {
 					.content(rightLogin))
 					.andExpect(status().isUnauthorized());
 
-			assertEquals(1,
-					count("zfgbb.\"user\" where user_name = '" + lockoutUser + "' and locked_until_ts is not null"),
+			UserDboExample lockEx = new UserDboExample();
+			lockEx.createCriteria().andUserNameEqualTo(lockoutUser).andLockedUntilTsIsNotNull();
+			assertEquals(1, userDboMapper.countByExample(lockEx),
 					"lockout must be persisted on the account");
 		}
 
@@ -425,12 +442,17 @@ class SessionTest extends PostgresIntegrationTest {
 						.andExpect(status().isUnauthorized());
 
 			assertEquals(10, failedLoginCount(lapseUser), "the lockout threshold must have been reached");
-			assertEquals(1,
-					count("zfgbb.\"user\" where user_name = '" + lapseUser + "' and locked_until_ts is not null"),
+
+			UserDboExample lockEx = new UserDboExample();
+			lockEx.createCriteria().andUserNameEqualTo(lapseUser).andLockedUntilTsIsNotNull();
+			assertEquals(1, userDboMapper.countByExample(lockEx),
 					"the account must be locked after reaching the threshold");
 
-			jdbcTemplate.update("update zfgbb.\"user\" set locked_until_ts = now() - interval '1 minute' "
-					+ "where user_name = ?", lapseUser);
+			UserDboExample lapseEx = new UserDboExample();
+			lapseEx.createCriteria().andUserNameEqualTo(lapseUser);
+			var lapseUserDbo = userDboMapper.selectByExample(lapseEx).get(0);
+			lapseUserDbo.setLockedUntilTs(OffsetDateTime.now().minusMinutes(1));
+			userDboMapper.updateByPrimaryKeySelective(lapseUserDbo);
 
 			mockMvc.perform(post("/users/auth/login")
 					.contentType(MediaType.APPLICATION_JSON)
@@ -439,8 +461,7 @@ class SessionTest extends PostgresIntegrationTest {
 
 			assertEquals(1, failedLoginCount(lapseUser),
 					"a lapsed lock must reset the counter to this single fresh attempt, not keep it pinned");
-			assertEquals(0,
-					count("zfgbb.\"user\" where user_name = '" + lapseUser + "' and locked_until_ts is not null"),
+			assertEquals(0, userDboMapper.countByExample(lockEx),
 					"a lapsed lock must be cleared rather than immediately re-applied");
 
 			String rightLogin = """
@@ -490,7 +511,9 @@ class SessionTest extends PostgresIntegrationTest {
 						"atomic single-statement updates must never raise a concurrent-modification error");
 				assertEquals(contenders, failedLoginCount(raceUser),
 						"concurrent atomic increments must total exactly the contender count with no lost updates");
-				assertEquals(1, count("zfgbb.\"user\" where user_id = " + userId + " and locked_until_ts is not null"),
+				UserDboExample lockedAfterContention = new UserDboExample();
+				lockedAfterContention.createCriteria().andUserIdEqualTo(userId).andLockedUntilTsIsNotNull();
+				assertEquals(1, userDboMapper.countByExample(lockedAfterContention),
 						"reaching the threshold under contention must lock the account exactly once");
 			} finally {
 				for (Future<Object> attempt : attempts)
@@ -499,5 +522,19 @@ class SessionTest extends PostgresIntegrationTest {
 				assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS), "failed-login executor did not terminate");
 			}
 		}
+	}
+
+	@Test
+	void revokingEveryUsersTokensStoresTheExactCutoffRatherThanRoundingItBackwards() {
+		OffsetDateTime cutoffWithSubSecond = OffsetDateTime.now(ZoneOffset.UTC)
+				.truncatedTo(ChronoUnit.SECONDS).plusNanos(750_000_000L);
+
+		userDataProvider.cutOffExistingTokensForAllUsers(cutoffWithSubSecond);
+
+		UserDbo anyUser = userDboMapper.selectByExample(new UserDboExample()).get(0);
+		assertEquals(cutoffWithSubSecond.toInstant(), anyUser.getTokensValidAfterTs().toInstant(),
+				"rounding the cutoff down to the second widens it: refresh tokens are compared against "
+						+ "microsecond issued_ts, so any token issued in the sub-second window before the "
+						+ "revocation would survive it");
 	}
 }

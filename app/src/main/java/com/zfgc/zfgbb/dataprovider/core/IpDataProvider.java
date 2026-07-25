@@ -1,7 +1,7 @@
 package com.zfgc.zfgbb.dataprovider.core;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import lombok.RequiredArgsConstructor;
 
 import com.zfgc.zfgbb.dao.core.IpAddressDao;
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
@@ -10,12 +10,12 @@ import com.zfgc.zfgbb.mapstruct.meta.IpAddressMap;
 import com.zfgc.zfgbb.model.meta.IpAddress;
 
 @Repository
+@RequiredArgsConstructor
 public class IpDataProvider {
-	@Autowired
-	private IpAddressDao ipDao;
 
-	@Autowired
-	private IpAddressMap ipAddressMap;
+	private final IpAddressDao ipDao;
+
+	private final IpAddressMap ipAddressMap;
 	
 	public IpAddress createOrRetrieveIp(String ip) {
 		IpAddressDboExample ex = new IpAddressDboExample();

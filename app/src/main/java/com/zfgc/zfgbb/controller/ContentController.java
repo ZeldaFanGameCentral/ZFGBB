@@ -32,14 +32,15 @@ import java.util.Set;
 
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
-import com.zfgc.zfgbb.content.renderer.BBCodeService;
-import com.zfgc.zfgbb.content.renderer.ContentRenderer;
+import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader;
+import com.zfgc.zfgbb.content.renderer.ContentFormatConverter;
+import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.model.users.Permission;
-import com.zfgc.zfgbb.services.core.ContentService;
+import com.zfgc.zfgbb.services.cms.wiki.WikiService;
+import com.zfgc.zfgbb.services.contentstore.ContentService;
 import com.zfgc.zfgbb.services.forum.ForumService;
+import com.zfgc.zfgbb.services.system.AuthoringContentFormat;
 
 @Slf4j
 @RestController
@@ -50,17 +51,26 @@ public class ContentController extends BaseController {
 	private static final int MAX_PREVIEW_LENGTH = 100_000;
 
 	private final ContentService contentService;
-	private final BBCodeService bbCodeService;
-	private final ContentRenderer contentRenderer;
+	private final BBCodeGrammarLoader grammarLoader;
+	private final ContentRenderingService contentRenderingService;
+	private final ContentFormatConverter contentFormatConverter;
 	private final ForumService forumService;
+	private final WikiService wikiService;
+	private final AuthoringContentFormat authoringContentFormat;
 
-	public record PreviewRequest(String content, String scope) {}
+	public record PreviewRequest(String content, String scope, String slug, String contentFormat) {}
+
+	public record ConvertRequest(String content, String scope, String fromContentFormat, String toContentFormat) {}
+
+	private static ContentScope authoringScope(String requestedScope) {
+		return "WIKI".equalsIgnoreCase(requestedScope) ? ContentScope.WIKI : ContentScope.FORUM;
+	}
 
 	@GetMapping("bbcodes")
 	@AllowAnonymous
-	public ResponseEntity<List<? extends Map<String, ?>>> getBbcodes() {
-     log.info("Executing getBbcodes");
-		return ResponseEntity.ok(bbCodeService.validBbCodes.values().stream()
+	public ResponseEntity<List<? extends Map<String, ?>>> getBBCodes() {
+     log.info("Executing getBBCodes");
+		return ResponseEntity.ok(grammarLoader.theDeclaredConfigs().stream()
 				.map(config -> Map.of(
 						"code", config.getCode(),
 						"selfClosing", Boolean.TRUE.equals(config.getSelfClosingFlag())))
@@ -80,28 +90,40 @@ public class ContentController extends BaseController {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST, "content is too long");
 		}
-		ContentScope scope = "WIKI".equalsIgnoreCase(request.scope())
-				? ContentScope.WIKI
-				: ContentScope.FORUM;
+		ContentScope scope = authoringScope(request.scope());
+		ContentFormat contentFormat = authoringContentFormat.forNewContent(request.contentFormat());
 		if (scope == ContentScope.FORUM) {
-			return ResponseEntity.ok(Map.of("contentParsed", previewForumContent(request.content())));
+			return ResponseEntity.ok(Map.of("contentParsed",
+					previewForumContent(request.content(), contentFormat)));
 		}
 		return ResponseEntity.ok(Map.of("contentParsed",
-				contentRenderer.renderWithTemplates(request.content(),
-						ContentFormat.BBCODE, scope, Map.of())));
+				wikiService.previewContent(request.slug(), request.content(), contentFormat)));
 	}
 
-	private String previewForumContent(String content) {
-		User user = zfgcUser();
-		List<Integer> permissionIds = user.getPermissions().stream().map(Permission::getPermissionId).toList();
-		Set<Integer> visibleBoardIds = forumService.visibleBoardIds(permissionIds);
+	@PostMapping("convert")
+	public ResponseEntity<ContentFormatConverter.ConvertedContent> convert(@RequestBody ConvertRequest request) {
+		log.debug("Executing convert with request={}", request);
+
+		if (request == null || request.content() == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content is required");
+		}
+		if (request.content().length() > MAX_PREVIEW_LENGTH) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content is too long");
+		}
+		ContentFormat fromContentFormat = authoringContentFormat.required("fromContentFormat",
+				request.fromContentFormat());
+		ContentFormat toContentFormat = authoringContentFormat.required("toContentFormat", request.toContentFormat());
+		return ResponseEntity.ok(contentFormatConverter.convert(request.content(), fromContentFormat,
+				toContentFormat, authoringScope(request.scope())));
+	}
+
+	private String previewForumContent(String content, ContentFormat contentFormat) {
+		Set<Integer> visibleBoardIds = forumService.visibleBoardIds(zfgcUser().permissionIds());
 		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-		bbCodeService.openQuoteScope(List.of(new BBCodeService.QuotingPost(content, now)), visibleBoardIds);
-		try {
-			return contentRenderer.renderWithTemplates(content, ContentFormat.BBCODE, ContentScope.FORUM,
+		try (ContentRenderingService.QuoteScope quoteScope = contentRenderingService.openQuoteScope(
+				List.of(new ContentRenderingService.QuotingPost(content, now)), visibleBoardIds)) {
+			return contentRenderingService.renderWithTemplates(content, contentFormat, ContentScope.FORUM,
 					Map.of(), now);
-		} finally {
-			bbCodeService.closeQuoteScope();
 		}
 	}
 

@@ -5,17 +5,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -46,40 +43,26 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFAttachmentsDbMapper;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBioInfoDbo>> {
+
+	private final SmfResilientReadMapper resilientReads;
+	private final UserBioInfoDboMapper bioInfoMapper;
+	private final UserSettingsDboMapper userSettingsMapper;
+	private final SMFAttachmentsDbMapper smfAttachmentsDbMapper;
+	private final AvatarDboMapper avatarMapper;
+	private final ContentResourceDboMapper contentMapper;
+	private final GenderLkupDboMapper genderLkupMapper;
+	private final MigratorIdMapService idMap;
+	private final SmfSettingsService smfSettings;
 
 	@Override
 	public JobType getType() {
 		return JobType.USER_BIO_INFO;
 	}
-
-	@Autowired
-	public SmfResilientReadMapper resilientReads;
-
-	@Autowired
-	public UserBioInfoDboMapper bioInfoMapper;
-
-	@Autowired
-	private UserSettingsDboMapper userSettingsMapper;
-
-	@Autowired
-	private SMFAttachmentsDbMapper smfAttachmentsDbMapper;
-
-	@Autowired
-	private AvatarDboMapper avatarMapper;
-
-	@Autowired
-	private ContentResourceDboMapper contentMapper;
-
-	@Autowired
-	private GenderLkupDboMapper genderLkupMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	@Autowired
-	private SmfSettingsService smfSettings;
 
 	@Override
 	@Transactional

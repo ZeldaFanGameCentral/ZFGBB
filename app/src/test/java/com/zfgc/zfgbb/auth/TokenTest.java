@@ -2,12 +2,17 @@ package com.zfgc.zfgbb.auth;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -30,6 +36,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
@@ -40,20 +47,28 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
+import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.config.security.AccessCookieBearerHeaderFilter;
 import com.zfgc.zfgbb.config.security.JwtConfig;
+import com.zfgc.zfgbb.config.security.JwtProperties;
 import com.zfgc.zfgbb.config.security.JwtUserAuthenticationConverter;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
+import com.zfgc.zfgbb.mappers.custom.LoginLockoutMapper;
 import com.zfgc.zfgbb.mappers.custom.RefreshTokenConsumeMapper;
-import com.zfgc.zfgbb.mappers.custom.RefreshTokenFamilyMapper;
 import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
+import com.zfgc.zfgbb.model.users.PasswordAlgo;
 import com.zfgc.zfgbb.model.users.Permission;
-import com.zfgc.zfgbb.services.core.AuthCookieService;
-import com.zfgc.zfgbb.services.core.RefreshTokenService;
+import com.zfgc.zfgbb.services.auth.AuthCookieService;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+
+import com.zfgc.zfgbb.config.security.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.AuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -70,8 +85,7 @@ class TokenTest {
 		@BeforeEach
 		void setup() {
 			userDataProvider = mock(UserDataProvider.class);
-			converter = new JwtUserAuthenticationConverter();
-			ReflectionTestUtils.setField(converter, "userDataProvider", userDataProvider);
+			converter = new JwtUserAuthenticationConverter(userDataProvider);
 		}
 
 		private User enabledUser() {
@@ -93,7 +107,7 @@ class TokenTest {
 		}
 
 		private void stubLookup(User user) {
-			when(userDataProvider.findUser(eq(SUBJECT_USER_ID), any(BasicUserLoadOptions.class)))
+			when(userDataProvider.findUser(eq(SUBJECT_USER_ID), any(UserLoadOptions.class)))
 					.thenReturn(Optional.ofNullable(user));
 		}
 
@@ -121,6 +135,17 @@ class TokenTest {
 			user.setTokensValidAfterTs(OffsetDateTime.now(ZoneOffset.UTC));
 			stubLookup(user);
 			Jwt jwt = jwtForSubject(SUBJECT_USER_ID).issuedAt(Instant.now().minusSeconds(3600)).build();
+
+			assertThrows(InvalidBearerTokenException.class, () -> converter.convert(jwt));
+		}
+
+		@Test
+		void tokenIssuedExactlyAtCutoffIsRejected() {
+			Instant cutoff = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+			User user = enabledUser();
+			user.setTokensValidAfterTs(OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC));
+			stubLookup(user);
+			Jwt jwt = jwtForSubject(SUBJECT_USER_ID).issuedAt(cutoff).build();
 
 			assertThrows(InvalidBearerTokenException.class, () -> converter.convert(jwt));
 		}
@@ -159,6 +184,124 @@ class TokenTest {
 			AbstractAuthenticationToken authentication = converter.convert(jwt);
 
 			assertSame(user, authentication.getPrincipal());
+		}
+	}
+
+	@Nested
+	class RefreshCutoff {
+
+		private static final Integer TOKEN_HOLDER_USER_ID = 9;
+		private static final String PRESENTED_REFRESH_TOKEN = "presented-refresh-token";
+		private static final String FAMILY_ID = "family-id";
+		private static final Integer PARENT_TOKEN_ID = 41;
+
+		private UserDataProvider userDataProvider;
+		private JwtEncoder accessTokenEncoder;
+		private AuthService authService;
+
+		@BeforeEach
+		void setup() {
+			userDataProvider = mock(UserDataProvider.class);
+			accessTokenEncoder = mock(JwtEncoder.class);
+			Jwt encodedAccessToken = mock(Jwt.class);
+			when(encodedAccessToken.getTokenValue()).thenReturn("reissued-access-token");
+			when(accessTokenEncoder.encode(any(JwtEncoderParameters.class))).thenReturn(encodedAccessToken);
+			authService = spy(new AuthService(userDataProvider, mock(LoginLockoutMapper.class),
+					mock(AuthenticationManager.class), accessTokenEncoder, mock(UserRefreshTokenDao.class),
+					mock(RefreshTokenConsumeMapper.class), 30, 24, 60, 10, 15, 15));
+		}
+
+		private void stubTokenHolderWithCutoff(OffsetDateTime tokensValidAfterTs) {
+			User holder = new User();
+			holder.setUserId(TOKEN_HOLDER_USER_ID);
+			holder.setActiveFlag(true);
+			holder.setTokensValidAfterTs(tokensValidAfterTs);
+			when(userDataProvider.findUser(eq(TOKEN_HOLDER_USER_ID), any(UserLoadOptions.class)))
+					.thenReturn(Optional.of(holder));
+		}
+
+		private void stubConsumptionIssuedAt(OffsetDateTime issuedTs) {
+			doReturn(new ConsumedRefreshToken(TOKEN_HOLDER_USER_ID, false, issuedTs, FAMILY_ID,
+					PARENT_TOKEN_ID, null)).when(authService).consume(PRESENTED_REFRESH_TOKEN);
+			doReturn("rotated-refresh-token").when(authService)
+					.issueSuccessor(TOKEN_HOLDER_USER_ID, false, FAMILY_ID, PARENT_TOKEN_ID);
+		}
+
+		private void assertRotationWasRefused() {
+			assertThrows(BadCredentialsException.class, () -> authService.refresh(PRESENTED_REFRESH_TOKEN));
+			verify(authService, never()).issueSuccessor(any(), anyBoolean(), any(), any());
+			verify(accessTokenEncoder, never()).encode(any(JwtEncoderParameters.class));
+		}
+
+		@Test
+		void refreshTokenIssuedBeforeTheCutoffIsRefusedWithoutMintingAnything() {
+			OffsetDateTime cutoff = OffsetDateTime.now(ZoneOffset.UTC);
+			stubTokenHolderWithCutoff(cutoff);
+			stubConsumptionIssuedAt(cutoff.minusHours(1));
+
+			assertRotationWasRefused();
+		}
+
+		@Test
+		void refreshTokenIssuedExactlyAtTheCutoffIsRefused() {
+			OffsetDateTime cutoff = OffsetDateTime.now(ZoneOffset.UTC);
+			stubTokenHolderWithCutoff(cutoff);
+			stubConsumptionIssuedAt(cutoff);
+
+			assertRotationWasRefused();
+		}
+
+		@Test
+		void refreshTokenWithoutAnIssuedTimestampIsRefusedWhenTheHolderHasACutoff() {
+			stubTokenHolderWithCutoff(OffsetDateTime.now(ZoneOffset.UTC));
+			stubConsumptionIssuedAt(null);
+
+			assertRotationWasRefused();
+		}
+
+		@Test
+		void refreshTokenIssuedAfterTheCutoffIsRotated() {
+			OffsetDateTime cutoff = OffsetDateTime.now(ZoneOffset.UTC).minusHours(1);
+			stubTokenHolderWithCutoff(cutoff);
+			stubConsumptionIssuedAt(cutoff.plusMinutes(1));
+
+			assertEquals("rotated-refresh-token", authService.refresh(PRESENTED_REFRESH_TOKEN).refreshToken());
+		}
+
+		@Test
+		void aHolderWithoutACutoffRotatesEvenAnAncientRefreshToken() {
+			stubTokenHolderWithCutoff(null);
+			stubConsumptionIssuedAt(OffsetDateTime.now(ZoneOffset.UTC).minusYears(5));
+
+			assertEquals("rotated-refresh-token", authService.refresh(PRESENTED_REFRESH_TOKEN).refreshToken());
+		}
+	}
+
+	@Nested
+	class LegacyPasswordHashes {
+
+		private static final String SHA1_OF_ABC = "a9993e364706816aba3e25717850c26c9cd0d89d";
+		private static final String SHA1_OF_NOTHING = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+		private static final String SHA1_OF_PASSWORD123_SALTY = "5f0d825c2820b3b82f944498dcbe232d2467a199";
+
+		private final ZfgcPasswordEncoder passwordEncoder = new ZfgcPasswordEncoder();
+
+		@Test
+		void smfDigestsHexEncodeExactlyAsTheLegacyForumStoredThem() {
+			assertTrue(passwordEncoder.verify("abc", SHA1_OF_ABC, PasswordAlgo.SMF2_SHA1, ""),
+					"digest bytes at or above 0x80 must hex-encode unsigned, not as sign-extended values");
+			assertTrue(passwordEncoder.verify("", SHA1_OF_NOTHING, PasswordAlgo.SMF2_SHA1, ""),
+					"digest bytes below 0x10 must keep their leading zero rather than collapse to one nibble");
+			assertTrue(passwordEncoder.verify("password123", SHA1_OF_PASSWORD123_SALTY, PasswordAlgo.SMF2_SHA1,
+					"salty"), "the salt must be appended to the raw password before hashing");
+		}
+
+		@Test
+		void smfDigestsRejectTheWrongPasswordAndRefuseToRunWithoutASalt() {
+			assertFalse(passwordEncoder.verify("abd", SHA1_OF_ABC, PasswordAlgo.SMF2_SHA1, ""),
+					"a one-character difference must not verify");
+			assertFalse(passwordEncoder.verify("abc", SHA1_OF_ABC, PasswordAlgo.SMF2_SHA1, null),
+					"a legacy hash with no recorded salt is unverifiable rather than salt-free");
 		}
 	}
 
@@ -244,6 +387,39 @@ class TokenTest {
 			assertNotSame(request, forwarded);
 			assertEquals("Bearer " + liveToken, forwarded.getHeader(HttpHeaders.AUTHORIZATION));
 		}
+
+		@Test
+		void installBootstrapPathsIgnoreAccessCookiesIncludingUnderAContextPath() throws Exception {
+			MockHttpServletRequest install = new MockHttpServletRequest("POST", "/zfgbb/system/install");
+			install.setContextPath("/zfgbb");
+			MockFilterChain installChain = new MockFilterChain();
+
+			filter.doFilter(install, new MockHttpServletResponse(), installChain);
+
+			assertSame(install, installChain.getRequest());
+
+			MockHttpServletRequest status = new MockHttpServletRequest("GET", "/zfgbb/system/install/status");
+			status.setContextPath("/zfgbb");
+			MockFilterChain statusChain = new MockFilterChain();
+
+			filter.doFilter(status, new MockHttpServletResponse(), statusChain);
+
+			assertSame(status, statusChain.getRequest());
+			verify(cookieService, never()).readAccessCookie(any());
+		}
+
+		@Test
+		void installPrefixLookalikeStillPromotesAccessCookie() throws Exception {
+			MockHttpServletRequest request = new MockHttpServletRequest("POST", "/system/installer");
+			when(cookieService.readAccessCookie(request)).thenReturn(Optional.of("opaque-access-token"));
+			MockFilterChain chain = new MockFilterChain();
+
+			filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+			HttpServletRequest forwarded = (HttpServletRequest) chain.getRequest();
+			assertNotSame(request, forwarded);
+			assertEquals("Bearer opaque-access-token", forwarded.getHeader(HttpHeaders.AUTHORIZATION));
+		}
 	}
 
 	@Nested
@@ -268,8 +444,7 @@ class TokenTest {
 		private JwtConfig config(String profile, String secret) {
 			MockEnvironment environment = new MockEnvironment();
 			environment.setActiveProfiles(profile);
-			JwtConfig config = new JwtConfig(new com.zfgc.zfgbb.config.security.JwtProperties(""), environment);
-			ReflectionTestUtils.setField(config, "secret", secret);
+			JwtConfig config = new JwtConfig(new JwtProperties(secret), environment);
 			return config;
 		}
 	}
@@ -287,9 +462,10 @@ class TokenTest {
 			token.setExpiresTs(now.plusHours(1));
 			token.setRevokedFlag(false);
 
-			RefreshTokenService service = new RefreshTokenService(new FixedTokenDao(token), new NoOpFamilyMapper(), 30, 24, 60);
 			SingleSuccessConsumeMapper consumeMapper = new SingleSuccessConsumeMapper();
-			ReflectionTestUtils.setField(service, "refreshTokenConsumeMapper", consumeMapper);
+			AuthService service = new AuthService(mock(UserDataProvider.class), mock(LoginLockoutMapper.class),
+					mock(AuthenticationManager.class), mock(JwtEncoder.class), new FixedTokenDao(token),
+					consumeMapper, 30, 24, 60, 10, 15, 15);
 
 			assertEquals(7, service.consume("token").userId());
 			assertThrows(BadCredentialsException.class, () -> service.consume("token"));
@@ -317,18 +493,6 @@ class TokenTest {
 			public int consumeToken(Integer userRefreshTokenId, OffsetDateTime now) {
 				attempts++;
 				return attempts == 1 ? 1 : 0;
-			}
-		}
-
-		private static final class NoOpFamilyMapper implements RefreshTokenFamilyMapper {
-			@Override
-			public int backlinkSuccessor(Integer parentId, Integer successorId, OffsetDateTime now) {
-				return 0;
-			}
-
-			@Override
-			public int revokeFamily(String familyId, OffsetDateTime now) {
-				return 0;
 			}
 		}
 	}

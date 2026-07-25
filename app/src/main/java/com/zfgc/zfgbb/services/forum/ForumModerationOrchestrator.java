@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,30 +20,24 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ThreadDataProvider;
-import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
-import com.zfgc.zfgbb.dbo.BoardDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.ModerationLogDbo;
-import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.custom.ForumLockMapper;
 import com.zfgc.zfgbb.mappers.ModerationLogDboMapper;
 import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
 import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.services.AbstractService;
-import com.zfgc.zfgbb.services.system.SystemConfigService;
+import com.zfgc.zfgbb.model.forum.MessageDeletionResponse;
+import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.model.forum.Thread;
+import com.zfgc.zfgbb.model.forum.ThreadDeletionResponse;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
-import com.zfgc.zfgbb.services.core.deletion.ForumUserDataHandler;
+import com.zfgc.zfgbb.services.users.deletion.ForumUserDataHandler;
 import com.zfgc.zfgbb.services.forum.ForumService.MessagePosition;
-import com.zfgc.zfgbb.services.forum.ForumService.MessageDeletionResponse;
-import com.zfgc.zfgbb.services.forum.ForumService.ThreadDeletionResponse;
-import com.zfgc.zfgbb.services.forum.ForumService.RestoreResponse;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@BoardVisibilityChokepoint
 public class ForumModerationOrchestrator extends AbstractService {
 
 	public static final String DELETION_OUTCOME_RECYCLED = "RECYCLED";
@@ -63,7 +56,6 @@ public class ForumModerationOrchestrator extends AbstractService {
 	public static final String RESTORE_REASON_RESTORE_THREAD_INSTEAD = "RESTORE_THREAD_INSTEAD";
 	public static final String RESTORE_REASON_RESTORE_TARGET_MISSING = "RESTORE_TARGET_MISSING";
 	public static final String RESTORE_REASON_STATE_CHANGED = "RESTORE_STATE_CHANGED";
-	public static final String SAVE_REASON_THREAD_RECYCLED = "THREAD_RECYCLED";
 
 	private static final String ACTION_MESSAGE_RECYCLED = "MESSAGE_RECYCLED";
 	private static final String ACTION_THREAD_RECYCLED = "THREAD_RECYCLED";
@@ -74,20 +66,14 @@ public class ForumModerationOrchestrator extends AbstractService {
 	private static final String ACTION_THREAD_SPLIT = "THREAD_SPLIT";
 
 	private static final int THREAD_PURGE_CHUNK_SIZE = 500;
-	private static final int THREAD_PAGE_SIZE = 10;
 
 	private final ForumService forumService;
 	private final ThreadDataProvider threadDataProvider;
 	private final MessageDataProvider messageDataProvider;
-	private final SystemConfigService systemConfigService;
-	private final ThreadDao threadDao;
-	private final BoardDao boardDao;
 	private final MessageDao messageDao;
 	private final ForumUserDataHandler forumUserDataHandler;
 	private final UserDeletionMapper userDeletionMapper;
 	private final ModerationLogDboMapper moderationLogMapper;
-	private final ForumAccessRules forumAccessRules;
-	private final ForumLockMapper forumLockMapper;
 
 	public ThreadDeletionResponse deleteThread(Integer threadId, User user) {
 		forumService.lockThreadRows(List.of(threadId));
@@ -147,37 +133,35 @@ public class ForumModerationOrchestrator extends AbstractService {
 	public ThreadSplit getSplitTemplate(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		super.secureObject(thread, user);
-		ThreadSplit template = new ThreadSplit();
-		template.setThreadId(threadId);
-		template.setBoardId(thread.getBoardId());
+		ThreadSplit template = new ThreadSplit(threadId, thread.getBoardId(), null, null);
 
 		return template;
 	}
 
 	public Thread splitThread(ThreadSplit split, User user) {
-		forumService.lockThreadRows(List.of(split.getThreadId()));
-		Thread sourceThread = threadDataProvider.getThread(split.getThreadId());
+		forumService.lockThreadRows(List.of(split.threadId()));
+		Thread sourceThread = threadDataProvider.getThread(split.threadId());
 		super.secureObject(sourceThread, user);
 
-		List<Integer> requestedMessageIds = forumService.orderedDistinctIds(split.getMessageIdsToMove());
+		List<Integer> requestedMessageIds = forumService.orderedDistinctIds(split.messageIdsToMove());
 		if (requestedMessageIds.isEmpty())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select at least one message to split.");
 		MessageDboExample movableScan = new MessageDboExample();
-		movableScan.createCriteria().andThreadIdEqualTo(split.getThreadId()).andMessageIdIn(requestedMessageIds);
+		movableScan.createCriteria().andThreadIdEqualTo(split.threadId()).andMessageIdIn(requestedMessageIds);
 		List<Integer> movableMessageIds = messageDao.get(movableScan).stream().map(MessageDbo::getMessageId).toList();
 		if (movableMessageIds.isEmpty())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 					"None of the selected messages belong to this thread.");
-		split.setMessageIdsToMove(movableMessageIds);
+		split = new ThreadSplit(split.threadId(), split.boardId(), movableMessageIds, split.newThreadTitle());
 
-		Thread newThread = forumService.getThreadTemplate(split.getBoardId(), user);
+		Thread newThread = forumService.getThreadTemplate(split.boardId(), user);
 		Thread splitResult = threadDataProvider.splitThread(split, newThread);
 
-		userDeletionMapper.resequencePostInThread(List.of(split.getThreadId(), splitResult.getThreadId()));
-		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(split.getThreadId()));
+		userDeletionMapper.resequencePostInThread(List.of(split.threadId(), splitResult.getThreadId()));
+		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(split.threadId()));
 
 		writeModerationLog(ACTION_THREAD_SPLIT, user, sourceThread.getCreatedUserId(), newThread.getBoardId(),
-				splitResult.getThreadId(), null, "thread_id=" + split.getThreadId() + " split: "
+				splitResult.getThreadId(), null, "thread_id=" + split.threadId() + " split: "
 						+ movableMessageIds.size() + " messages moved to new thread_id=" + splitResult.getThreadId()
 						+ " board_id=" + newThread.getBoardId());
 		forumService.evictUnfilteredForumCache();
@@ -307,7 +291,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		} catch (ZfgcNotFoundException missingOrigin) {
 			throw new ZfgcConflictException(RESTORE_REASON_STATE_CHANGED);
 		}
-		if (!forumService.restoreProvenanceMatches(wrapperThread, originThread, recycleBoardId.get()))
+		if (!restoreProvenanceMatches(wrapperThread, originThread, recycleBoardId.get()))
 			throw new ZfgcConflictException(RESTORE_REASON_STATE_CHANGED);
 		super.secureObject(wrapperThread, user);
 		Integer originBoardId = originThread.getBoardId();
@@ -341,7 +325,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 			soleMessageScan.setOrderByClause("post_in_thread, message_id");
 			soleMessageScan.setLimit(1);
 			soleMessageScan.setOffset(0);
-			Integer soleMessageId = messageDao.getMapper().selectByExampleWithLimits(soleMessageScan).stream()
+			Integer soleMessageId = messageDao.get(soleMessageScan).stream()
 					.map(MessageDbo::getMessageId).findFirst().orElseThrow(ZfgcNotFoundException::new);
 			return restoreMessage(soleMessageId, user);
 		}
@@ -404,13 +388,18 @@ public class ForumModerationOrchestrator extends AbstractService {
 	}
 
 	private Integer pageCountOf(long messageCount) {
-		return (int) Math.ceil(messageCount / (double) THREAD_PAGE_SIZE);
+		return (int) Math.ceil(messageCount / (double) ThreadDataProvider.DEFAULT_MESSAGES_PER_PAGE);
 	}
 
 	private long countMessagesInThread(Integer threadId) {
 		MessageDboExample example = new MessageDboExample();
 		example.createCriteria().andThreadIdEqualTo(threadId);
-		return messageDao.getMapper().countByExample(example);
+		return messageDao.count(example);
+	}
+
+	public static boolean restoreProvenanceMatches(Thread wrapper, Thread origin, Integer recycleBoardId) {
+		return wrapper != null && origin != null && Objects.equals(wrapper.getBoardId(), recycleBoardId)
+				&& Objects.equals(wrapper.getRecycledFromThreadId(), origin.getThreadId());
 	}
 
 	private MessagePosition reloadMessageUnderThreadLock(Integer messageId, Integer expectedThreadId) {

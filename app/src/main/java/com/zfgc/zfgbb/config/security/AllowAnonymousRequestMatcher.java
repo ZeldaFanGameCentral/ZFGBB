@@ -9,6 +9,8 @@ import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.ServletRequestPathUtils;
 
+import java.util.Optional;
+
 @Component
 public class AllowAnonymousRequestMatcher implements RequestMatcher {
 
@@ -21,13 +23,13 @@ public class AllowAnonymousRequestMatcher implements RequestMatcher {
 
 	@Override
 	public boolean matches(HttpServletRequest request) {
-		HandlerMethod handler = resolveHandlerMethod(request);
-		return handler != null
-				&& (handler.hasMethodAnnotation(AllowAnonymous.class)
-						|| handler.getBeanType().isAnnotationPresent(AllowAnonymous.class));
+		return resolveHandlerMethod(request)
+				.map(handler -> handler.hasMethodAnnotation(AllowAnonymous.class)
+						|| handler.getBeanType().isAnnotationPresent(AllowAnonymous.class))
+				.orElse(false);
 	}
 
-	private HandlerMethod resolveHandlerMethod(HttpServletRequest request) {
+	private Optional<HandlerMethod> resolveHandlerMethod(HttpServletRequest request) {
 		boolean parsedHere = false;
 		try {
 			if (!ServletRequestPathUtils.hasParsedRequestPath(request)) {
@@ -36,15 +38,15 @@ public class AllowAnonymousRequestMatcher implements RequestMatcher {
 			}
 			HandlerExecutionChain chain = handlerMapping.getHandler(request);
 			if (chain != null && chain.getHandler() instanceof HandlerMethod handlerMethod) {
-				return handlerMethod;
+				return Optional.of(handlerMethod);
 			}
 		} catch (Exception e) {
-			return null;
+			return Optional.empty();
 		} finally {
 			if (parsedHere) {
 				ServletRequestPathUtils.clearParsedRequestPath(request);
 			}
 		}
-		return null;
+		return Optional.empty();
 	}
 }

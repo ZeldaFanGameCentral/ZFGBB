@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MigrationConflictDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731511955-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731528714-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731551114-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731504925-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public MigrationConflictDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731517825-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731522214-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731533084-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731536984-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731555633-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731558343-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731563283-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731567423-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class MigrationConflictDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731572093-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731576423-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731582213-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -242,12 +248,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andEntityTypeLike(String value) {
-            addCriterion("entity_type like", value, "entityType");
+            addCriterion("entity_type ilike", value, "entityType");
             return (Criteria) this;
         }
 
         public Criteria andEntityTypeNotLike(String value) {
-            addCriterion("entity_type not like", value, "entityType");
+            addCriterion("entity_type not ilike", value, "entityType");
             return (Criteria) this;
         }
 
@@ -372,12 +378,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andFieldNameLike(String value) {
-            addCriterion("field_name like", value, "fieldName");
+            addCriterion("field_name ilike", value, "fieldName");
             return (Criteria) this;
         }
 
         public Criteria andFieldNameNotLike(String value) {
-            addCriterion("field_name not like", value, "fieldName");
+            addCriterion("field_name not ilike", value, "fieldName");
             return (Criteria) this;
         }
 
@@ -442,12 +448,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andCandidatesLike(String value) {
-            addCriterion("candidates like", value, "candidates");
+            addCriterion("candidates ilike", value, "candidates");
             return (Criteria) this;
         }
 
         public Criteria andCandidatesNotLike(String value) {
-            addCriterion("candidates not like", value, "candidates");
+            addCriterion("candidates not ilike", value, "candidates");
             return (Criteria) this;
         }
 
@@ -512,12 +518,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andStatusLike(String value) {
-            addCriterion("status like", value, "status");
+            addCriterion("status ilike", value, "status");
             return (Criteria) this;
         }
 
         public Criteria andStatusNotLike(String value) {
-            addCriterion("status not like", value, "status");
+            addCriterion("status not ilike", value, "status");
             return (Criteria) this;
         }
 
@@ -582,12 +588,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andResolvedSourceTypeLike(String value) {
-            addCriterion("resolved_source_type like", value, "resolvedSourceType");
+            addCriterion("resolved_source_type ilike", value, "resolvedSourceType");
             return (Criteria) this;
         }
 
         public Criteria andResolvedSourceTypeNotLike(String value) {
-            addCriterion("resolved_source_type not like", value, "resolvedSourceType");
+            addCriterion("resolved_source_type not ilike", value, "resolvedSourceType");
             return (Criteria) this;
         }
 
@@ -652,12 +658,12 @@ public class MigrationConflictDboExample {
         }
 
         public Criteria andResolvedValueLike(String value) {
-            addCriterion("resolved_value like", value, "resolvedValue");
+            addCriterion("resolved_value ilike", value, "resolvedValue");
             return (Criteria) this;
         }
 
         public Criteria andResolvedValueNotLike(String value) {
-            addCriterion("resolved_value not like", value, "resolvedValue");
+            addCriterion("resolved_value not ilike", value, "resolvedValue");
             return (Criteria) this;
         }
 
@@ -922,14 +928,14 @@ public class MigrationConflictDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731852264-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.731860394-04:00", comments="Source Table: zfgbb.migration_conflict")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.migration_conflict")
     public static class Criterion {
         private String condition;
 

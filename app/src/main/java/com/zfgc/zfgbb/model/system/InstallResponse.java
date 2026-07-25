@@ -7,4 +7,9 @@ public record InstallResponse(
 		String contentPack,
 		String accessToken,
 		String refreshToken) {
+
+	public InstallResponse withTokens(String accessToken, String refreshToken) {
+		return new InstallResponse(installed, adminUserId, siteName, contentPack,
+				accessToken, refreshToken);
+	}
 }

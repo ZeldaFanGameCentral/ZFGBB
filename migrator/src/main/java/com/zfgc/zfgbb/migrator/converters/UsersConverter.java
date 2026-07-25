@@ -7,11 +7,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.UserDbo;
+import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.mappers.UserDboMapper;
 import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
@@ -20,21 +20,19 @@ import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMembersDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
 
-	@Autowired
-	public SmfResilientReadMapper resilientReads;
+	private final SmfResilientReadMapper resilientReads;
 
-	@Autowired
-	public UserDboMapper userDboMapper;
+	private final UserDboMapper userDboMapper;
 
-	@Autowired
-	public MigratorIdMapService idMap;
+	private final MigratorIdMapService idMap;
 
-	@Autowired
-	public MigratorPermissionService permissions;
+	private final MigratorPermissionService permissions;
 
 	@Override
 	public JobType getType() {
@@ -64,6 +62,16 @@ public class UsersConverter extends AbstractConverter<Map<Integer, UserDbo>> {
 					+ user.getUserName()));
 
 			Integer existingZfgbbId = idMap.lookupOrNull(LegacyEntityType.USER, smfMember.getIdMember());
+			if (existingZfgbbId == null && user.getSsoKey() != null) {
+				UserDboExample ssoEx = new UserDboExample();
+				ssoEx.createCriteria().andSsoKeyEqualTo(user.getSsoKey());
+				UserDbo ssoExisting = userDboMapper.selectByExample(ssoEx).stream().findFirst().orElse(null);
+				if (ssoExisting != null) {
+					existingZfgbbId = ssoExisting.getUserId();
+					idMap.record(LegacyEntityType.USER, smfMember.getIdMember(), existingZfgbbId);
+				}
+			}
+
 			if (existingZfgbbId == null) {
 				userDboMapper.insert(user);
 				idMap.record(LegacyEntityType.USER, smfMember.getIdMember(), user.getUserId());

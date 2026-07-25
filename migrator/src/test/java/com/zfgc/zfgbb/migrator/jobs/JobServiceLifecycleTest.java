@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +35,8 @@ class JobServiceLifecycleTest {
 		CountDownLatch release = new CountDownLatch(1);
 		List<AbstractConverter<?>> converters = converters(entered, release);
 		executor = Executors.newSingleThreadExecutor();
-		JobService service = new JobService(converters, null, null, executor);
+		JobService service = new JobService(converters, null, null, executor,
+				Optional.empty());
 		Job running = job(JobType.CATEGORIES);
 		Job queued = job(JobType.BOARDS);
 

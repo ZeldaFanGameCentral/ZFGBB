@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -8,17 +7,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.ThreadDao;
-import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
 import com.zfgc.zfgbb.dao.forum.PollDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.dbo.AllMessagesInThreadViewDbo;
-import com.zfgc.zfgbb.dbo.AllMessagesInThreadViewDboExample;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDbo;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDboExample;
@@ -27,13 +22,13 @@ import com.zfgc.zfgbb.dbo.PollChoiceDbo;
 import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
 import com.zfgc.zfgbb.dbo.PollDbo;
 import com.zfgc.zfgbb.dbo.PollDboExample;
-import com.zfgc.zfgbb.dbo.PollQuestionDbo;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper;
+import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.mappers.PollChoiceDboMapper;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mapstruct.forum.PollMap;
 import com.zfgc.zfgbb.mapstruct.forum.ThreadMap;
@@ -45,60 +40,48 @@ import com.zfgc.zfgbb.model.forum.Poll;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.model.users.Permission;
+import lombok.RequiredArgsConstructor;
 
 @Repository
+@RequiredArgsConstructor
+@BoardVisibilityChokepoint
 public class ThreadDataProvider {
 
 	private static final int MAX_MESSAGES_PER_PAGE = 100;
 
-	@Autowired
-	private ThreadDao threadDao;
-	
-	@Autowired
-	private MessageDataProvider messageDataProvider;
-	
-	@Autowired
-	private BoardPermissionViewDao boardPermissionDao;
+	public static final int DEFAULT_MESSAGES_PER_PAGE = 10;
 
-	@Autowired
-	private BoardDao boardDao;
-	
-	@Autowired
-	private PollDao pollDao;
-	
-	@Autowired
-	private PollChoiceDao pollChoiceDao;
-	
-	@Autowired
-	private UserDao userDao;
-	
-	@Autowired
-	private LatestMessageInThreadViewDboMapper latestMessageMapper;
-	
-	@Autowired
-	private AllMessagesInThreadViewDboMapper allMessagesMapper;
-	
-	@Autowired
-	private MessageDboMapper messageMapper;
+	private final ThreadDao threadDao;
 
-	@Autowired
-	private MessagePostCountMapper messagePostCountMapper;
-	
-	@Autowired
-	private PollMap pollMap;
+	private final MessageDataProvider messageDataProvider;
 
-	@Autowired
-	private ThreadMap threadMap;
+	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 
-	@Autowired
-	private UserMap userMap;
+	private final BoardDao boardDao;
 
-	@Autowired
-	private PermissionMap permissionMap;
+	private final PollDao pollDao;
+
+	private final PollChoiceDboMapper pollChoiceDboMapper;
+
+	private final UserDao userDao;
+
+	private final LatestMessageInThreadViewDboMapper latestMessageMapper;
+
+	private final MessageDboMapper messageMapper;
+
+	private final MessagePostCountMapper messagePostCountMapper;
+
+	private final PollMap pollMap;
+
+	private final ThreadMap threadMap;
+
+	private final UserMap userMap;
+
+	private final PermissionMap permissionMap;
 
 	public Thread getThread(Integer threadId, Integer page, Integer count) {
-		int pageSize = (count == null || count < 1) ? 10 : Math.min(count, MAX_MESSAGES_PER_PAGE);
-		Optional<ThreadDbo> threadDb = threadDao.get(threadId);
+		int pageSize = (count == null || count < 1) ? DEFAULT_MESSAGES_PER_PAGE : Math.min(count, MAX_MESSAGES_PER_PAGE);
+		Optional<ThreadDbo> threadDb = threadDao.find(threadId);
 		return threadDb.map(threadDbo -> {
 			Thread result = threadMap.toModel(threadDbo);
 
@@ -113,7 +96,7 @@ public class ThreadDataProvider {
 
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
 
-			boardDao.get(result.getBoardId())
+			boardDao.find(result.getBoardId())
 					.ifPresent(board -> result.setBoardName(board.getBoardName()));
 
 			result.setPollInfo(getPollInfo(threadId));
@@ -133,7 +116,7 @@ public class ThreadDataProvider {
 							  	PollChoiceDboExample choiceEx = new PollChoiceDboExample();
 							  	choiceEx.createCriteria().andActiveFlagEqualTo(true)
 							  							 .andPollIdEqualTo(poll.getPollId());
-							  	List<PollChoiceDbo> choices = pollChoiceDao.get(choiceEx);
+							  	List<PollChoiceDbo> choices = pollChoiceDboMapper.selectByExample(choiceEx);
 							  	
 							  	Poll result = pollMap.toModel(poll, choices);
 
@@ -211,7 +194,7 @@ public class ThreadDataProvider {
 	}
 	
 	public Thread getThread(Integer threadId) {
-		Optional<ThreadDbo> threadDb = threadDao.get(threadId);
+		Optional<ThreadDbo> threadDb = threadDao.find(threadId);
 		return threadDb.map(threadDbo -> {
 			Thread result = threadMap.toModel(threadDbo);
 			
@@ -220,7 +203,7 @@ public class ThreadDataProvider {
 			MessageDboExample ex = new MessageDboExample();
 			ex.createCriteria().andThreadIdEqualTo(threadId);
 			long count = messageMapper.countByExample(ex);
-			result.setPageCount((int)Math.ceil(count / 10.0));
+			result.setPageCount((int)Math.ceil(count / (double) DEFAULT_MESSAGES_PER_PAGE));
 			
 			return result;
 		}).orElseThrow(() -> new ZfgcNotFoundException());
@@ -229,11 +212,9 @@ public class ThreadDataProvider {
 	public Thread saveThread(Thread thread) {
 		ThreadDbo threadDbo = threadMap.toDbo(thread);
 		
-		threadDbo = threadDao.save(threadDbo);
+		threadDao.save(threadDbo);
 		thread.setThreadId(threadDbo.getThreadId());
-		thread.setCreatedTs(threadDbo.getCreatedTs());
-		thread.setUpdatedTs(threadDbo.getUpdatedTs());
-		
+
 		if(thread.getPollInfo() != null) {
 			PollDbo poll = pollMap.toDbo(thread.getPollInfo());
 			pollDao.save(poll);
@@ -245,15 +226,15 @@ public class ThreadDataProvider {
 	public List<Permission> getBoardPermissions(Integer boardId){
 		BoardPermissionViewDboExample bEx = new BoardPermissionViewDboExample();
 		bEx.createCriteria().andBoardIdEqualTo(boardId);
-		return boardPermissionDao.get(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
+		return boardPermissionViewDboMapper.selectByExample(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
 	}
 	
 	public Thread splitThread(ThreadSplit splitter, Thread newThread) {
 		newThread.getMessages().clear();
 		
-		newThread.setThreadName(splitter.getNewThreadTitle());
+		newThread.setThreadName(splitter.newThreadTitle());
 		newThread = saveThread(newThread);
-		messageDataProvider.moveMessagesToNewThread(splitter.getMessageIdsToMove(), splitter.getThreadId(),
+		messageDataProvider.moveMessagesToNewThread(splitter.messageIdsToMove(), splitter.threadId(),
 				newThread.getId(), newThread.getBoardId());
 
 		return newThread;

@@ -145,12 +145,12 @@
       settings_table.migration_hash AS settings_migration_hash,
       settings_table.created_ts AS settings_created_ts,
       settings_table.updated_ts AS settings_updated_ts
-    FROM zfgbb.users user_table
-    LEFT JOIN zfgbb.user_bio_info bio_table ON user_table.user_id = bio_table.users_id
+    FROM zfgbb.user user_table
+    LEFT JOIN zfgbb.user_bio_info bio_table ON user_table.user_id = bio_table.user_id
     LEFT JOIN zfgbb.avatar avatar_table ON bio_table.avatar_id = avatar_table.avatar_id
-    LEFT JOIN zfgbb.user_contact_info contact_table ON user_table.user_id = contact_table.users_id
-    LEFT JOIN zfgbb.email_address email_table ON user_table.user_id = email_table.users_id
-    LEFT JOIN zfgbb.user_settings settings_table ON user_table.user_id = settings_table.users_id
+    LEFT JOIN zfgbb.user_contact_info contact_table ON user_table.user_id = contact_table.user_id
+    LEFT JOIN zfgbb.email_address email_table ON contact_table.email_address_id = email_table.email_address_id
+    LEFT JOIN zfgbb.user_settings settings_table ON user_table.user_id = settings_table.user_id
     WHERE user_table.user_id IN
     <foreach item="item" collection="userIds" separator="," open="(" close=")">#{item}</foreach>
   </select>

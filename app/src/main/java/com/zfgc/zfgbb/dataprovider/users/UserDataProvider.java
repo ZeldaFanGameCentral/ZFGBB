@@ -1,122 +1,71 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.time.OffsetDateTime;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.zfgc.zfgbb.dao.users.AvatarDao;
 import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
 import com.zfgc.zfgbb.dao.users.EmailAddressDao;
 import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
-import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
-import com.zfgc.zfgbb.config.loadoption.user.FullUserLoadOptions;
-import com.zfgc.zfgbb.config.loadoption.user.LoggedInUserLoadOptions;
-import com.zfgc.zfgbb.dao.UserPermissionViewDao;
-import com.zfgc.zfgbb.dbo.AvatarDbo;
-import com.zfgc.zfgbb.dbo.AvatarDboExample;
-import com.zfgc.zfgbb.dbo.AwardDbo;
+import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dbo.AwardDboExample;
 import com.zfgc.zfgbb.dbo.UserAwardDbo;
-import com.zfgc.zfgbb.dbo.UserAwardDboExample;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
 import com.zfgc.zfgbb.dbo.EmailAddressDbo;
 import com.zfgc.zfgbb.dbo.EmailAddressDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
-import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
+import com.zfgc.zfgbb.dbo.UserContactInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDbo;
 import com.zfgc.zfgbb.mappers.AwardDboMapper;
 import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
 import com.zfgc.zfgbb.mappers.UserSettingsDboMapper;
-import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
-import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.model.users.Avatar;
 import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
-import com.zfgc.zfgbb.model.users.Permission;
-import com.zfgc.zfgbb.model.users.UserBioInfo;
-import com.zfgc.zfgbb.model.users.UserContactInfo;
 import com.zfgc.zfgbb.model.users.UserSettings;
-import com.zfgc.zfgbb.content.ContentFormat;
-import com.zfgc.zfgbb.content.renderer.ContentRenderer;
+import lombok.RequiredArgsConstructor;
 
 @Repository
+@RequiredArgsConstructor
 public class UserDataProvider {
 
 	private static final Integer ZFGC_USER_PERMISSION_ID = 1;
 
-	@Autowired
-	private UserDao userDao;
+	private final UserDao userDao;
 
-	@Autowired
-	private UserPermissionViewDao userPermissionDao;
+	private final BrUserPermissionDao brUserPermissionDao;
 
-	@Autowired
-	private BrUserPermissionDao brUserPermissionDao;
+	private final EmailAddressDao emailDao;
 
-	@Autowired
-	private EmailAddressDao emailDao;
+	private final UserBioInfoDao bioInfoDao;
 
-	@Autowired
-	private UserBioInfoDao bioInfoDao;
+	private final UserContactInfoDboMapper userContactInfoDboMapper;
 
-	@Autowired
-	private AvatarDao avatarDao;
+	private final UserMap userMap;
 
-	@Autowired
-	private UserContactInfoDao contactInfoDao;
+	private final UserBioInfoMap userBioInfoMap;
 
-	@Autowired
-	private ContentRenderer contentRenderer;
+	private final EmailAddressMap emailAddressMap;
 
-	@Autowired
-	private UserMap userMap;
+	private final UserSettingsDboMapper userSettingsMapper;
 
-	@Autowired
-	private UserBioInfoMap userBioInfoMap;
+	private final AwardDboMapper awardMapper;
 
+	private final UserAwardDboMapper userAwardMapper;
 
-
-	@Autowired
-	private EmailAddressMap emailAddressMap;
-
-	@Autowired
-	private UserSettingsDboMapper userSettingsMapper;
-
-	@Autowired
-	private AwardDboMapper awardMapper;
-
-	@Autowired
-	private UserAwardDboMapper userAwardMapper;
-
-	@Autowired
-	private UserProfileFacade userProfileFacade;
-
-	public Optional<User> findUser(String userName) {
-		if (userName == null || userName.isBlank()) {
-			return Optional.empty();
-		}
-		UserDboExample ex = new UserDboExample();
-		ex.createCriteria().andUserNameEqualTo(userName).andActiveFlagEqualTo(true);
-		return userDao.get(ex).stream().findFirst()
-				.flatMap(dbo -> findUser(dbo.getUserId(), new LoggedInUserLoadOptions()));
-	}
+	private final UserProfileFacade userProfileFacade;
 
 	public Optional<User> findUserForAuthentication(String userName) {
 		if (userName == null || userName.isBlank())
@@ -124,14 +73,14 @@ public class UserDataProvider {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName);
 		return userDao.get(ex).stream().findFirst()
-				.map(dbo -> hydrateUser(dbo, new LoggedInUserLoadOptions()));
+				.map(dbo -> hydrateUser(dbo, UserLoadOptions.loggedIn()));
 	}
 
 	public Optional<User> findUser(Integer userId) {
-		return findUser(userId, new BasicUserLoadOptions());
+		return findUser(userId, UserLoadOptions.basic());
 	}
 
-	public Optional<User> findUser(Integer userId, BasicUserLoadOptions loadOptions) {
+	public Optional<User> findUser(Integer userId, UserLoadOptions loadOptions) {
 		if (userId == null) {
 			return Optional.empty();
 		}
@@ -141,7 +90,7 @@ public class UserDataProvider {
 				.map(userDb -> hydrateUser(userDb, loadOptions));
 	}
 
-	private User hydrateUser(UserDbo userDb, BasicUserLoadOptions loadOptions) {
+	private User hydrateUser(UserDbo userDb, UserLoadOptions loadOptions) {
 		Map<Integer, User> users = userProfileFacade.loadUsersByIds(List.of(userDb.getUserId()), loadOptions);
 		return users.get(userDb.getUserId());
 	}
@@ -149,7 +98,7 @@ public class UserDataProvider {
 
 
 	public Map<Integer, User> findPublicAuthorsByIds(Collection<Integer> requestedUserIds) {
-		BasicUserLoadOptions loadOptions = new BasicUserLoadOptions();
+		UserLoadOptions loadOptions = UserLoadOptions.publicProfile();
 		Map<Integer, User> users = userProfileFacade.loadUsersByIds(requestedUserIds, loadOptions);
 		for (User author : users.values()) {
 			author.retainPublicRankPermissions();
@@ -204,7 +153,10 @@ public class UserDataProvider {
 	public User createUser(User user) {
 		UserDbo userDbo = userMap.toDbo(user);
 		userDao.save(userDbo);
+		return createUserAssociations(user, userDbo);
+	}
 
+	private User createUserAssociations(User user, UserDbo userDbo) {
 		EmailAddressDbo emailDbo = emailAddressMap.toDbo(user.getEmail());
 		emailDao.save(emailDbo);
 		UserContactInfoDbo contactInfo = new UserContactInfoDbo();
@@ -212,21 +164,97 @@ public class UserDataProvider {
 		contactInfo.setEmailAddressId(emailDbo.getEmailAddressId());
 		contactInfo.setAllowEmailFlag(true);
 		contactInfo.setAllowPmFlag(true);
-		contactInfoDao.getMapper().insertSelective(contactInfo);
+		userContactInfoDboMapper.insertSelective(contactInfo);
 
 		UserBioInfoDbo bioInfo = user.getBioInfo() != null
 				? userBioInfoMap.toDbo(user.getBioInfo())
 				: new UserBioInfoDbo();
 		bioInfo.setUserId(userDbo.getUserId());
-		bioInfoDao.getMapper().insertSelective(bioInfo);
+		bioInfoDao.insertSelective(bioInfo);
 
 		BrUserPermissionDbo defaultPerm = new BrUserPermissionDbo();
 		defaultPerm.setUserId(userDbo.getUserId());
 		defaultPerm.setUserPermissionId(ZFGC_USER_PERMISSION_ID);
-		brUserPermissionDao.save(defaultPerm);
+		brUserPermissionDao.insert(defaultPerm);
 
-		return findUser(userDbo.getUserId(), new FullUserLoadOptions())
+		return findUser(userDbo.getUserId(), UserLoadOptions.full())
 				.orElseThrow(() -> new IllegalStateException("user disappeared after createUser"));
+	}
+
+	public User replaceUserIdentity(User identity, int userId) {
+		if (identity == null || identity.getEmail() == null
+				|| identity.getEmail().getEmailAddress() == null
+				|| identity.getEmail().getEmailAddress().isBlank())
+			throw new IllegalArgumentException(
+					"Replacing a user identity requires an email address.");
+		UserDbo existing = userDao.find(userId).orElseThrow(() -> new IllegalStateException(
+				"Cannot replace the identity of user " + userId + " because that user does not exist."));
+		UserDbo replacement = userMap.toDbo(identity);
+		replacement.setUserId(userId);
+		replacement.setMigrationHash(existing.getMigrationHash());
+		replacement.setTokensValidAfterTs(identity.getPasswordChangedTs());
+		userDao.save(replacement);
+		replaceEmailAddress(userId, identity.getEmail());
+		return findUser(userId, UserLoadOptions.full())
+				.orElseThrow(() -> new IllegalStateException("user disappeared after replaceUserIdentity"));
+	}
+
+	private void replaceEmailAddress(int userId, EmailAddress requested) {
+		Optional<UserContactInfoDbo> contactInfo = Optional
+				.ofNullable(userContactInfoDboMapper.selectByPrimaryKey(userId));
+		Optional<EmailAddressDbo> currentAddress = contactInfo
+				.map(UserContactInfoDbo::getEmailAddressId)
+				.flatMap(emailDao::find);
+		if (currentAddress.filter(current -> requested.getEmailAddress().equals(current.getEmailAddress()))
+				.isPresent())
+			return;
+		Optional<EmailAddressDbo> adoptable = findByEmail(requested.getEmailAddress())
+				.filter(unclaimed -> !emailAddressIsClaimedBySomeUser(unclaimed.getEmailAddressId()));
+		if (adoptable.isEmpty() && currentAddress.isPresent()
+				&& !isEmailAddressSharedWithAnotherUser(currentAddress.get().getEmailAddressId(), userId)) {
+			EmailAddressDbo owned = currentAddress.get();
+			owned.setEmailAddress(requested.getEmailAddress());
+			owned.setSpammerFlag(Boolean.TRUE.equals(requested.getSpammerFlag()));
+			emailDao.save(owned);
+			return;
+		}
+		EmailAddressDbo replacement = adoptable.orElseGet(() -> newEmailAddress(requested));
+		replacement.setSpammerFlag(Boolean.TRUE.equals(requested.getSpammerFlag()));
+		emailDao.save(replacement);
+		UserContactInfoDbo link = contactInfo.orElseGet(UserContactInfoDbo::new);
+		link.setUserId(userId);
+		link.setEmailAddressId(replacement.getEmailAddressId());
+		if (contactInfo.isPresent()) {
+			userContactInfoDboMapper.updateByPrimaryKeySelective(link);
+			return;
+		}
+		link.setAllowEmailFlag(true);
+		link.setAllowPmFlag(true);
+		userContactInfoDboMapper.insertSelective(link);
+	}
+
+	private EmailAddressDbo newEmailAddress(EmailAddress requested) {
+		EmailAddressDbo created = emailAddressMap.toDbo(requested);
+		created.setEmailAddressId(null);
+		return created;
+	}
+
+	private boolean isEmailAddressSharedWithAnotherUser(Integer emailAddressId, int userId) {
+		UserContactInfoDboExample ex = new UserContactInfoDboExample();
+		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId).andUserIdNotEqualTo(userId);
+		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
+	}
+
+	public boolean emailAddressIsClaimedBySomeUser(Integer emailAddressId) {
+		UserContactInfoDboExample ex = new UserContactInfoDboExample();
+		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId);
+		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
+	}
+
+	public boolean emailAddressBelongsTo(Integer emailAddressId, int userId) {
+		UserContactInfoDboExample ex = new UserContactInfoDboExample();
+		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId).andUserIdEqualTo(userId);
+		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
 	}
 
 	public Optional<UserDbo> findByUserName(String userName) {
@@ -235,24 +263,37 @@ public class UserDataProvider {
 		return userDao.get(ex).stream().findFirst();
 	}
 
+	public Optional<UserDbo> findBySsoKey(String ssoKey) {
+		UserDboExample ex = new UserDboExample();
+		ex.createCriteria().andSsoKeyEqualTo(ssoKey);
+		return userDao.get(ex).stream().findFirst();
+	}
+
+	public List<Integer> findUserIdsHoldingIdentity(String identity) {
+		if (identity == null || identity.isBlank())
+			return List.of();
+		UserDboExample ex = new UserDboExample();
+		ex.createCriteria().andUserNameEqualTo(identity);
+		ex.or().andSsoKeyEqualTo(identity);
+		return userDao.get(ex).stream()
+				.map(UserDbo::getUserId)
+				.distinct()
+				.sorted()
+				.toList();
+	}
+
+	public int cutOffExistingTokensForAllUsers(OffsetDateTime cutoff) {
+		UserDbo update = new UserDbo();
+		update.setTokensValidAfterTs(cutoff);
+		return userDao.updateWhere(update, new UserDboExample());
+	}
+
 	public Optional<EmailAddressDbo> findByEmail(String email) {
 		EmailAddressDboExample ex = new EmailAddressDboExample();
 		ex.createCriteria().andEmailAddressEqualTo(email);
 		return emailDao.get(ex).stream().findFirst();
 	}
 
-	public User saveUserProfile(User user) {
-		UserDbo userDbo = userMap.toDbo(user);
-		userDbo = userDao.save(userDbo);
-
-		if (user.getBioInfo() != null) {
-			UserBioInfoDbo bioInfoDbo = userBioInfoMap.toDbo(user.getBioInfo());
-			bioInfoDao.save(bioInfoDbo);
-		}
-
-		return findUser(userDbo.getUserId(), new BasicUserLoadOptions())
-				.orElseThrow(() -> new IllegalStateException("user disappeared after saveUserProfile"));
-	}
 
 
 
@@ -281,7 +322,7 @@ public class UserDataProvider {
 		dbo.setContentEntityId(contentEntityId);
 		dbo.setGrantedByUserId(grantedByUserId);
 		userAwardMapper.insertSelective(dbo);
-		return findUser(userId, new FullUserLoadOptions())
+		return findUser(userId, UserLoadOptions.full())
 				.orElseThrow(() -> new IllegalStateException("user disappeared after grantAward"));
 	}
 }

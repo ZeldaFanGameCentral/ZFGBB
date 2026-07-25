@@ -5,15 +5,8 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFGameCommentDbExample;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFGameCommentDbWithBLOBs;
 import jakarta.annotation.Generated;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
 
 public interface SMFGameCommentDbMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032435703-04:00", comments="Source Table: smf_1game_comments")
-    long countByExample(SMFGameCommentDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032454412-04:00", comments="Source Table: smf_1game_comments")
-    int deleteByExample(SMFGameCommentDbExample example);
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032470202-04:00", comments="Source Table: smf_1game_comments")
     int deleteByPrimaryKey(Integer idComment);
 
@@ -31,15 +24,6 @@ public interface SMFGameCommentDbMapper {
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032549439-04:00", comments="Source Table: smf_1game_comments")
     SMFGameCommentDbWithBLOBs selectByPrimaryKey(Integer idComment);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032565879-04:00", comments="Source Table: smf_1game_comments")
-    int updateByExampleSelective(@Param("row") SMFGameCommentDbWithBLOBs row, @Param("example") SMFGameCommentDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032583158-04:00", comments="Source Table: smf_1game_comments")
-    int updateByExampleWithBLOBs(@Param("row") SMFGameCommentDbWithBLOBs row, @Param("example") SMFGameCommentDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032600157-04:00", comments="Source Table: smf_1game_comments")
-    int updateByExample(@Param("row") SMFGameCommentDb row, @Param("example") SMFGameCommentDbExample example);
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T12:19:31.032635926-04:00", comments="Source Table: smf_1game_comments")
     int updateByPrimaryKeySelective(SMFGameCommentDbWithBLOBs row);

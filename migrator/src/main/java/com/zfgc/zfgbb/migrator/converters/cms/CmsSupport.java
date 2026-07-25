@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import org.springframework.web.util.HtmlUtils;
 
+import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 import com.zfgc.zfgbb.dbo.IpAddressDbo;
 import com.zfgc.zfgbb.dbo.IpAddressDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
@@ -28,13 +29,6 @@ public final class CmsSupport {
 
 	private static final DateTimeFormatter MW_TS = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 	private static final Pattern REDIRECT = Pattern.compile("#REDIRECT\\s*\\[\\[([^\\]|]+)", Pattern.CASE_INSENSITIVE);
-
-	private static final Map<Integer, String> NAMESPACES = Map.ofEntries(
-			Map.entry(0, "MAIN"), Map.entry(1, "Talk"), Map.entry(2, "User"), Map.entry(3, "UserTalk"),
-			Map.entry(4, "Project"), Map.entry(5, "ProjectTalk"),
-			Map.entry(6, "File"), Map.entry(8, "MediaWiki"), Map.entry(10, "Template"),
-			Map.entry(11, "TemplateTalk"), Map.entry(12, "Help"), Map.entry(13, "HelpTalk"),
-			Map.entry(14, "Category"), Map.entry(15, "CategoryTalk"));
 
 	private CmsSupport() {}
 
@@ -68,11 +62,28 @@ public final class CmsSupport {
 		return candidate;
 	}
 
+	private static final Map<Integer, String> MEDIAWIKI_NAMESPACE_EDIT_POLICY = Map.of(
+			4, "ZFGC_WIKI_MODERATOR",
+			8, "ZFGC_SITE_ADMIN",
+			10, "ZFGC_WIKI_MODERATOR");
+
+	public static String defaultEditPermissionCode(Integer sourceNamespaceId) {
+		return sourceNamespaceId == null ? null : MEDIAWIKI_NAMESPACE_EDIT_POLICY.get(sourceNamespaceId);
+	}
+
+	public static String engineRoleName(Integer sourceNamespaceId) {
+		WikiNamespaceRole role = WikiNamespaceRole.ofMediaWikiNamespaceId(sourceNamespaceId);
+		return role == null ? null : role.name();
+	}
+
 	public static String wikiNamespace(Integer namespace) {
 		int id = namespace == null ? 0 : namespace;
 		Map<Integer, String> configured = JobContextHolder.getWikiNamespaceIds();
-		return configured != null && configured.containsKey(id) ? configured.get(id)
-				: NAMESPACES.getOrDefault(id, "NS" + id);
+		String name = configured == null ? null : configured.get(id);
+		if (name != null && !name.isBlank()) {
+			return name.trim();
+		}
+		return id == 0 ? "MAIN" : "NS" + id;
 	}
 
 	public static String wikiSlug(String namespace, String pageTitle) {

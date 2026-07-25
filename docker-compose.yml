@@ -13,20 +13,25 @@ services:
 
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: ${POSTGRES_DB:-zfgc_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-bootstrap-password}
+      POSTGRES_USER: ${POSTGRES_USER:-zfgbb_bootstrap}
+      SPRING_DATASOURCE_URL: null
+      SPRING_PROFILES_ACTIVE: null
+      ZFGBB_AUTH_JWT_SECRET: null
+      ZFGBB_CONTENT_PATH: null
+      ZFGBB_INSTALL_TOKEN: null
+      ZFGBB_MIGRATOR_ENABLED: null
 
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
 
     volumes:
       - data:/var/lib/postgresql/data
+      - ./scripts/postgresql-init-application-role.sh:/docker-entrypoint-initdb.d/01-application-role.sh:ro
 
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d
-            ${ZFGBB_DATABASE:-zfgc_dev}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 1s
       timeout: 3s
       retries: 30
@@ -50,14 +55,12 @@ services:
       - .env.local
       - .env.docker
 
-    environment:
-      ZFGBB_AUTH_JWT_SECRET: "${ZFGBB_AUTH_JWT_SECRET:?Set ZFGBB_AUTH_JWT_SECRET to a random value of at least 32 characters}"
-
     ports:
       - "127.0.0.1:${ZFGBB_BACKEND_PORT:-8080}:8080"
 
     volumes:
       - content:/usr/local/tomcat/webapps/content
+      - operations:/var/lib/zfgbb/operations
 
     depends_on:
       postgresql:
@@ -74,6 +77,7 @@ services:
 volumes:
   data:
   content:
+  operations:
 
 networks:
   zfgbb:

@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -30,30 +29,34 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
 @Component
 public class MessageConverter extends AbstractConverter<Void> {
 
-	@Autowired
-	private MessageDboMapper messageMapper;
-
-	@Autowired
-	private SMFMessageDbMapper smfMessageMapper;
-
-	@Autowired
-	private SmfMessageStreamMapper smfMessageStreamMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
-
-	@Autowired
-	private MigratorTimestampMapper migratorTimestampMapper;
-
-	@Autowired
-	private TransactionTemplate transactionTemplate;
-
-	@Value("${zfgbb.migrator.batch-size:5000}")
-	private int batchSize;
+	private final MessageDboMapper messageMapper;
+	private final SMFMessageDbMapper smfMessageMapper;
+	private final SmfMessageStreamMapper smfMessageStreamMapper;
+	private final MigratorIdMapService idMap;
+	private final MigratorTimestampMapper migratorTimestampMapper;
+	private final TransactionTemplate transactionTemplate;
+	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageConverter.class);
 
 	private Map<Integer, Integer> messageIdMap;
+
+	public MessageConverter(
+			MessageDboMapper messageMapper,
+			SMFMessageDbMapper smfMessageMapper,
+			SmfMessageStreamMapper smfMessageStreamMapper,
+			MigratorIdMapService idMap,
+			MigratorTimestampMapper migratorTimestampMapper,
+			TransactionTemplate transactionTemplate,
+			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
+		this.messageMapper = messageMapper;
+		this.smfMessageMapper = smfMessageMapper;
+		this.smfMessageStreamMapper = smfMessageStreamMapper;
+		this.idMap = idMap;
+		this.migratorTimestampMapper = migratorTimestampMapper;
+		this.transactionTemplate = transactionTemplate;
+		this.batchSize = batchSize;
+	}
 
 	@Override
 	public JobType getType() {
@@ -101,9 +104,9 @@ public class MessageConverter extends AbstractConverter<Void> {
 		postInThreadCounters.putIfAbsent(smfMsg.getIdTopic(), new AtomicInteger(1));
 
 		Integer smfMember = smfMsg.getIdMember();
-		msg.setOwnerId(smfMember == null || smfMember == 0
-				? null
-				: idMap.lookup(LegacyEntityType.USER, smfMember));
+		boolean guestPost = smfMember == null || smfMember == 0;
+		msg.setOwnerId(guestPost ? null : idMap.lookup(LegacyEntityType.USER, smfMember));
+		msg.setGuestAuthorName(guestPost ? blankToNull(smfMsg.getPosterName()) : null);
 		msg.setThreadId(idMap.lookup(LegacyEntityType.THREAD, smfMsg.getIdTopic()));
 		msg.setBoardId(smfMsg.getIdBoard() == null
 				? null
@@ -116,6 +119,7 @@ public class MessageConverter extends AbstractConverter<Void> {
 
 		msg.setMigrationHash(MigrationHasher.hash(smfMsg.getIdMsg().toString()
 				+ "" + smfMsg.getIdMember()
+				+ (msg.getGuestAuthorName() == null ? "" : msg.getGuestAuthorName())
 				+ smfMsg.getIdTopic()
 				+ smfMsg.getIdBoard()
 				+ (msg.getPostInThread() == null ? -1 : msg.getPostInThread())
@@ -144,5 +148,9 @@ public class MessageConverter extends AbstractConverter<Void> {
 			migratorTimestampMapper.setMessageTimestamps(
 					msg.getMessageId(), msg.getCreatedTs(), msg.getUpdatedTs());
 		}
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 }

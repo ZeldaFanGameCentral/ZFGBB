@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,8 +10,10 @@ import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.security.Securable;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class Thread extends BaseModel implements Securable {
 	@JsonIgnore
 	private Integer threadId;

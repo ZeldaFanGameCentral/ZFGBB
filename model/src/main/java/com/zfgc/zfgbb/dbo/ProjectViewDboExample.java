@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProjectViewDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717276868-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717290507-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717315167-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717270858-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public ProjectViewDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717281768-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717286138-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717294837-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717306557-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717319727-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717322556-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717326806-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717330946-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class ProjectViewDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717335246-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717339226-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717345096-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -242,12 +248,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andTitleLike(String value) {
-            addCriterion("title like", value, "title");
+            addCriterion("title ilike", value, "title");
             return (Criteria) this;
         }
 
         public Criteria andTitleNotLike(String value) {
-            addCriterion("title not like", value, "title");
+            addCriterion("title not ilike", value, "title");
             return (Criteria) this;
         }
 
@@ -312,12 +318,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andSlugLike(String value) {
-            addCriterion("slug like", value, "slug");
+            addCriterion("slug ilike", value, "slug");
             return (Criteria) this;
         }
 
         public Criteria andSlugNotLike(String value) {
-            addCriterion("slug not like", value, "slug");
+            addCriterion("slug not ilike", value, "slug");
             return (Criteria) this;
         }
 
@@ -382,12 +388,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andSummaryLike(String value) {
-            addCriterion("summary like", value, "summary");
+            addCriterion("summary ilike", value, "summary");
             return (Criteria) this;
         }
 
         public Criteria andSummaryNotLike(String value) {
-            addCriterion("summary not like", value, "summary");
+            addCriterion("summary not ilike", value, "summary");
             return (Criteria) this;
         }
 
@@ -1172,12 +1178,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andMigrationHashLike(String value) {
-            addCriterion("migration_hash like", value, "migrationHash");
+            addCriterion("migration_hash ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
         public Criteria andMigrationHashNotLike(String value) {
-            addCriterion("migration_hash not like", value, "migrationHash");
+            addCriterion("migration_hash not ilike", value, "migrationHash");
             return (Criteria) this;
         }
 
@@ -1242,12 +1248,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andAuthorNameLike(String value) {
-            addCriterion("author_name like", value, "authorName");
+            addCriterion("author_name ilike", value, "authorName");
             return (Criteria) this;
         }
 
         public Criteria andAuthorNameNotLike(String value) {
-            addCriterion("author_name not like", value, "authorName");
+            addCriterion("author_name not ilike", value, "authorName");
             return (Criteria) this;
         }
 
@@ -1312,12 +1318,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andStatusLike(String value) {
-            addCriterion("status like", value, "status");
+            addCriterion("status ilike", value, "status");
             return (Criteria) this;
         }
 
         public Criteria andStatusNotLike(String value) {
-            addCriterion("status not like", value, "status");
+            addCriterion("status not ilike", value, "status");
             return (Criteria) this;
         }
 
@@ -1442,12 +1448,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andLanguageLike(String value) {
-            addCriterion("language like", value, "language");
+            addCriterion("language ilike", value, "language");
             return (Criteria) this;
         }
 
         public Criteria andLanguageNotLike(String value) {
-            addCriterion("language not like", value, "language");
+            addCriterion("language not ilike", value, "language");
             return (Criteria) this;
         }
 
@@ -1512,12 +1518,12 @@ public class ProjectViewDboExample {
         }
 
         public Criteria andRequirementsLike(String value) {
-            addCriterion("requirements like", value, "requirements");
+            addCriterion("requirements ilike", value, "requirements");
             return (Criteria) this;
         }
 
         public Criteria andRequirementsNotLike(String value) {
-            addCriterion("requirements not like", value, "requirements");
+            addCriterion("requirements not ilike", value, "requirements");
             return (Criteria) this;
         }
 
@@ -1602,14 +1608,14 @@ public class ProjectViewDboExample {
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.71786502-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-11T20:08:12.717876239-04:00", comments="Source Table: zfgbb.project_view")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.project_view")
     public static class Criterion {
         private String condition;
 

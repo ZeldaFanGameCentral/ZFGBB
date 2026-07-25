@@ -13,4 +13,9 @@ public class InstallPhaseTransactions {
 	public <T> T call(Supplier<T> work) {
 		return work.get();
 	}
+
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void run(Runnable work) {
+		work.run();
+	}
 }

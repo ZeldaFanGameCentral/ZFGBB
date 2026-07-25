@@ -1,19 +1,23 @@
 package com.zfgc.zfgbb.dataprovider.cms;
 
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDbo;
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDboExample;
@@ -25,6 +29,7 @@ import com.zfgc.zfgbb.dbo.WikiRevisionRefDbo;
 import com.zfgc.zfgbb.dbo.WikiRevisionRefDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
+import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper;
 import com.zfgc.zfgbb.mappers.WikiPageCategoryDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageRevisionDboMapper;
@@ -37,60 +42,70 @@ import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.model.cms.WikiPageRef;
 import com.zfgc.zfgbb.model.cms.WikiRevisionRef;
+import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 import com.zfgc.zfgbb.wiki.WikiTitle;
-import com.zfgc.zfgbb.services.cms.WikiNamespaceRegistry;
+import lombok.RequiredArgsConstructor;
 
 @Repository
+@RequiredArgsConstructor
 public class WikiDataProvider {
 
 	public static final String STATUS_PENDING = "PENDING";
 	public static final String STATUS_APPROVED = "APPROVED";
 	public static final String STATUS_REJECTED = "REJECTED";
 
-	public static final String VIRTUAL_NAMESPACE = "Special";
 
-	public static final Set<String> HIDDEN_NAMESPACES = Set.of(VIRTUAL_NAMESPACE, "MediaWiki");
+	private final WikiPageDboMapper wikiPageMapper;
 
+	private final WikiPageRevisionDboMapper wikiRevisionMapper;
 
-	@Autowired
-	private WikiPageDboMapper wikiPageMapper;
+	private final WikiRevisionRefDboMapper wikiRevisionRefMapper;
 
-	@Autowired
-	private WikiPageRevisionDboMapper wikiRevisionMapper;
+	private final WikiPageCategoryDboMapper categoryMapper;
 
-	@Autowired
-	private WikiRevisionRefDboMapper wikiRevisionRefMapper;
+	private final ContentResourceDboMapper contentResourceMapper;
 
-	@Autowired
-	private WikiPageCategoryDboMapper categoryMapper;
+	private final WikiPageMap wikiPageMap;
 
-	@Autowired
-	private ContentResourceDboMapper contentResourceMapper;
+	private final WikiRevisionRefMap wikiRevisionRefMap;
 
-	@Autowired
-	private WikiPageMap wikiPageMap;
+	private final WikiPageRefMap wikiPageRefMap;
 
-	@Autowired
-	private WikiRevisionRefMap wikiRevisionRefMap;
+	private final WikiFileRefMap wikiFileRefMap;
 
-	@Autowired
-	private WikiPageRefMap wikiPageRefMap;
+	private final WikiNamespaceDataProvider namespaceData;
 
-	@Autowired
-	private WikiFileRefMap wikiFileRefMap;
+	private final WikiNamespaceCustomMapper wikiNamespaceCustomMapper;
 
-	@Autowired
-	private WikiNamespaceRegistry namespaceRegistry;
+	private static final Map<WikiNamespaceRole, String> HIDDEN_ROLE_FALLBACKS = Map.of(
+			WikiNamespaceRole.SPECIAL, "Special",
+			WikiNamespaceRole.MEDIAWIKI, "MediaWiki");
+
+	private static final List<String> NAMESPACES_OWNED_BY_THE_CMS = List.of("Project", "Resource", "ZFGC");
+
+	public List<String> theNamespacesNoReaderViewShows() {
+		return Stream.concat(hiddenNamespaces().stream(), NAMESPACES_OWNED_BY_THE_CMS.stream())
+				.distinct().toList();
+	}
+
+	private List<String> hiddenNamespaces() {
+		return HIDDEN_ROLE_FALLBACKS.entrySet().stream()
+				.flatMap(entry -> Stream.of(namespaceData.nameForRole(entry.getKey()), entry.getValue()))
+				.filter(Objects::nonNull).distinct().toList();
+	}
 
 	public WikiPage getWikiPage(String path, Integer revisionId) {
 		WikiPageDbo dbo = findPage(path);
 		if (dbo == null) {
-			if (path != null && path.startsWith("Category:") && path.length() > 9) {
+			WikiTitle categoryTitle = path == null ? null : namespaceData.resolve(path);
+			if (categoryTitle != null
+					&& namespaceData.hasRole(categoryTitle.namespace(), WikiNamespaceRole.CATEGORY)
+					&& categoryTitle.title() != null && !categoryTitle.title().isBlank()) {
 				WikiPage synthetic = new WikiPage();
 				synthetic.setId(0);
-				synthetic.setNamespace("Category");
-				synthetic.setTitle(path.substring(9).replace('_', ' ').trim());
-				synthetic.setSlug(path.substring(9));
+				synthetic.setNamespace(categoryTitle.namespace());
+				synthetic.setTitle(categoryTitle.title());
+				synthetic.setSlug(categoryTitle.title().replace(' ', '_'));
 				synthetic.setCategoryMembers(getCategoryMembers(synthetic.getTitle()));
 				return synthetic;
 			}
@@ -119,8 +134,11 @@ public class WikiDataProvider {
 	}
 
 	public List<String> getNamespaces() {
-		Map<String, Long> counts = visiblePages().stream()
-				.collect(Collectors.groupingBy(WikiPageDbo::getNamespace, Collectors.counting()));
+		Map<String, Long> counts = wikiNamespaceCustomMapper
+				.countVisiblePagesByNamespace(hiddenNamespaces()).stream()
+				.collect(Collectors.toMap(
+						WikiNamespaceCustomMapper.NamespacePageCount::getNamespace,
+						WikiNamespaceCustomMapper.NamespacePageCount::getPageCount));
 		return counts.entrySet().stream()
 				.sorted((entryA, entryB) -> {
 					if ("MAIN".equals(entryA.getKey())) {
@@ -149,7 +167,10 @@ public class WikiDataProvider {
 	private List<WikiPageDbo> visiblePages() {
 		Set<Integer> published = publishedPageIds();
 		WikiPageDboExample ex = new WikiPageDboExample();
-		ex.createCriteria().andNamespaceNotIn(List.copyOf(HIDDEN_NAMESPACES));
+		List<String> hidden = hiddenNamespaces();
+		var criteria = ex.createCriteria();
+		if (!hidden.isEmpty())
+			criteria.andNamespaceNotIn(hidden);
 		return wikiPageMapper.selectByExample(ex).stream()
 				.filter(dbo -> isPublicPage(dbo, published))
 				.toList();
@@ -179,22 +200,26 @@ public class WikiDataProvider {
 		ex.setLimit(limit);
 		ex.setOffset(0);
 		ex.createCriteria().andAuthoredTsIsNotNull().andStatusEqualTo(STATUS_APPROVED);
-		List<WikiRevisionRefDbo> revs = wikiRevisionRefMapper.selectByExampleWithLimits(ex);
-		List<Integer> pageIds = revs.stream().map(WikiRevisionRefDbo::getWikiPageId).distinct().toList();
+		return withPageRefs(wikiRevisionRefMapper.selectByExampleWithLimits(ex)).stream()
+				.filter(ref -> ref.getPage() != null)
+				.toList();
+	}
+
+	private List<WikiRevisionRef> withPageRefs(List<WikiRevisionRefDbo> revisions) {
+		List<Integer> pageIds = revisions.stream().map(WikiRevisionRefDbo::getWikiPageId).distinct().toList();
 		Map<Integer, WikiPageDbo> pages = new HashMap<>();
 		if (!pageIds.isEmpty()) {
 			WikiPageDboExample pageEx = new WikiPageDboExample();
 			pageEx.createCriteria().andWikiPageIdIn(pageIds);
-			wikiPageMapper.selectByExample(pageEx).forEach(p -> pages.put(p.getWikiPageId(), p));
+			wikiPageMapper.selectByExample(pageEx).forEach(page -> pages.put(page.getWikiPageId(), page));
 		}
-		return revs.stream().map(rev -> {
-			WikiRevisionRef ref = toRevisionRef(rev);
-			WikiPageDbo page = pages.get(rev.getWikiPageId());
-			if (page != null) {
+		return revisions.stream().map(revision -> {
+			WikiRevisionRef ref = toRevisionRef(revision);
+			WikiPageDbo page = pages.get(revision.getWikiPageId());
+			if (page != null)
 				ref.setPage(toPageRef(page));
-			}
 			return ref;
-		}).filter(ref -> ref.getPage() != null).toList();
+		}).toList();
 	}
 
 	public PagedResult<WikiPageRef> getWikiPageIndex(String namespace, String search, int page, int pageSize) {
@@ -257,9 +282,9 @@ public class WikiDataProvider {
 		WikiPageDboExample slug = new WikiPageDboExample();
 		slug.createCriteria().andSlugEqualTo(path);
 		WikiPageDbo byStableSlug = uniquePage(wikiPageMapper.selectByExample(slug), path);
-		if (byStableSlug != null)
+		WikiTitle title = namespaceData == null ? WikiTitle.parse(path) : namespaceData.resolve(path);
+		if (byStableSlug != null && !shadowsRegisteredNamespace(byStableSlug, title))
 			return byStableSlug;
-		WikiTitle title = namespaceRegistry == null ? WikiTitle.parse(path) : namespaceRegistry.resolve(path);
 		WikiPageDboExample ex = new WikiPageDboExample();
 		ex.createCriteria().andNamespaceEqualTo(title.namespace()).andTitleEqualTo(title.title());
 		WikiPageDbo exact = uniquePage(wikiPageMapper.selectByExample(ex), path);
@@ -267,8 +292,13 @@ public class WikiDataProvider {
 			return exact;
 		WikiPageDboExample alias = new WikiPageDboExample();
 		alias.createCriteria().andTitleEqualTo(title.title());
-		return uniquePage(wikiPageMapper.selectByExample(alias).stream()
+		WikiPageDbo byAlias = uniquePage(wikiPageMapper.selectByExample(alias).stream()
 				.filter(page -> page.getNamespace().equalsIgnoreCase(title.namespace())).toList(), path);
+		return byAlias != null ? byAlias : byStableSlug;
+	}
+
+	private boolean shadowsRegisteredNamespace(WikiPageDbo candidate, WikiTitle resolved) {
+		return "MAIN".equals(candidate.getNamespace()) && !"MAIN".equals(resolved.namespace());
 	}
 
 	private static WikiPageDbo uniquePage(List<WikiPageDbo> matches, String requestedPath) {
@@ -290,7 +320,7 @@ public class WikiDataProvider {
 		catEx.createCriteria().andWikiPageIdEqualTo(dbo.getWikiPageId());
 		page.setCategories(categoryMapper.selectByExample(catEx).stream()
 				.map(WikiPageCategoryDbo::getCategoryName).sorted().toList());
-		if ("Category".equals(dbo.getNamespace())) {
+		if (namespaceData.hasRole(dbo.getNamespace(), WikiNamespaceRole.CATEGORY)) {
 			page.setCategoryMembers(getCategoryMembers(dbo.getTitle()));
 		}
 		if (dbo.getContentResourceId() != null) {
@@ -327,20 +357,36 @@ public class WikiDataProvider {
 		return wikiRevisionMapper.selectByPrimaryKey(revisionId);
 	}
 
+	public Optional<ContentFormat> contentFormatOfRevisionBeingSuperseded(Integer wikiPageId) {
+		WikiPageRevisionDboExample liveRevision = new WikiPageRevisionDboExample();
+		liveRevision.createCriteria().andWikiPageIdEqualTo(wikiPageId).andCurrentFlagEqualTo(true);
+		Optional<ContentFormat> live = wikiRevisionMapper.selectByExample(liveRevision).stream().findFirst()
+				.flatMap(revision -> ContentFormat.parse(revision.getContentFormat()));
+		if (live.isPresent())
+			return live;
+		WikiPageRevisionDboExample newestSubmission = new WikiPageRevisionDboExample();
+		newestSubmission.setOrderByClause("wiki_page_revision_id desc");
+		newestSubmission.setLimit(1);
+		newestSubmission.setOffset(0);
+		newestSubmission.createCriteria().andWikiPageIdEqualTo(wikiPageId);
+		return wikiRevisionMapper.selectByExampleWithLimits(newestSubmission).stream().findFirst()
+				.flatMap(revision -> ContentFormat.parse(revision.getContentFormat()));
+	}
+
 	public WikiPageDbo getPage(Integer wikiPageId) {
 		return wikiPageMapper.selectByPrimaryKey(wikiPageId);
 	}
 
-	public WikiPageRevisionDbo submitRevision(Integer wikiPageId, String content, String summary,
-			Integer authorUserId, String authorName) {
+	public WikiPageRevisionDbo submitRevision(Integer wikiPageId, String content, ContentFormat contentFormat,
+			String summary, Integer authorUserId, String authorName) {
 		WikiPageRevisionDbo revision = new WikiPageRevisionDbo();
 		revision.setWikiPageId(wikiPageId);
 		revision.setContent(content);
-		revision.setContentSize(content == null ? 0 : content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
-		revision.setContentFormat("BBCODE");
+		revision.setContentSize(content == null ? 0 : content.getBytes(StandardCharsets.UTF_8).length);
+		revision.setContentFormat(contentFormat.name());
 		revision.setCurrentFlag(false);
 		revision.setStatus(STATUS_PENDING);
-		revision.setAuthoredTs(OffsetDateTime.now(java.time.ZoneOffset.UTC));
+		revision.setAuthoredTs(OffsetDateTime.now(ZoneOffset.UTC));
 		revision.setAuthorUserId(authorUserId);
 		revision.setAuthorName(authorName);
 		revision.setSummary(summary);
@@ -368,23 +414,8 @@ public class WikiDataProvider {
 	public List<WikiRevisionRef> getPendingRevisions() {
 		WikiRevisionRefDboExample ex = new WikiRevisionRefDboExample();
 		ex.createCriteria().andStatusEqualTo(STATUS_PENDING);
-		List<WikiRevisionRefDbo> revs = wikiRevisionRefMapper.selectByExample(ex);
-		Map<Integer, WikiPageDbo> pages = new HashMap<>();
-		List<Integer> pageIds = revs.stream().map(WikiRevisionRefDbo::getWikiPageId).distinct().toList();
-		if (!pageIds.isEmpty()) {
-			WikiPageDboExample pageEx = new WikiPageDboExample();
-			pageEx.createCriteria().andWikiPageIdIn(pageIds);
-			wikiPageMapper.selectByExample(pageEx).forEach(p -> pages.put(p.getWikiPageId(), p));
-		}
-		return revs.stream()
+		return withPageRefs(wikiRevisionRefMapper.selectByExample(ex).stream()
 				.sorted(Comparator.comparing(WikiRevisionRefDbo::getWikiPageRevisionId))
-				.map(rev -> {
-					WikiRevisionRef ref = toRevisionRef(rev);
-					WikiPageDbo page = pages.get(rev.getWikiPageId());
-					if (page != null) {
-						ref.setPage(toPageRef(page));
-					}
-					return ref;
-				}).toList();
+				.toList());
 	}
 }

@@ -47,26 +47,7 @@ services:
       - "${SMF_FIXTURE_MYSQL_PORT:-3307}:3306"
     volumes:
       - smf_fixture_data:/var/lib/mysql
-      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-schema.sql:/docker-entrypoint-initdb.d/01-smf-schema.sql:ro
-      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-zfgc-deltas.sql:/docker-entrypoint-initdb.d/02-zfgc-deltas.sql:ro
-      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-data.sql:/docker-entrypoint-initdb.d/03-data.sql:ro
-      - ./app/src/test/resources/smf-fixtures/2.0.15/smf-attachments:/smf-attachments:ro
-      - ./app/src/test/resources/cms-fixtures/cms-schema.sql:/docker-entrypoint-initdb.d/04-cms-schema.sql:ro
-      - ./app/src/test/resources/cms-fixtures/cms-data.sql:/docker-entrypoint-initdb.d/05-cms-data.sql:ro
-
-  smf_web:
-    profiles: [ fixture ]
-    build:
-      context: .
-      dockerfile: Dockerfile.smf
-    ports:
-      - "${SMF_WEB_PORT:-8090}:8080"
-    networks:
-      - zfgbb
-    depends_on:
-      smf_mysql_fixture:
-        condition: service_healthy
-    restart: unless-stopped
+      - ${LEGACY_DATABASE:-./app/src/test/resources/legacy-database.sql}:/docker-entrypoint-initdb.d/legacy-database.sql:ro
 
 volumes:
   smf_live_data:

@@ -20,9 +20,9 @@ import com.zfgc.zfgbb.model.cms.WikiConfig;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.model.cms.WikiPageRef;
 import com.zfgc.zfgbb.model.cms.WikiRevisionRef;
-import com.zfgc.zfgbb.services.cms.WikiConfigService;
-import com.zfgc.zfgbb.services.cms.WikiModerationService;
-import com.zfgc.zfgbb.services.cms.WikiService;
+import com.zfgc.zfgbb.services.cms.wiki.WikiConfigService;
+import com.zfgc.zfgbb.services.cms.wiki.WikiModerationService;
+import com.zfgc.zfgbb.services.cms.wiki.WikiService;
 import java.util.List;
 import java.util.Map;
 
@@ -108,8 +108,8 @@ public class WikiController extends BaseController {
 	public ResponseEntity<WikiRevisionRef> submitRevision(@RequestBody WikiRevisionRequest request) {
 		log.info("Executing submitRevision");
 		log.debug("Executing submitRevision with request={}", request);
-		return ResponseEntity.ok(wikiModerationService.submit(
-				request.slug(), request.content(), request.summary(), super.zfgcUser()));
+		return ResponseEntity.ok(wikiModerationService.submit(request.slug(), request.content(),
+				request.contentFormat(), request.summary(), super.zfgcUser()));
 	}
 
 	@GetMapping("/meta/moderation/pending")
@@ -148,9 +148,9 @@ public class WikiController extends BaseController {
 			@RequestParam(name = "rev", required = false) Integer revision,
 			@RequestParam(name = "source", required = false, defaultValue = "false") boolean source) {
 		String path = slug.startsWith("/") ? slug.substring(1) : slug;
-		return ResponseEntity.ok(wikiService.getWikiPage(path, revision, source));
+		return ResponseEntity.ok(wikiService.getWikiPage(path, revision, source, super.zfgcUser()));
 	}
 
-	public record WikiRevisionRequest(String slug, String content, String summary) {
+	public record WikiRevisionRequest(String slug, String content, String contentFormat, String summary) {
 	}
 }

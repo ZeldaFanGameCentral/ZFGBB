@@ -5,8 +5,7 @@ services:
     environment:
       PGADMIN_LISTEN_PORT: ${PGADMIN_PORT:-5050}
       PGADMIN_DEFAULT_EMAIL: admin@zfgc.com
-      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD:-123456}
-      CONFIG_DATABASE_URI: ${PGADMIN_DATABASE_URI:-postgres://postgres:123456@zfgbb_postgresql:5432/zfgc_dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-local-pgadmin-password}
       PGADMIN_CONFIG_PASSWORD_STORE: "True"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
       # Whitelist allowed IP addresses
@@ -20,8 +19,6 @@ services:
       - zfgbb
     volumes:
       - pgadmin:/var/lib/pgadmin
-      - ./scripts/docker/pgadmin/servers.json:/pgadmin4/servers.json
-      # - ./docker/pgadmin/.pgpass:/var/lib/pgadmin/.pgpass:ro
 
     depends_on:
       - postgresql

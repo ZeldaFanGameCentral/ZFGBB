@@ -32,9 +32,9 @@
         },
         {
             "label": "Reset DB",
-            "detail": "Drops the zfgbb schema and reapplies all migrations from V0 (setup) onward. After this completes, hit POST /system/install to populate admin + sample data.",
+            "detail": "Drops the zfgbb schema and reapplies all migrations from V0 onward. Use Forum Setup afterward for an empty site or the zfgc preview.",
             "type": "shell",
-            "command": "docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate",
+            "command": "docker compose exec -T postgresql psql -U zfgbb_bootstrap -d zfgc_dev -c 'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -73,7 +73,7 @@
         },
         {
             "label": "Start SMF Live (docker compose)",
-            "detail": "Brings up the empty MySQL + SMF 2.0.15 PHP/Apache web installer from the `live` profile. Reach the installer at http://localhost:${SMF_WEB_PORT:-8090}/install.php — pick whatever table prefix you like; the migrator picks it up via SmfConnectionParams.smfTablePrefix at job submit time.",
+            "detail": "Brings up an empty MySQL 5.7 instance from the `live` profile for migration development. No legacy PHP/SMF web application is included.",
             "type": "shell",
             "command": "docker compose -f docker-compose.service.smf.yml --profile live up -d --wait",
             "options": {
@@ -109,7 +109,7 @@
         },
         {
             "label": "Stop SMF Live (docker compose)",
-            "detail": "Tears down the SMF live MySQL + web containers and their volume.",
+            "detail": "Tears down the empty migration-development MySQL container and its volume.",
             "type": "shell",
             "command": "docker compose -f docker-compose.service.smf.yml --profile live down -v",
             "options": {

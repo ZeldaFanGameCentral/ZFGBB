@@ -1,0 +1,117 @@
+package com.zfgc.zfgbb.services.contentstore;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.zip.ZipFile;
+
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
+import org.springframework.stereotype.Service;
+
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
+import com.zfgc.zfgbb.dbo.ContentResourceDbo;
+import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
+import com.zfgc.zfgbb.dbo.AttachmentBoardViewDbo;
+import com.zfgc.zfgbb.dbo.AttachmentBoardViewDboExample;
+import com.zfgc.zfgbb.mappers.AttachmentBoardViewDboMapper;
+import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
+import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
+import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
+import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
+import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.services.system.ContentRoot;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@BoardVisibilityChokepoint
+public class ContentService {
+	private static final String LEGACY_IMAGE_DIRECTORY = "images";
+
+	private final ContentResourceDboMapper contentResourceDboMapper;
+
+	private final AttachmentBoardViewDboMapper attachmentBoardViewDboMapper;
+
+	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+
+	private final ContentRoot contentRoot;
+
+	public void authorizeAccess(Integer resourceId, User user) {
+		AttachmentBoardViewDboExample attEx = new AttachmentBoardViewDboExample();
+		attEx.createCriteria().andContentResourceIdEqualTo(resourceId);
+		attEx.setLimit(1);
+		attEx.setOffset(0);
+		List<AttachmentBoardViewDbo> results = attachmentBoardViewDboMapper.selectByExampleWithLimits(attEx);
+		Integer boardId = results.isEmpty() ? null : results.get(0).getBoardId();
+		if (boardId == null) {
+			return;
+		}
+		BoardPermissionViewDboExample permEx = new BoardPermissionViewDboExample();
+		permEx.createCriteria().andBoardIdEqualTo(boardId);
+		List<Integer> required = boardPermissionViewDboMapper.selectByExample(permEx).stream()
+				.map(BoardPermissionViewDbo::getPermissionId)
+				.toList();
+		if (!user.hasAnyPermissionId(required)) {
+			throw new ZfgcNotFoundException();
+		}
+	}
+
+	public Optional<ContentResourceDbo> getContentResourceDbo(Integer resourceId) {
+		ContentResourceDboExample ex = new ContentResourceDboExample();
+		ex.createCriteria().andContentResourceIdEqualTo(resourceId);
+		return contentResourceDboMapper.selectByExample(ex).stream().findFirst();
+	}
+
+	public Resource getImageResource(Integer resourceId) throws MalformedURLException {
+		ContentResourceDbo dbo = getContentResourceDbo(resourceId).orElseThrow(ZfgcNotFoundException::new);
+		return new UrlResource(storedFile(dbo).toUri());
+	}
+
+	public Path storedFile(ContentResourceDbo contentResource) {
+		Path activeContentRoot = contentRoot.activeContentRoot();
+		Path resolved;
+		if (contentResource.getStorageDir() != null && !contentResource.getStorageDir().isBlank()) {
+			if (contentResource.getFilename() == null || contentResource.getFilename().isBlank()) {
+				throw new ZfgcNotFoundException();
+			}
+			resolved = activeContentRoot.resolve(contentResource.getStorageDir())
+					.resolve(String.valueOf(contentResource.getContentResourceId()))
+					.resolve(contentResource.getFilename());
+		} else {
+			resolved = activeContentRoot.resolve(LEGACY_IMAGE_DIRECTORY)
+					.resolve(String.valueOf(contentResource.getContentResourceId()));
+		}
+		Path confined = resolved.toAbsolutePath().normalize();
+		if (!confined.startsWith(activeContentRoot)) {
+			throw new ZfgcNotFoundException();
+		}
+		return confined;
+	}
+
+	public Optional<MediaType> getMimeType(String filename) {
+		return MediaTypeFactory.getMediaType(filename);
+	}
+
+	public record ArchiveEntry(String name, long size) {}
+
+	public List<ArchiveEntry> getArchiveEntries(Integer resourceId) {
+		ContentResourceDbo dbo = getContentResourceDbo(resourceId).orElseThrow(ZfgcNotFoundException::new);
+		if (dbo.getFilename() == null || !dbo.getFilename().toLowerCase().endsWith(".zip"))
+			throw new ZfgcNotFoundException();
+		Path filePath = storedFile(dbo);
+		try (ZipFile zip = new ZipFile(filePath.toFile())) {
+			return zip.stream()
+					.filter(entry -> !entry.isDirectory())
+					.map(entry -> new ArchiveEntry(entry.getName(), entry.getSize()))
+					.toList();
+		} catch (IOException e) {
+			throw new ZfgcNotFoundException();
+		}
+	}
+}

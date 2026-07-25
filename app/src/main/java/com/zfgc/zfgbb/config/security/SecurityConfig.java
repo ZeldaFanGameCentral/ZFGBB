@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.config.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -21,7 +22,9 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
-import com.zfgc.zfgbb.services.core.AuthCookieService;
+import com.zfgc.zfgbb.services.auth.AuthCookieService;
+
+import jakarta.servlet.Filter;
 
 @Configuration
 @EnableWebSecurity
@@ -31,6 +34,7 @@ public class SecurityConfig {
 	private final JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
 	private final AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
 	private final PartialInstallGateFilter partialInstallGateFilter;
+	private final MaintenanceGateFilter maintenanceGateFilter;
 	private final AllowAnonymousRequestMatcher allowAnonymous;
 	private final AuthCookieService authCookieService;
 	private final PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
@@ -46,8 +50,10 @@ public class SecurityConfig {
 		csrfTokenRepository.setCookieCustomizer(c -> c.path("/"));
 
 		RequestMatcher refreshEndpoint = mvc.matcher(HttpMethod.POST, "/users/auth/refresh");
+		RequestMatcher installEndpoint = mvc.matcher(HttpMethod.POST, "/system/install");
 		RequestMatcher requireCsrf = request -> !CSRF_SAFE_METHODS.contains(request.getMethod())
 				&& !refreshEndpoint.matches(request)
+				&& !installEndpoint.matches(request)
 				&& request.getHeader(HttpHeaders.AUTHORIZATION) == null
 				&& authCookieService.readAccessCookie(request).isPresent();
 
@@ -59,6 +65,7 @@ public class SecurityConfig {
 						.requireCsrfProtectionMatcher(requireCsrf))
 					.addFilterBefore(accessCookieBearerHeaderFilter, BearerTokenAuthenticationFilter.class)
 					.addFilterBefore(partialInstallGateFilter, AccessCookieBearerHeaderFilter.class)
+					.addFilterBefore(maintenanceGateFilter, PartialInstallGateFilter.class)
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(mvc.matcher("/actuator/health/**")).permitAll()
@@ -73,7 +80,28 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationManager loginAuthenticationManager(OauthUsersDetailsServiceImpl userDetailsService,
+	public FilterRegistrationBean<MaintenanceGateFilter> maintenanceGateFilterRegistration() {
+		return securityChainOnly(maintenanceGateFilter);
+	}
+
+	@Bean
+	public FilterRegistrationBean<PartialInstallGateFilter> partialInstallGateFilterRegistration() {
+		return securityChainOnly(partialInstallGateFilter);
+	}
+
+	@Bean
+	public FilterRegistrationBean<AccessCookieBearerHeaderFilter> accessCookieBearerHeaderFilterRegistration() {
+		return securityChainOnly(accessCookieBearerHeaderFilter);
+	}
+
+	private static <T extends Filter> FilterRegistrationBean<T> securityChainOnly(T filter) {
+		FilterRegistrationBean<T> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
+	@Bean
+	public AuthenticationManager loginAuthenticationManager(ZfgcUserDetailsService userDetailsService,
 			ZfgcPasswordEncoder passwordEncoder,
 			ZfgcUserDetailsPasswordService userDetailsPasswordService) {
 		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);

@@ -31,6 +31,7 @@ public interface MessageMap {
 	Message toModel(MessageDbo dbo);
 
 	@Mapping(target = "migrationHash", ignore = true)
+	@Mapping(target = "guestAuthorName", ignore = true)
 	MessageDbo toDbo(Message message);
 
 }

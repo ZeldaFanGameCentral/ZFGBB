@@ -3,7 +3,6 @@ package com.zfgc.zfgbb.controller.reactions;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,14 +18,15 @@ import com.zfgc.zfgbb.model.reactions.ContentReactionSummary;
 import com.zfgc.zfgbb.model.reactions.ReactionRequest;
 import com.zfgc.zfgbb.model.reactions.ReactionType;
 import com.zfgc.zfgbb.services.reactions.ReactionService;
+import lombok.RequiredArgsConstructor;
 
 @Slf4j
 @RestController
 @RequestMapping("/reactions")
+@RequiredArgsConstructor
 public class ReactionController extends BaseController {
 
-	@Autowired
-	private ReactionService reactionService;
+	private final ReactionService reactionService;
 
 	@GetMapping("/types")
 	@AllowAnonymous

@@ -1,6 +1,8 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import java.time.OffsetDateTime;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -8,7 +10,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.HtmlUtils;
@@ -30,7 +31,10 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogCommentDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogActionDbMapper;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogCommentDbMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class ModerationLogsConverter extends AbstractConverter<Void> {
 
 	private static final Pattern PHP_STRING_PAIR =
@@ -53,25 +57,16 @@ public class ModerationLogsConverter extends AbstractConverter<Void> {
 			Map.entry("merge", "MERGE_THREADS"),
 			Map.entry("split", "SPLIT_THREAD"));
 
+	private final SMFLogCommentDbMapper smfCommentMapper;
+	private final SMFLogActionDbMapper smfActionMapper;
+	private final UserWarningDboMapper warningMapper;
+	private final ModerationLogDboMapper modLogMapper;
+	private final MigratorIdMapService idMap;
+
 	@Override
 	public JobType getType() {
 		return JobType.MODERATION_LOGS;
 	}
-
-	@Autowired
-	private SMFLogCommentDbMapper smfCommentMapper;
-
-	@Autowired
-	private SMFLogActionDbMapper smfActionMapper;
-
-	@Autowired
-	private UserWarningDboMapper warningMapper;
-
-	@Autowired
-	private ModerationLogDboMapper modLogMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
 
 	private Map<Integer, Integer> userMap;
 	private Map<Integer, Integer> boardMap;
@@ -130,7 +125,7 @@ public class ModerationLogsConverter extends AbstractConverter<Void> {
 				: userMap.get(comment.getIdMember());
 		String body = comment.getBody() == null ? null : HtmlUtils.htmlUnescape(comment.getBody());
 		int points = comment.getCounter() == null ? 0 : comment.getCounter();
-		java.time.OffsetDateTime issuedTs = SmfTimes.fromEpochSeconds(comment.getLogTime());
+		OffsetDateTime issuedTs = SmfTimes.fromEpochSeconds(comment.getLogTime());
 
 		UserWarningDbo warning = new UserWarningDbo();
 		warning.setUserId(userId);
@@ -148,7 +143,7 @@ public class ModerationLogsConverter extends AbstractConverter<Void> {
 	}
 
 	private void logWarningAction(Integer legacyCommentId, Integer targetUserId, Integer actorUserId,
-			String targetName, String body, int points, java.time.OffsetDateTime issuedTs) {
+			String targetName, String body, int points, OffsetDateTime issuedTs) {
 		String hash = MigrationHasher.hash("warnlog" + legacyCommentId + targetUserId + points + issuedTs);
 		if (modLogHashes.contains(hash)) {
 			return;
@@ -213,7 +208,7 @@ public class ModerationLogsConverter extends AbstractConverter<Void> {
 			return Map.of();
 		}
 		Matcher matcher = PHP_STRING_PAIR.matcher(extra);
-		java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+		LinkedHashMap<String, String> values = new LinkedHashMap<>();
 		while (matcher.find()) {
 			String value = matcher.group(2) != null ? matcher.group(2) : matcher.group(3);
 			values.putIfAbsent(matcher.group(1), value);

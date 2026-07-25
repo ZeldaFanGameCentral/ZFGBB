@@ -1,8 +1,12 @@
 package com.zfgc.zfgbb.migrator.converters;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,6 +23,10 @@ public final class LegacyUrlRewriter {
 			Pattern.CASE_INSENSITIVE);
 
 	private static final Pattern ATTACH_REF = Pattern.compile("\\[attach=(\\d+)\\]");
+
+
+
+
 
 	private static final Pattern PARAM_TOPIC_MSG = Pattern.compile(
 			"[?&;]topic=(\\d+)\\.msg(\\d+)", Pattern.CASE_INSENSITIVE);
@@ -85,7 +93,7 @@ public final class LegacyUrlRewriter {
 			return null;
 		}
 		String result = body;
-		result = rewriteUrlBbcodes(result, maps);
+		result = rewriteUrlBBCodes(result, maps);
 		result = rewriteQuoteLink(result, maps);
 		result = rewriteBareUrls(result, maps);
 		result = rewriteBareWikiUrls(result);
@@ -93,15 +101,15 @@ public final class LegacyUrlRewriter {
 		return result;
 	}
 
-	String rewriteUrlBbcodes(String body, LegacyIdMaps maps) {
+	String rewriteUrlBBCodes(String body, LegacyIdMaps maps) {
 		Matcher urlMatcher = URL_BBCODE.matcher(body);
 		StringBuilder out = new StringBuilder();
 		while (urlMatcher.find()) {
 			String url = urlMatcher.group(2).trim();
 			String label = urlMatcher.group(3);
-			String replacement = mapSmfUrlToBbcode(url, label, maps);
+			String replacement = mapSmfUrlToBBCode(url, label, maps);
 			if (replacement == null) {
-				replacement = mapWikiUrlToBbcode(url, label);
+				replacement = mapWikiUrlToBBCode(url, label);
 			}
 			if (replacement != null) {
 				urlMatcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
@@ -128,11 +136,14 @@ public final class LegacyUrlRewriter {
 				}
 				String rewrittenAttrs = linkMatcher.replaceFirst(
 						" thread=" + threadId + " msg=" + msgId);
-				rewrittenAttrs = rewrittenAttrs.replaceAll("\\bauthor=\\S+", "");
-				rewrittenAttrs = rewrittenAttrs.replaceAll("\\bdate=\\d+", "");
-				rewrittenAttrs = rewrittenAttrs.replaceAll("\\s+", " ").trim();
-				openMatcher.appendReplacement(out,
-						Matcher.quoteReplacement("[quote " + rewrittenAttrs + "]"));
+				String author = withoutRendererUnparseableBrackets(
+						sliceSmfQuoteAttributes(rewrittenAttrs).get("author="));
+				StringBuilder opener = new StringBuilder("[quote");
+				if (author != null && !author.isEmpty()) {
+					opener.append(" author=").append(author);
+				}
+				opener.append(" thread=").append(threadId).append(" msg=").append(msgId).append("]");
+				openMatcher.appendReplacement(out, Matcher.quoteReplacement(opener.toString()));
 			} else {
 				openMatcher.appendReplacement(out, Matcher.quoteReplacement(openMatcher.group()));
 			}
@@ -141,12 +152,44 @@ public final class LegacyUrlRewriter {
 		return out.toString();
 	}
 
+	private static final List<String> SMF_QUOTE_ATTRIBUTE_NAMES =
+			List.of("author=", "link=", "date=", "thread=", "msg=");
+
+	static String withoutRendererUnparseableBrackets(String author) {
+		if (author == null)
+			return null;
+		return author.replace("[", "").replace("]", "").trim();
+	}
+
+	static Map<String, String> sliceSmfQuoteAttributes(String attributeText) {
+		NavigableMap<Integer, String> namesByPosition = new TreeMap<>();
+		for (String name : SMF_QUOTE_ATTRIBUTE_NAMES) {
+			int position = attributeText.indexOf(name);
+			while (position != -1) {
+				if (position == 0 || Character.isWhitespace(attributeText.charAt(position - 1))) {
+					namesByPosition.put(position, name);
+					break;
+				}
+				position = attributeText.indexOf(name, position + 1);
+			}
+		}
+		Map<String, String> values = new LinkedHashMap<>();
+		List<Integer> positions = List.copyOf(namesByPosition.keySet());
+		for (int i = 0; i < positions.size(); i++) {
+			int start = positions.get(i);
+			String name = namesByPosition.get(start);
+			int valueEnd = i + 1 < positions.size() ? positions.get(i + 1) : attributeText.length();
+			values.put(name, attributeText.substring(start + name.length(), valueEnd).trim());
+		}
+		return values;
+	}
+
 	String rewriteBareUrls(String body, LegacyIdMaps maps) {
 		Matcher bareUrlMatcher = bareUrlPattern.matcher(body);
 		StringBuilder out = new StringBuilder();
 		while (bareUrlMatcher.find()) {
 			String url = bareUrlMatcher.group();
-			String replacement = mapSmfUrlToBbcode(url, url, maps);
+			String replacement = mapSmfUrlToBBCode(url, url, maps);
 			if (replacement != null) {
 				bareUrlMatcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
 			} else {
@@ -183,7 +226,7 @@ public final class LegacyUrlRewriter {
 		return out.toString();
 	}
 
-	private String mapSmfUrlToBbcode(String url, String label, LegacyIdMaps maps) {
+	private String mapSmfUrlToBBCode(String url, String label, LegacyIdMaps maps) {
 		Matcher hostMatcher = hostPattern.matcher(url);
 		if (!hostMatcher.find()) {
 			return null;
@@ -244,10 +287,12 @@ public final class LegacyUrlRewriter {
 		}
 		Matcher game = PARAM_GAME.matcher(url);
 		if (game.find()) {
-			String gameId = game.group(1);
-			return "[game=" + gameId + "]"
-					+ cleanLabel(label, url, "Game #" + gameId)
-					+ "[/game]";
+			Integer projectId = maps.gameToProjectMap().get(Integer.valueOf(game.group(1)));
+			if (projectId != null) {
+				return "[project=" + projectId + "]"
+						+ cleanLabel(label, url, "Project #" + projectId)
+						+ "[/project]";
+			}
 		}
 		return null;
 	}
@@ -259,7 +304,7 @@ public final class LegacyUrlRewriter {
 			String url = bareMatcher.group();
 			String trimmedUrl = trimTrailingPunctuation(url);
 			String tail = url.substring(trimmedUrl.length());
-			String replacement = mapWikiUrlToBbcode(trimmedUrl, trimmedUrl);
+			String replacement = mapWikiUrlToBBCode(trimmedUrl, trimmedUrl);
 			bareMatcher.appendReplacement(out,
 					Matcher.quoteReplacement(replacement != null ? replacement + tail : url));
 		}
@@ -267,7 +312,7 @@ public final class LegacyUrlRewriter {
 		return out.toString();
 	}
 
-	static String mapWikiUrlToBbcode(String url, String label) {
+	static String mapWikiUrlToBBCode(String url, String label) {
 		Matcher wikiMatcher = WIKI_URL.matcher(url.trim());
 		if (!wikiMatcher.find()) {
 			return null;

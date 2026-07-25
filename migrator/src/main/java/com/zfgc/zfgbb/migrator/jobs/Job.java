@@ -1,6 +1,8 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -34,9 +36,9 @@ public class Job {
 	@JsonIgnore private boolean createMemberWikiPages;
 	@JsonIgnore private Integer discussionBoardId;
 	@JsonIgnore private Integer resourcesBoardId;
-	@JsonIgnore private java.util.Map<String, Integer> talkBoardIds;
-	@JsonIgnore private java.util.Map<Integer, java.util.List<String>> groupPermissionMap;
-	private java.util.Map<String, String> wikiNamespaceCaseModes;
-	private java.util.Map<String, String> wikiNamespaceAliases;
-	private java.util.Map<Integer, String> wikiNamespaceIds;
+	@JsonIgnore private Map<String, Integer> talkBoardIds;
+	@JsonIgnore private Map<Integer, List<String>> groupPermissionMap;
+	private Map<String, String> wikiNamespaceCaseModes;
+	private Map<String, String> wikiNamespaceAliases;
+	private Map<Integer, String> wikiNamespaceIds;
 }

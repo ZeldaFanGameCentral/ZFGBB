@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.config.security;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ConcurrentModificationException;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsPasswordService;
@@ -25,12 +26,16 @@ public class ZfgcUserDetailsPasswordService implements UserDetailsPasswordServic
 	public UserDetails updatePassword(UserDetails user, String newEncodedPassword) {
 		User principal = (User) user;
 		EncodedPassword upgraded = EncodedPassword.parse(newEncodedPassword);
-		UserDbo userDbo = userDao.get(principal.getUserId()).orElseThrow();
+		UserDbo userDbo = userDao.find(principal.getUserId()).orElseThrow();
 		userDbo.setPasswordHash(upgraded.hash());
 		userDbo.setPasswordAlgo(upgraded.algo().name());
 		userDbo.setPasswordSalt(upgraded.salt());
 		userDbo.setPasswordChangedTs(OffsetDateTime.now(ZoneOffset.UTC));
-		userDao.save(userDbo);
+		try {
+			userDao.save(userDbo);
+		} catch (ConcurrentModificationException upgradeRaced) {
+			return user;
+		}
 
 		principal.setPasswordHash(upgraded.hash());
 		principal.setPasswordAlgo(upgraded.algo());

@@ -4,13 +4,16 @@ import java.sql.Connection;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
@@ -21,16 +24,19 @@ import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.dao.DataAccessException;
 
 import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
+import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.migrator.web.SmfMemberGroupSummary;
+import com.zfgc.zfgbb.operations.maintenance.MutationLeaseProvider;
+import com.zfgc.zfgbb.wiki.WikiTitle;
 
 import jakarta.annotation.PreDestroy;
 
@@ -41,31 +47,23 @@ public class JobService {
 
 	private final ConcurrentHashMap<UUID, Job> jobs = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<UUID, Future<?>> futures = new ConcurrentHashMap<>();
-	private static ExecutorService newExecutor() {
-		return Executors.newSingleThreadExecutor(r -> {
-		Thread t = new Thread(r, "migrator-job-runner");
-		t.setDaemon(true);
-		return t;
-		});
-	}
 	private final ExecutorService executor;
 
 	private final Map<JobType, AbstractConverter<?>> convertersByType;
 	private final JdbcTemplate targetJdbc;
 	private final TransactionTemplate targetTransactions;
-	private final java.util.Set<UUID> admittedJobs = ConcurrentHashMap.newKeySet();
+	private final Set<UUID> admittedJobs = ConcurrentHashMap.newKeySet();
+	private final Optional<MutationLeaseProvider> mutationLeases;
+	private MutationLeaseProvider.Lease pipelineLease;
 
-	@Autowired
 	public JobService(List<AbstractConverter<?>> converters, JdbcTemplate targetJdbc,
-			PlatformTransactionManager transactionManager) {
-		this(converters, targetJdbc, transactionManager, newExecutor());
-	}
-
-	JobService(List<AbstractConverter<?>> converters, JdbcTemplate targetJdbc,
-			PlatformTransactionManager transactionManager, ExecutorService executor) {
+			PlatformTransactionManager transactionManager,
+			@Qualifier("migrationJobExecutor") ExecutorService executor,
+			Optional<MutationLeaseProvider> mutationLeases) {
 		this.targetJdbc = targetJdbc;
 		this.targetTransactions = transactionManager == null ? null : new TransactionTemplate(transactionManager);
 		this.executor = executor;
+		this.mutationLeases = mutationLeases;
 		this.convertersByType = converters.stream()
 				.collect(Collectors.toMap(AbstractConverter::getType, Function.identity()));
 		List<JobType> missing = new ArrayList<>();
@@ -81,10 +79,6 @@ public class JobService {
 			throw new IllegalStateException(
 					"No AbstractConverter registered for JobType(s): " + missing);
 		}
-	}
-
-	public JobService(List<AbstractConverter<?>> converters) {
-		this(converters, null, null);
 	}
 
 	public synchronized List<Job> submit(JobType type, SmfConnectionParams params) {
@@ -111,32 +105,122 @@ public class JobService {
 	synchronized void enqueuePrepared(List<Job> submitted) {
 		if (!admittedJobs.isEmpty())
 			throw new IllegalArgumentException("Another migration is queued or running; wait for it to finish");
-		submitted.forEach(job -> {
-			jobs.put(job.getId(), job);
-			admittedJobs.add(job.getId());
-		});
+		try {
+			pipelineLease = mutationLeases.isPresent()
+					? mutationLeases.get().acquireMutationLease() : () -> {};
+		} catch (Exception failure) {
+			throw new IllegalArgumentException(
+					"Unable to coordinate the migration with application maintenance",
+					failure);
+		}
 		List<Job> accepted = new ArrayList<>();
 		try {
+			submitted.forEach(job -> {
+				jobs.put(job.getId(), job);
+				admittedJobs.add(job.getId());
+			});
 			for (Job job : submitted) {
 				FutureTask<Void> task = new FutureTask<>(() -> { run(job); return null; });
 				futures.put(job.getId(), task);
 				executor.execute(task);
 				accepted.add(job);
 			}
+			releasePipelineLeaseIfIdle();
 		} catch (RejectedExecutionException e) {
 			submitted.stream().filter(job -> !accepted.contains(job))
 					.forEach(job -> cancelQueued(job, "Migration executor rejected the job"));
 			throw new IllegalArgumentException("Migration executor rejected the submitted jobs", e);
+		} catch (RuntimeException | Error failure) {
+			submitted.stream().filter(job -> !accepted.contains(job))
+					.forEach(job -> cancelQueued(job, "Migration submission failed"));
+			throw failure;
 		}
 	}
 
+	private Map<Integer, String> configuredImportNamespaces() {
+		Map<Integer, String> configured = new LinkedHashMap<>();
+		targetJdbc.query("select source_namespace_id, namespace_name from zfgbb.wiki_import_namespace "
+				+ "order by source_namespace_id", rs -> {
+					configured.put(rs.getInt("source_namespace_id"), rs.getString("namespace_name"));
+				});
+		return configured;
+	}
+
+	private static final List<String> EDIT_POLICY_STRICTNESS = List.of("ZFGC_WIKI_MODERATOR", "ZFGC_SITE_ADMIN");
+
+	private static String strictestEditPolicy(String left, String right) {
+		return EDIT_POLICY_STRICTNESS.indexOf(left) >= EDIT_POLICY_STRICTNESS.indexOf(right) ? left : right;
+	}
+
+	private void reconcileImportNamespacesWithRoleHolders(Map<Integer, String> importNamespaceIds) {
+		for (var entry : importNamespaceIds.entrySet()) {
+			String role = CmsSupport.engineRoleName(entry.getKey());
+			String configured = entry.getValue() == null ? "" : entry.getValue().trim();
+			if (role == null || configured.isEmpty()) continue;
+			List<String> holder = targetJdbc.queryForList(
+					"select name from zfgbb.wiki_namespace where engine_role = ?", String.class, role);
+			if (holder.isEmpty() || holder.get(0).equalsIgnoreCase(configured)) continue;
+			log.warn("MediaWiki namespace {} is configured to import as '{}', but this wiki's {} namespace is "
+					+ "already '{}'. Importing into the existing namespace and correcting the import "
+					+ "configuration so it matches.", entry.getKey(), configured, role, holder.get(0));
+			entry.setValue(holder.get(0));
+			targetJdbc.update("update zfgbb.wiki_import_namespace set namespace_name = ?, updated_ts = now() "
+					+ "where source_namespace_id = ?", holder.get(0), entry.getKey());
+		}
+	}
+
+	private void persistWikiLegacyHost(String wikiLegacyHost) {
+		String host = wikiLegacyHost == null ? "" : wikiLegacyHost.trim();
+		if (host.isEmpty()) return;
+		targetJdbc.update("insert into zfgbb.system_config(config_key, config_value) values (?, ?) "
+				+ "on conflict (config_key) do update set config_value = excluded.config_value, "
+				+ "updated_ts = current_timestamp", "wiki_legacy_host", host);
+	}
+
 	private SmfConnectionParams bootstrapNamespaces(SmfConnectionParams params) {
-		if (params.wikiNamespaceIds() != null) params.wikiNamespaceIds().values().stream()
+		persistWikiLegacyHost(params.wikiLegacyHost());
+		Map<Integer, String> importNamespaceIds = configuredImportNamespaces();
+		if (params.wikiNamespaceIds() != null) importNamespaceIds.putAll(params.wikiNamespaceIds());
+		reconcileImportNamespacesWithRoleHolders(importNamespaceIds);
+		Map<String, String> editPolicyByName = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		for (var entry : importNamespaceIds.entrySet()) {
+			String name = entry.getValue() == null ? "" : entry.getValue().trim();
+			if (name.isEmpty()) continue;
+			editPolicyByName.merge(name, Objects.requireNonNullElse(
+					CmsSupport.defaultEditPermissionCode(entry.getKey()), ""),
+					JobService::strictestEditPolicy);
+		}
+		if (params.wikiNamespaceIds() != null) params.wikiNamespaceIds().keySet().stream()
+				.map(importNamespaceIds::get).filter(Objects::nonNull)
 				.map(String::trim).distinct().sorted(String.CASE_INSENSITIVE_ORDER).forEach(name ->
 				targetJdbc.update("insert into zfgbb.wiki_namespace(name) values (?) on conflict do nothing", name));
+		for (var entry : editPolicyByName.entrySet()) {
+			if (entry.getValue().isEmpty()) continue;
+			targetJdbc.update("update zfgbb.wiki_namespace set edit_permission_code = ? "
+					+ "where lower(name) = lower(?) and edit_permission_code is null",
+					entry.getValue(), entry.getKey());
+		}
+		for (var entry : importNamespaceIds.entrySet()) {
+			String role = CmsSupport.engineRoleName(entry.getKey());
+			String name = entry.getValue() == null ? "" : entry.getValue().trim();
+			if (role == null || name.isEmpty()) continue;
+			targetJdbc.update("update zfgbb.wiki_namespace set engine_role = ? "
+					+ "where lower(name) = lower(?) and engine_role is null "
+					+ "and not exists (select 1 from zfgbb.wiki_namespace held where held.engine_role = ?)",
+					role, name, role);
+		}
+		for (var entry : importNamespaceIds.entrySet()) {
+			String name = entry.getValue() == null ? "" : entry.getValue().trim();
+			if (name.isEmpty()) continue;
+			targetJdbc.update("update zfgbb.wiki_import_namespace set namespace_name = ?, updated_ts = now() "
+					+ "where source_namespace_id = ? and namespace_name is distinct from ? "
+					+ "and not exists (select 1 from zfgbb.wiki_import_namespace other "
+					+ "where lower(other.namespace_name) = lower(?) and other.source_namespace_id <> ?)",
+					name, entry.getKey(), name, name, entry.getKey());
+		}
 		Map<String, String> requestedModes = normalizeCiMap(params.wikiNamespaceCaseModes(), "namespace");
 		for (var entry : requestedModes.entrySet()) {
-			String mode = com.zfgc.zfgbb.wiki.WikiTitle.CaseMode.valueOf(entry.getValue()).name();
+			String mode = WikiTitle.CaseMode.valueOf(entry.getValue()).name();
 			List<String> existing = targetJdbc.queryForList(
 					"select name from zfgbb.wiki_namespace where lower(name)=lower(?)", String.class, entry.getKey());
 			String canonicalName = existing.isEmpty() ? entry.getKey().trim() : existing.get(0);
@@ -155,21 +239,23 @@ public class JobService {
 					entry.getKey().trim(), targets.get(0));
 		});
 		Map<String, String> resolvedModes = targetJdbc.query("select name, case_mode from zfgbb.wiki_namespace",
-				rs -> { Map<String, String> result = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+				rs -> { Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 				while (rs.next()) result.put(rs.getString(1), rs.getString(2)); return result; });
 		Map<String, String> resolvedAliases = targetJdbc.query(
 				"select alias, namespace_name from zfgbb.wiki_namespace_alias",
-				rs -> { Map<String, String> result = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+				rs -> { Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 					while (rs.next()) result.put(rs.getString(1), rs.getString(2)); return result; });
+		Map<Integer, String> effectiveNamespaceIds = importNamespaceIds;
 		return new SmfConnectionParams(params.jdbcUrl(), params.username(), params.password(), params.smfTablePrefix(),
 				params.smfLegacyHost(), params.appBaseUrl(), params.attachmentsSourcePath(), params.attachmentsTargetPath(),
 				params.avatarsSourcePath(), params.cmsFilesSourcePath(), params.wikiImagesSourcePath(), params.force(),
 				params.createMemberWikiPages(), params.discussionBoardId(), params.resourcesBoardId(), params.talkBoardIds(),
-				params.groupPermissionMap(), Map.copyOf(resolvedModes), Map.copyOf(resolvedAliases), params.wikiNamespaceIds());
+				params.groupPermissionMap(), Map.copyOf(resolvedModes), Map.copyOf(resolvedAliases),
+				Map.copyOf(effectiveNamespaceIds), params.wikiLegacyHost());
 	}
 
 	private Map<String, String> normalizeCiMap(Map<String, String> input, String label) {
-		Map<String, String> normalized = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+		Map<String, String> normalized = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 		if (input != null) input.forEach((key, value) -> {
 			if (key == null || key.isBlank() || normalized.putIfAbsent(key.trim(), value) != null)
 				throw new IllegalArgumentException("Duplicate or blank wiki namespace " + label + ": " + key);
@@ -354,8 +440,7 @@ public class JobService {
 	}
 
 	@PreDestroy
-	public void shutdown() {
-		executor.shutdownNow();
+	public void stopJobs() {
 		jobs.values().stream().filter(job -> admittedJobs.contains(job.getId()))
 				.forEach(job -> cancelQueued(job, "Migration service shut down"));
 	}
@@ -380,7 +465,20 @@ public class JobService {
 		if (!queuedClaim) accountTerminal(job);
 	}
 
-	private void accountTerminal(Job job) {
+	private synchronized void accountTerminal(Job job) {
 		admittedJobs.remove(job.getId());
+		releasePipelineLeaseIfIdle();
+	}
+
+	private synchronized void releasePipelineLeaseIfIdle() {
+		if (!admittedJobs.isEmpty() || pipelineLease == null)
+			return;
+		try {
+			pipelineLease.close();
+		} catch (Exception failure) {
+			log.error("Failed to release the migration maintenance lease", failure);
+		} finally {
+			pipelineLease = null;
+		}
 	}
 }

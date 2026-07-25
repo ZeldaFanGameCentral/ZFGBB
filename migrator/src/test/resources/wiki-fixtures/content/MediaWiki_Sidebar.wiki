@@ -1,0 +1,19 @@
+* navigation
+** mainpage|mainpage-description
+** portal-url|portal
+** helppage|help
+
+* Content
+** recentchanges-url|recentchanges
+** randompage-url|randompage
+** :Category:Members|List of Members
+** :Category:ZFGC_Projects|List of Projects
+
+* ZFGC
+** http://zfgc.com/index.php/|Home
+** http://zfgc.com/index.php/projects/|Projects
+** http://zfgc.com/index.php/resources/|Resources
+** http://zfgc.com/forum/index.php|Community
+** http://zfgc.com/index.php/chat|Chat
+
+* TOOLBOX

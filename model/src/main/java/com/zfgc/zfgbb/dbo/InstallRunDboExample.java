@@ -6,62 +6,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InstallRunDboExample {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.79033338-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected String orderByClause;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.79035076-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected boolean distinct;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790377469-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected List<Criteria> oredCriteria;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected Integer limit;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected Integer offset;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.79032382-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public InstallRunDboExample() {
         oredCriteria = new ArrayList<>();
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.79034149-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void setOrderByClause(String orderByClause) {
         this.orderByClause = orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.79034612-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public String getOrderByClause() {
         return orderByClause;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790355039-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790368549-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public boolean isDistinct() {
         return distinct;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790382238-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public List<Criteria> getOredCriteria() {
         return oredCriteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790386768-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void or(Criteria criteria) {
         oredCriteria.add(criteria);
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790389638-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public Criteria or() {
         Criteria criteria = createCriteriaInternal();
         oredCriteria.add(criteria);
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790393868-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public Criteria createCriteria() {
         Criteria criteria = createCriteriaInternal();
         if (oredCriteria.size() == 0) {
@@ -70,36 +72,40 @@ public class InstallRunDboExample {
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790397958-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected Criteria createCriteriaInternal() {
         Criteria criteria = new Criteria();
         return criteria;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790402048-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void clear() {
         oredCriteria.clear();
         orderByClause = null;
         distinct = false;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public Integer getLimit() {
         return limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void setLimit(Integer limit) {
         this.limit = limit;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public Integer getOffset() {
         return offset;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public void setOffset(Integer offset) {
         this.offset = offset;
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790407648-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     protected abstract static class GeneratedCriteria {
         protected List<Criterion> criteria;
 
@@ -242,12 +248,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andStateLike(String value) {
-            addCriterion("state like", value, "state");
+            addCriterion("state ilike", value, "state");
             return (Criteria) this;
         }
 
         public Criteria andStateNotLike(String value) {
-            addCriterion("state not like", value, "state");
+            addCriterion("state not ilike", value, "state");
             return (Criteria) this;
         }
 
@@ -312,12 +318,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andLastCompletedStateLike(String value) {
-            addCriterion("last_completed_state like", value, "lastCompletedState");
+            addCriterion("last_completed_state ilike", value, "lastCompletedState");
             return (Criteria) this;
         }
 
         public Criteria andLastCompletedStateNotLike(String value) {
-            addCriterion("last_completed_state not like", value, "lastCompletedState");
+            addCriterion("last_completed_state not ilike", value, "lastCompletedState");
             return (Criteria) this;
         }
 
@@ -442,12 +448,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andRequestFingerprintLike(String value) {
-            addCriterion("request_fingerprint like", value, "requestFingerprint");
+            addCriterion("request_fingerprint ilike", value, "requestFingerprint");
             return (Criteria) this;
         }
 
         public Criteria andRequestFingerprintNotLike(String value) {
-            addCriterion("request_fingerprint not like", value, "requestFingerprint");
+            addCriterion("request_fingerprint not ilike", value, "requestFingerprint");
             return (Criteria) this;
         }
 
@@ -572,12 +578,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andContentPackLike(String value) {
-            addCriterion("content_pack like", value, "contentPack");
+            addCriterion("content_pack ilike", value, "contentPack");
             return (Criteria) this;
         }
 
         public Criteria andContentPackNotLike(String value) {
-            addCriterion("content_pack not like", value, "contentPack");
+            addCriterion("content_pack not ilike", value, "contentPack");
             return (Criteria) this;
         }
 
@@ -702,12 +708,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andSiteNameLike(String value) {
-            addCriterion("site_name like", value, "siteName");
+            addCriterion("site_name ilike", value, "siteName");
             return (Criteria) this;
         }
 
         public Criteria andSiteNameNotLike(String value) {
-            addCriterion("site_name not like", value, "siteName");
+            addCriterion("site_name not ilike", value, "siteName");
             return (Criteria) this;
         }
 
@@ -772,12 +778,12 @@ public class InstallRunDboExample {
         }
 
         public Criteria andLastErrorLike(String value) {
-            addCriterion("last_error like", value, "lastError");
+            addCriterion("last_error ilike", value, "lastError");
             return (Criteria) this;
         }
 
         public Criteria andLastErrorNotLike(String value) {
-            addCriterion("last_error not like", value, "lastError");
+            addCriterion("last_error not ilike", value, "lastError");
             return (Criteria) this;
         }
 
@@ -920,16 +926,86 @@ public class InstallRunDboExample {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
             return (Criteria) this;
         }
+
+        public Criteria andInstallStrategyIsNull() {
+            addCriterion("install_strategy is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyIsNotNull() {
+            addCriterion("install_strategy is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyEqualTo(String value) {
+            addCriterion("install_strategy =", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyNotEqualTo(String value) {
+            addCriterion("install_strategy <>", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyGreaterThan(String value) {
+            addCriterion("install_strategy >", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyGreaterThanOrEqualTo(String value) {
+            addCriterion("install_strategy >=", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyLessThan(String value) {
+            addCriterion("install_strategy <", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyLessThanOrEqualTo(String value) {
+            addCriterion("install_strategy <=", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyLike(String value) {
+            addCriterion("install_strategy ilike", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyNotLike(String value) {
+            addCriterion("install_strategy not ilike", value, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyIn(List<String> values) {
+            addCriterion("install_strategy in", values, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyNotIn(List<String> values) {
+            addCriterion("install_strategy not in", values, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyBetween(String value1, String value2) {
+            addCriterion("install_strategy between", value1, value2, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyNotBetween(String value1, String value2) {
+            addCriterion("install_strategy not between", value1, value2, "installStrategy");
+            return (Criteria) this;
+        }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790712907-04:00", comments="do_not_delete_during_merge")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")
     public static class Criteria extends GeneratedCriteria {
         protected Criteria() {
             super();
         }
     }
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-07-21T13:12:01.790733167-04:00", comments="Source Table: zfgbb.install_run")
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.install_run")
     public static class Criterion {
         private String condition;
 

@@ -113,6 +113,21 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -125,6 +140,11 @@
     <dependency>
       <groupId>org.commonmark</groupId>
       <artifactId>commonmark</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.nibor.autolink</groupId>
+      <artifactId>autolink</artifactId>
     </dependency>
 
     <dependency>
@@ -178,7 +198,6 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -227,16 +246,14 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
+          <profiles>local</profiles>
+          <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
           <systemPropertyVariables>
-            <spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
-            <spring.datasource.url>${SPRING_DATASOURCE_URL}</spring.datasource.url>
-            <spring.datasource.username>${SPRING_DATASOURCE_USERNAME}</spring.datasource.username>
-            <spring.datasource.password>${SPRING_DATASOURCE_PASSWORD}</spring.datasource.password>
-            <zfgbb.content.path>${ZFGBB_CONTENT_PATH}</zfgbb.content.path>
-            <zfgbb.content.images>${ZFGBB_CONTENT_IMAGES}</zfgbb.content.images>
+            <zfgbb.content.base>${maven.multiModuleProjectDirectory}</zfgbb.content.base>
           </systemPropertyVariables>
         </configuration>
       </plugin>
+
 
       <plugin>
         <groupId>org.flywaydb</groupId>
@@ -282,7 +299,7 @@
         <configuration>
           <forkCount>1</forkCount>
           <reuseForks>true</reuseForks>
-          <argLine>@{argLine}</argLine>
+          <argLine>@{argLine} -XX:+EnableDynamicAgentLoading</argLine>
         </configuration>
       </plugin>
 

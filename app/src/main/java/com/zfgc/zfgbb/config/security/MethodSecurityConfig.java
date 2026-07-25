@@ -7,6 +7,7 @@ import org.springframework.security.access.expression.method.DefaultMethodSecuri
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authorization.DefaultAuthorizationManagerFactory;
 
 @Configuration
 public class MethodSecurityConfig {
@@ -29,9 +30,17 @@ public class MethodSecurityConfig {
 	@Bean
 	static MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy,
 			PermissionEvaluator permissionEvaluator) {
-		DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
-		expressionHandler.setRoleHierarchy(roleHierarchy);
+		DefaultMethodSecurityExpressionHandler expressionHandler = new ZfgbbMethodSecurityExpressionHandler(roleHierarchy);
 		expressionHandler.setPermissionEvaluator(permissionEvaluator);
 		return expressionHandler;
 	}
+
+	private static final class ZfgbbMethodSecurityExpressionHandler extends DefaultMethodSecurityExpressionHandler {
+		private ZfgbbMethodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+			if (roleHierarchy != null && getAuthorizationManagerFactory() instanceof DefaultAuthorizationManagerFactory<?> factory) {
+				factory.setRoleHierarchy(roleHierarchy);
+			}
+		}
+	}
+
 }

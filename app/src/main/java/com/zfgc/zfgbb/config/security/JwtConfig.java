@@ -1,44 +1,39 @@
 package com.zfgc.zfgbb.config.security;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 
 import javax.crypto.spec.SecretKeySpec;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
+@RequiredArgsConstructor
 public class JwtConfig {
 
 	private static final String PLACEHOLDER_SECRET = "dev-only-secret-replace-me-with-32-or-more-bytes-please";
-	private static final List<String> DEV_PROFILES = List.of("local");
 
 	private final JwtProperties jwtProperties;
 	private final Environment environment;
 
-	public JwtConfig(JwtProperties jwtProperties, Environment environment) {
-		this.jwtProperties = jwtProperties;
-		this.environment = environment;
-	}
-
 	@Bean
 	public SecretKeySpec jwtSigningKey() {
 		String secret = jwtProperties.secret();
-		boolean devProfile = Arrays.stream(environment.getActiveProfiles()).anyMatch(DEV_PROFILES::contains);
+		boolean devProfile = environment.acceptsProfiles(Profiles.of("local"));
 		boolean weakSecret = secret == null || secret.isBlank()
 				|| secret.equals(PLACEHOLDER_SECRET)
 				|| secret.length() < 32;

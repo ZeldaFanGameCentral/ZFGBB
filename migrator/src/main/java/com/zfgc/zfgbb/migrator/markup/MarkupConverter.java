@@ -15,11 +15,11 @@ public final class MarkupConverter {
         return MediaWikiParser.parse(wikitext);
     }
 
-    public static String toBbCode(String wikitext) {
-        return toBbCode(parse(wikitext));
+    public static String toBBCode(String wikitext) {
+        return toBBCode(parse(wikitext));
     }
 
-    public static String toBbCode(Node.Document document) {
+    public static String toBBCode(Node.Document document) {
         StringBuilder sb = new StringBuilder();
         for (Node n : document.children()) {
             bb(n, sb);

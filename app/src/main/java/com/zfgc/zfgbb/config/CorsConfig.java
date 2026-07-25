@@ -2,7 +2,6 @@ package com.zfgc.zfgbb.config;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -10,6 +9,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -30,7 +30,8 @@ public class CorsConfig {
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         config.setAllowedHeaders(List.of(
-                "Content-Type", "Authorization", "X-XSRF-TOKEN", "X-Install-Token"));
+                "Content-Type", "Authorization", "X-XSRF-TOKEN", "X-Install-Token",
+                "X-ZFGBB-Restore-Capability"));
         config.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

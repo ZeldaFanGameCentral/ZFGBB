@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.nio.file.Path;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,7 +24,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.containers.ComposeContainer;
 
 import com.zfgc.zfgbb.config.MailDispatcherConfig;
-import com.zfgc.zfgbb.services.core.MailDispatcher;
+import com.zfgc.zfgbb.services.users.MailDispatcher;
+import com.zfgc.zfgbb.testsupport.mappers.TestFixtureSetupMapper;
 
 import tools.jackson.databind.JsonNode;
 
@@ -32,6 +34,8 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 	protected static final Pattern CONFIRMATION_TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_-]+)");
 
 	static final ComposeContainer POSTGRES = devPostgres();
+	private static final Path CONTENT_ROOT = Path.of(System.getProperty("java.io.tmpdir"),
+			"zfgbb-postgres-integration-" + UUID.randomUUID());
 
 	static {
 		POSTGRES.start();
@@ -41,16 +45,66 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 	@DynamicPropertySource
 	static void datasource(DynamicPropertyRegistry registry) {
 		datasource(registry, POSTGRES);
+		registry.add("zfgbb.content.path", CONTENT_ROOT::toString);
 	}
 
 	@Autowired
 	protected MailDispatcherConfig.InMemoryMailDispatcher mailDispatcher;
 
+	@Autowired
+	protected TestFixtureSetupMapper testFixtureSetupMapper;
+
 	protected final String suffix = UUID.randomUUID().toString().substring(0, 8);
+
+	/**
+	 * Lightweight handle returned by {@link #createUser(String)} encapsulating a
+	 * registered-and-logged-in test user's credentials.
+	 */
+	protected record TestUser(String userName, String token, int id) {}
+
+	/**
+	 * Register a new user, log them in, and return a {@link TestUser} handle.
+	 */
+	protected TestUser createUser(String userName) throws Exception {
+		register(userName, "password123");
+		String token = login(userName, "password123").get("accessToken").asString();
+		return new TestUser(userName, token, userIdOf(userName));
+	}
+
+	/**
+	 * Convenience shorthand – returns a fresh access token for the built-in admin
+	 * account that is guaranteed to exist after {@link #installSampleData()}.
+	 */
+	protected String getAdminToken() throws Exception {
+		return login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+	}
 
 	@BeforeEach
 	void ensureSampleDataInstalled() throws Exception {
 		installSampleData();
+		ensureOrdinaryIntegrationFixture();
+	}
+
+	/**
+	 * The general integration suite needs a tiny, deterministic forum/CMS surface.
+	 * Production no-pack installation intentionally creates none of this sample
+	 * content, so keep it local to tests rather than coupling ordinary installs to
+	 * the distributable preview pack.
+	 */
+	private void ensureOrdinaryIntegrationFixture() {
+		testFixtureSetupMapper.ensureDefaultCategory();
+		testFixtureSetupMapper.ensureGeneralBoard();
+		testFixtureSetupMapper.ensureRecycleBoard();
+		testFixtureSetupMapper.resetBoardPermissions();
+		testFixtureSetupMapper.grantGeneralBoardPermissions();
+		testFixtureSetupMapper.grantRecycleBoardPermissions();
+		testFixtureSetupMapper.setRecycleBoardConfig();
+		testFixtureSetupMapper.ensureDefaultContentEntities();
+		testFixtureSetupMapper.ensureDefaultProjects();
+		testFixtureSetupMapper.ensureDefaultResources();
+		testFixtureSetupMapper.resetCategorySequence();
+		testFixtureSetupMapper.resetBoardSequence();
+		testFixtureSetupMapper.resetContentEntitySequence();
 	}
 
 	protected int postThread(String token, String title, String body) throws Exception {
@@ -62,7 +116,7 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 				.header("Authorization", "Bearer " + token)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(requestBody))
-				.andExpect(status().isOk())
+				.andExpect(status().isCreated())
 				.andReturn();
 		return json.readTree(result.getResponse().getContentAsString()).get("id").asInt();
 	}
@@ -76,7 +130,7 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 				.header("Authorization", "Bearer " + token)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"body\": \"" + body + "\"}"))
-				.andExpect(status().isOk());
+				.andExpect(status().isCreated());
 	}
 
 	protected void postReply(String token, int threadId) throws Exception {
@@ -85,9 +139,7 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 
 	protected int postAndRecycle(String token, int threadId, String body) throws Exception {
 		postReply(token, threadId, body);
-		Integer messageId = jdbcTemplate.queryForObject(
-				"select message_id from zfgbb.message where thread_id = ? order by post_in_thread desc limit 1",
-				Integer.class, threadId);
+		Integer messageId = findLatestMessageIdInThread(threadId);
 		assertNotNull(messageId);
 		mockMvc.perform(delete("/message/" + messageId)
 				.header("Authorization", "Bearer " + token))
@@ -97,24 +149,19 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 	}
 
 	protected int userIdOf(String userName) {
-		Integer userId = jdbcTemplate.queryForObject(
-				"select user_id from zfgbb.\"user\" where user_name = ?", Integer.class, userName);
+		Integer userId = findUserIdByName(userName);
 		assertNotNull(userId);
 		return userId;
 	}
 
 	protected int messageIdAt(int threadId, int postInThread) {
-		Integer messageId = jdbcTemplate.queryForObject(
-				"select message_id from zfgbb.message where thread_id = ? and post_in_thread = ?",
-				Integer.class, threadId, postInThread);
+		Integer messageId = findMessageIdAtPosition(threadId, postInThread);
 		assertNotNull(messageId);
 		return messageId;
 	}
 
 	protected List<Integer> postPositionsIn(int threadId) {
-		return jdbcTemplate.queryForList(
-				"select post_in_thread from zfgbb.message where thread_id = ? order by post_in_thread",
-				Integer.class, threadId);
+		return listPostPositionsInThread(threadId);
 	}
 
 	protected JsonNode fetchForum(String accessToken) throws Exception {

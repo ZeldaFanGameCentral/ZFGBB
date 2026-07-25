@@ -1,25 +1,21 @@
 package com.zfgc.zfgbb.controller;
 
-import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
 
+import com.zfgc.zfgbb.authorization.RequestingUser;
 import com.zfgc.zfgbb.model.User;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 public class BaseController {
-	@Autowired
-	HttpServletRequest request;
-	
-	protected User zfgcUser(){
-		Principal userPrincipal = request.getUserPrincipal();
 
-		if(userPrincipal == null) {
-			return User.guest();
-		}
+	protected static List<Map<String, Object>> toFacet(List<Map.Entry<String, Long>> values) {
+		return values.stream()
+				.map(entry -> Map.<String, Object>of("value", entry.getKey(), "count", entry.getValue()))
+				.toList();
+	}
 
-		return (User) ((Authentication) userPrincipal).getPrincipal();
+	protected User zfgcUser() {
+		return RequestingUser.onThisRequest();
 	}
 }

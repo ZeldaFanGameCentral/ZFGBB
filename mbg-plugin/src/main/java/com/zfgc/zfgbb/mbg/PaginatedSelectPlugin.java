@@ -125,9 +125,14 @@ public class PaginatedSelectPlugin extends PluginAdapter {
 		select.addElement(orderByIf);
 
 		XmlElement limitIf = new XmlElement("if");
-		limitIf.addAttribute(new Attribute("test", "limit != null and offset != null"));
-		limitIf.addElement(new TextElement("limit ${limit} offset ${offset}"));
+		limitIf.addAttribute(new Attribute("test", "limit != null"));
+		limitIf.addElement(new TextElement("limit ${limit}"));
 		select.addElement(limitIf);
+
+		XmlElement offsetIf = new XmlElement("if");
+		offsetIf.addAttribute(new Attribute("test", "offset != null"));
+		offsetIf.addElement(new TextElement("offset ${offset}"));
+		select.addElement(offsetIf);
 
 		document.getRootElement().addElement(select);
 		return true;

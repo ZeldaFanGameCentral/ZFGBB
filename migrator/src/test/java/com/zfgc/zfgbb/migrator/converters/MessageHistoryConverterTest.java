@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -24,14 +25,19 @@ import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
+import com.zfgc.zfgbb.mappers.IpAddressDboMapper;
 import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
 import com.zfgc.zfgbb.migrator.SmfTimes;
 import com.zfgc.zfgbb.migrator.converters.MessageHistoryConverter.HistoryInterval;
 import com.zfgc.zfgbb.migrator.converters.MessageHistoryConverter.ExistingCandidate;
 import com.zfgc.zfgbb.migrator.converters.MessageHistoryConverter.Reconciliation;
+import com.zfgc.zfgbb.migrator.jobs.MigratorIdMapService;
 import com.zfgc.zfgbb.migrator.mappers.MigratorTimestampMapper;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageDbWithBLOBs;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFMessageHistoryDb;
+import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
+import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 
 class MessageHistoryConverterTest {
 
@@ -49,7 +55,7 @@ class MessageHistoryConverterTest {
 
 	@Test
 	void newlyInsertedLegacyHistoryOnlyAllocatesTheNewOrdinal() {
-		assertEquals(java.util.Arrays.asList(41, 42, null),
+		assertEquals(Arrays.asList(41, 42, null),
 				MessageHistoryConverter.assignExistingIds(3, List.of(41, 42)));
 	}
 
@@ -172,11 +178,19 @@ class MessageHistoryConverterTest {
 
 	@Test
 	void processBatchPersistsReconstructedTimestampsByPrimaryKeyAfterInsertFlush() {
-		MessageHistoryConverter converter = new MessageHistoryConverter();
 		SqlSessionFactory sqlSessionFactory = mock(SqlSessionFactory.class);
 		SqlSession batchSession = mock(SqlSession.class);
 		MessageHistoryDboMapper historyMapper = mock(MessageHistoryDboMapper.class);
 		MigratorTimestampMapper timestampMapper = mock(MigratorTimestampMapper.class);
+		MessageHistoryConverter converter = new MessageHistoryConverter(
+				mock(SmfResilientReadMapper.class),
+				mock(SMFMessageDbMapper.class),
+				mock(SmfMessageStreamMapper.class),
+				historyMapper,
+				mock(IpAddressDboMapper.class),
+				mock(MigratorIdMapService.class),
+				sqlSessionFactory,
+				5000);
 
 		when(sqlSessionFactory.openSession(ExecutorType.BATCH, false)).thenReturn(batchSession);
 		when(batchSession.getMapper(MessageHistoryDboMapper.class)).thenReturn(historyMapper);
@@ -187,7 +201,6 @@ class MessageHistoryConverterTest {
 			return 1;
 		}).when(historyMapper).insert(any());
 
-		ReflectionTestUtils.setField(converter, "sqlSessionFactory", sqlSessionFactory);
 		ReflectionTestUtils.setField(converter, "freshRun", true);
 		ReflectionTestUtils.setField(converter, "messageIdMap", Map.of(42, 100));
 

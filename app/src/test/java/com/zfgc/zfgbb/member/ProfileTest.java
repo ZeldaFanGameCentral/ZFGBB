@@ -12,14 +12,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.OffsetDateTime;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import com.zfgc.zfgbb.dbo.UserAwardDboExample;
+import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserBioInfoDboMapper;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
 import tools.jackson.databind.JsonNode;
 
 class ProfileTest extends PostgresIntegrationTest {
+
+	@Autowired
+	private UserBioInfoDboMapper userBioInfoDboMapper;
 
 	@Test
 	void profileOwnerCanSaveTheirOwnProfile() throws Exception {
@@ -28,7 +35,7 @@ class ProfileTest extends PostgresIntegrationTest {
 		String ownerToken = login(ownerName, "password123").get("accessToken").asString();
 		int ownerId = userIdOf(ownerName);
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
+		mockMvc.perform(put("/users/" + ownerId)
 				.header("Authorization", "Bearer " + ownerToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"location\": \"Hyrule Field\"}"))
@@ -45,7 +52,7 @@ class ProfileTest extends PostgresIntegrationTest {
 		register(intruderName, "password123");
 		String intruderToken = login(intruderName, "password123").get("accessToken").asString();
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
+		mockMvc.perform(put("/users/" + ownerId)
 				.header("Authorization", "Bearer " + intruderToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"location\": \"Gerudo Valley\"}"))
@@ -60,7 +67,7 @@ class ProfileTest extends PostgresIntegrationTest {
 
 		String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
+		mockMvc.perform(put("/users/" + ownerId)
 				.header("Authorization", "Bearer " + adminToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"location\": \"Death Mountain\"}"))
@@ -78,7 +85,7 @@ class ProfileTest extends PostgresIntegrationTest {
 				{"theme": "GORON", "smileySet": "CLASSIC", "notifyAnnouncementsFlag": true,
 				 "notifySendBodyFlag": false, "sendHappyBirthdayFlag": true}
 				""";
-		mockMvc.perform(post("/user-profile/" + ownerId + "/settings")
+		mockMvc.perform(post("/users/" + ownerId + "/settings")
 				.header("Authorization", "Bearer " + ownerToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(settingsPayload))
@@ -89,13 +96,13 @@ class ProfileTest extends PostgresIntegrationTest {
 				.andExpect(jsonPath("$.notifySendBodyFlag").value(false))
 				.andExpect(jsonPath("$.sendHappyBirthdayFlag").value(true));
 
-		mockMvc.perform(get("/user-profile/" + ownerId)
+		mockMvc.perform(get("/users/" + ownerId)
 				.header("Authorization", "Bearer " + ownerToken))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.settings.theme").value("GORON"))
 				.andExpect(jsonPath("$.settings.smileySet").value("CLASSIC"));
 
-		MvcResult anonymousResult = mockMvc.perform(get("/user-profile/" + ownerId))
+		MvcResult anonymousResult = mockMvc.perform(get("/users/" + ownerId))
 				.andExpect(status().isOk())
 				.andReturn();
 		JsonNode anonymousSettings = json.readTree(anonymousResult.getResponse().getContentAsString())
@@ -106,13 +113,10 @@ class ProfileTest extends PostgresIntegrationTest {
 
 	@Test
 	void bioPatchRoundTripSkipsAbsentFieldsAndStampsDbClock() throws Exception {
-		String ownerName = "pbio_" + suffix;
-		register(ownerName, "password123");
-		String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-		int ownerId = userIdOf(ownerName);
+		TestUser owner = createUser("pbio_" + suffix);
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
-				.header("Authorization", "Bearer " + ownerToken)
+		mockMvc.perform(put("/users/" + owner.id())
+				.header("Authorization", "Bearer " + owner.token())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"personalText": "P1", "location": "L1",
@@ -120,50 +124,50 @@ class ProfileTest extends PostgresIntegrationTest {
 						"""))
 				.andExpect(status().is2xxSuccessful());
 
-		OffsetDateTime createdAtRegistration = jdbcTemplate.queryForObject(
-				"select created_ts from zfgbb.user_bio_info where user_id = ?", OffsetDateTime.class, ownerId);
-		OffsetDateTime updatedByFirstPatch = jdbcTemplate.queryForObject(
-				"select updated_ts from zfgbb.user_bio_info where user_id = ?", OffsetDateTime.class, ownerId);
+		OffsetDateTime createdAtRegistration = userBioInfoDboMapper.selectByPrimaryKey(owner.id()).getCreatedTs();
+		OffsetDateTime updatedByFirstPatch = userBioInfoDboMapper.selectByPrimaryKey(owner.id()).getUpdatedTs();
 		assertNotNull(updatedByFirstPatch);
 		assertTrue(updatedByFirstPatch.isAfter(createdAtRegistration),
 				"the PATCH transaction stamps updated_ts fresh, strictly after the registration insert");
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
-				.header("Authorization", "Bearer " + ownerToken)
+		mockMvc.perform(put("/users/" + owner.id())
+				.header("Authorization", "Bearer " + owner.token())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"location\": \"L2\"}"))
 				.andExpect(status().is2xxSuccessful());
 
-		OffsetDateTime updatedBySecondPatch = jdbcTemplate.queryForObject(
-				"select updated_ts from zfgbb.user_bio_info where user_id = ?", OffsetDateTime.class, ownerId);
+		OffsetDateTime updatedBySecondPatch = userBioInfoDboMapper.selectByPrimaryKey(owner.id()).getUpdatedTs();
 		assertTrue(updatedBySecondPatch.isAfter(updatedByFirstPatch),
 				"each PATCH re-stamps updated_ts with a fresh DB clock in its own transaction");
 
-		mockMvc.perform(get("/user-profile/" + ownerId)
-				.header("Authorization", "Bearer " + ownerToken))
+		mockMvc.perform(get("/users/" + owner.id())
+				.header("Authorization", "Bearer " + owner.token()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.bioInfo.personalText").value("P1"))
 				.andExpect(jsonPath("$.bioInfo.location").value("L2"))
 				.andExpect(jsonPath("$.bioInfo.websiteUrl").value("https://a.example"))
 				.andExpect(jsonPath("$.bioInfo.hideEmailFlag").value(true));
 
-		mockMvc.perform(put("/user-profile/" + ownerId)
-				.header("Authorization", "Bearer " + ownerToken)
+		mockMvc.perform(put("/users/" + owner.id())
+				.header("Authorization", "Bearer " + owner.token())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"personalText\": null}"))
 				.andExpect(status().is2xxSuccessful());
 
-		MvcResult afterNullResult = mockMvc.perform(get("/user-profile/" + ownerId)
-				.header("Authorization", "Bearer " + ownerToken))
+		MvcResult afterNullResult = mockMvc.perform(get("/users/" + owner.id())
+				.header("Authorization", "Bearer " + owner.token()))
 				.andExpect(status().isOk())
 				.andReturn();
 		JsonNode bioAfterNull = json.readTree(afterNullResult.getResponse().getContentAsString()).get("bioInfo");
 		JsonNode personalTextAfterNull = bioAfterNull.get("personalText");
 		assertTrue(personalTextAfterNull == null || personalTextAfterNull.isNull(),
 				"a present-null PATCH writes SQL null, distinct from an absent field being skipped");
-		assertEquals("L2", bioAfterNull.get("location").asText(),
+		assertEquals("L2", bioAfterNull.get("location").asString(),
 				"the null PATCH of personalText must not disturb the untouched location");
 	}
+
+	@Autowired
+	private UserAwardDboMapper userAwardDboMapper;
 
 	@Test
 	void awardGrantByProfileAdminAndCatalog() throws Exception {
@@ -173,26 +177,26 @@ class ProfileTest extends PostgresIntegrationTest {
 		int memberId = userIdOf(memberName);
 		String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
 
-		MvcResult catalogResult = mockMvc.perform(get("/user-profile/awards/catalog"))
+		MvcResult catalogResult = mockMvc.perform(get("/users/awards/catalog"))
 				.andExpect(status().isOk())
 				.andReturn();
 		JsonNode catalog = json.readTree(catalogResult.getResponse().getContentAsString());
 		Integer goodEggAwardId = null;
 		for (JsonNode award : catalog)
-			if ("GOOD_EGG".equals(award.get("code").asText()))
+			if ("GOOD_EGG".equals(award.get("code").asString()))
 				goodEggAwardId = award.get("awardId").asInt();
 		assertNotNull(goodEggAwardId, "the seeded award catalog must offer GOOD_EGG");
 
 		String grantPayload = """
 				{"awardId": %d, "reason": "Helpful beyond the call %s"}
 				""".formatted(goodEggAwardId, suffix);
-		mockMvc.perform(post("/user-profile/" + memberId + "/awards")
+		mockMvc.perform(post("/users/" + memberId + "/awards")
 				.header("Authorization", "Bearer " + memberToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(grantPayload))
 				.andExpect(status().isForbidden());
 
-		MvcResult grantResult = mockMvc.perform(post("/user-profile/" + memberId + "/awards")
+		MvcResult grantResult = mockMvc.perform(post("/users/" + memberId + "/awards")
 				.header("Authorization", "Bearer " + adminToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(grantPayload))
@@ -200,10 +204,12 @@ class ProfileTest extends PostgresIntegrationTest {
 				.andReturn();
 		boolean granted = false;
 		for (JsonNode award : json.readTree(grantResult.getResponse().getContentAsString()).get("awards"))
-			if ("GOOD_EGG".equals(award.get("code").asText()))
+			if ("GOOD_EGG".equals(award.get("code").asString()))
 				granted = true;
 		assertTrue(granted, "the grant response must carry the freshly granted award");
-		assertEquals(1, count("zfgbb.user_award where user_id = " + memberId
-				+ " and award_id = " + goodEggAwardId));
+
+		UserAwardDboExample ex = new UserAwardDboExample();
+		ex.createCriteria().andUserIdEqualTo(memberId).andAwardIdEqualTo(goodEggAwardId);
+		assertEquals(1, userAwardDboMapper.countByExample(ex));
 	}
 }

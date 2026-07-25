@@ -4,15 +4,8 @@ import com.zfgc.zfgbb.migrator.wiki.dbo.MwTextDb;
 import com.zfgc.zfgbb.migrator.wiki.dbo.MwTextDbExample;
 import jakarta.annotation.Generated;
 import java.util.List;
-import org.apache.ibatis.annotations.Param;
 
 public interface MwTextDbMapper {
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729335085-04:00", comments="Source Table: zfgc_wikitext")
-    long countByExample(MwTextDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729367024-04:00", comments="Source Table: zfgc_wikitext")
-    int deleteByExample(MwTextDbExample example);
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729382713-04:00", comments="Source Table: zfgc_wikitext")
     int deleteByPrimaryKey(Integer oldId);
 
@@ -30,15 +23,6 @@ public interface MwTextDbMapper {
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729461251-04:00", comments="Source Table: zfgc_wikitext")
     MwTextDb selectByPrimaryKey(Integer oldId);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.72948528-04:00", comments="Source Table: zfgc_wikitext")
-    int updateByExampleSelective(@Param("row") MwTextDb row, @Param("example") MwTextDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.72950353-04:00", comments="Source Table: zfgc_wikitext")
-    int updateByExampleWithBLOBs(@Param("row") MwTextDb row, @Param("example") MwTextDbExample example);
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729522109-04:00", comments="Source Table: zfgc_wikitext")
-    int updateByExample(@Param("row") MwTextDb row, @Param("example") MwTextDbExample example);
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", date="2026-06-29T21:26:26.729542958-04:00", comments="Source Table: zfgc_wikitext")
     int updateByPrimaryKeySelective(MwTextDb row);

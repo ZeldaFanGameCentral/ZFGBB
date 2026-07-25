@@ -27,10 +27,12 @@ public interface BoardMap {
 	@Mapping(target="unStickyThreads", ignore=true)
 	@Mapping(target="childBoards", ignore=true)
 	@Mapping(target="boardPerms", ignore=true)
+	@Mapping(target="permissions", ignore=true)
 	Board toModel(BoardDbo dbo);
 
 	@Mapping(target="childBoards", ignore=true)
 	@Mapping(target="boardPerms", ignore=true)
+	@Mapping(target="permissions", ignore=true)
 	BoardSummary toModel(BoardSummaryViewDbo dbo);
 
 	ChildBoard toModel(ChildBoardViewDbo dbo);
@@ -56,6 +58,7 @@ public interface BoardMap {
 	@Named("deepCopyBoardSummary")
 	@Mapping(target="childBoards", qualifiedByName="deepCopyChildBoard")
 	@Mapping(target="boardPerms", qualifiedByName="deepCopyPermission")
+	@Mapping(target="permissions", ignore=true)
 	BoardSummary deepCopy(BoardSummary boardSummary);
 
 	@Named("deepCopyChildBoard")

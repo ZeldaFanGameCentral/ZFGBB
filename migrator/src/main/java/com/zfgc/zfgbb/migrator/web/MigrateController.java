@@ -6,8 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -35,9 +38,10 @@ import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobService;
 import com.zfgc.zfgbb.migrator.jobs.MigratorPermissionService;
 import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
+import com.zfgc.zfgbb.wiki.WikiTitle;
 
 @RestController
-@RequestMapping("/system/migrate")
+@RequestMapping("/admin/migrate")
 @PreAuthorize("hasRole('ROLE_ZFGC_SITE_ADMIN')")
 public class MigrateController {
 
@@ -141,7 +145,8 @@ public class MigrateController {
 				request.getResourcesBoardId(),
 				request.getTalkBoardIds(),
 				request.getGroupPermissionMap(), request.getWikiNamespaceCaseModes(), request.getWikiNamespaceAliases(),
-				request.getWikiNamespaceIds());
+				request.getWikiNamespaceIds(),
+				request.getWikiLegacyHost());
 
 		try {
 			List<Job> submitted = jobService.submit(request.getType(), params);
@@ -182,18 +187,18 @@ public class MigrateController {
 		if (modes != null && modes.size() > 100 || aliases != null && aliases.size() > 200
 				|| ids != null && ids.size() > 200)
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Too many wiki namespace definitions");
-		java.util.Set<String> identities = new java.util.HashSet<>();
+		Set<String> identities = new HashSet<>();
 		if (modes != null) modes.forEach((name, mode) -> {
 			validateNamespaceToken(name, "namespace");
-			try { com.zfgc.zfgbb.wiki.WikiTitle.CaseMode.valueOf(mode); }
+			try { WikiTitle.CaseMode.valueOf(mode); }
 			catch (RuntimeException e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 					"Invalid wiki namespace case mode for '" + name + "': " + mode); }
-			if (!identities.add(name.toLowerCase(java.util.Locale.ROOT)))
+			if (!identities.add(name.toLowerCase(Locale.ROOT)))
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate wiki namespace: " + name);
 		});
 		if (aliases != null) aliases.forEach((alias, target) -> {
 			validateNamespaceToken(alias, "alias"); validateNamespaceToken(target, "alias target");
-			if (!identities.add(alias.toLowerCase(java.util.Locale.ROOT)))
+			if (!identities.add(alias.toLowerCase(Locale.ROOT)))
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 						"Wiki namespace alias collides with a namespace or alias: " + alias);
 		});

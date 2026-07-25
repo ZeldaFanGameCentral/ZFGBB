@@ -41,3 +41,11 @@ dist/
 !.env.local
 
 backend-assets/*
+__pycache__/
+*.py[cod]
+
+# local dev stack state (postgres datadir, etc.)
+.devdata/
+
+.playwright-mcp/
+.claude/

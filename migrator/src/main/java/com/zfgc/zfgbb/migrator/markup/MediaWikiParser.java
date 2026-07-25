@@ -276,7 +276,7 @@ public final class MediaWikiParser {
             return new Node.WikiLink(literalizeTokens(decodeTitle(href.substring(LINK_BASE.length()))), label);
         }
         try {
-            href = literalizeTokens(java.net.URLDecoder.decode(href, java.nio.charset.StandardCharsets.UTF_8));
+            href = literalizeTokens(java.net.URLDecoder.decode(href, StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             href = literalizeTokens(href);
         }

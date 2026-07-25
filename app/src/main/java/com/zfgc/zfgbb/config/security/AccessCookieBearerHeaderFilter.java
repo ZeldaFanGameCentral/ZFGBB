@@ -5,14 +5,16 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.nimbusds.jwt.SignedJWT;
-import com.zfgc.zfgbb.services.core.AuthCookieService;
+import com.zfgc.zfgbb.services.auth.AuthCookieService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,6 +32,16 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 	}
 
 	@Override
+	protected boolean shouldNotFilter(HttpServletRequest request) {
+		String requestUri = request.getRequestURI();
+		String contextPath = request.getContextPath();
+		String path = !contextPath.isEmpty() && requestUri.startsWith(contextPath)
+				? requestUri.substring(contextPath.length())
+				: requestUri;
+		return path.equals("/system/install") || path.equals("/system/install/status");
+	}
+
+	@Override
 	protected void doFilterInternal(HttpServletRequest request,
 			HttpServletResponse response,
 			FilterChain chain) throws ServletException, IOException {
@@ -37,12 +49,13 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 			chain.doFilter(request, response);
 			return;
 		}
-		Optional<String> token = cookieService.readAccessCookie(request);
-		if (token.isEmpty() || isExpired(token.get())) {
+		Optional<String> validToken = cookieService.readAccessCookie(request)
+				.filter(token -> !isExpired(token));
+		if (validToken.isPresent()) {
+			chain.doFilter(new AuthHeaderRequest(request, "Bearer " + validToken.get()), response);
+		} else {
 			chain.doFilter(request, response);
-			return;
 		}
-		chain.doFilter(new AuthHeaderRequest(request, "Bearer " + token.get()), response);
 	}
 
 	private static boolean isExpired(String token) {
@@ -82,7 +95,7 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 		@Override
 		public Enumeration<String> getHeaderNames() {
 			Enumeration<String> original = super.getHeaderNames();
-			java.util.Set<String> names = new java.util.LinkedHashSet<>();
+			Set<String> names = new LinkedHashSet<>();
 			while (original.hasMoreElements()) {
 				names.add(original.nextElement());
 			}

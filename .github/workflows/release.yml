@@ -23,12 +23,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: ZeldaFanGameCentral/github-common/actions/resolve-version@main
+        id: version
+
       - uses: ZeldaFanGameCentral/github-common/actions/docker-release@main
         id: docker
         with:
           image_name: zfgbb
           docker_target: deploy
           tag: ${{ inputs.tag }}
+          build_args: |
+            ZFGBB_BUILD_VERSION=${{ github.ref_name != 'main' && steps.version.outputs.version || '' }}
           registry_token: ${{ secrets.GITHUB_TOKEN }}
 
   bump-argo:

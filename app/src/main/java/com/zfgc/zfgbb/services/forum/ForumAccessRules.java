@@ -1,11 +1,13 @@
 package com.zfgc.zfgbb.services.forum;
 
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.authorization.AuthorityTiers;
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.authorization.ResourceAccessRules;
 import com.zfgc.zfgbb.dao.ThreadDao;
 import com.zfgc.zfgbb.dbo.MessageDbo;
@@ -15,6 +17,7 @@ import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
 @Component
+@BoardVisibilityChokepoint
 public class ForumAccessRules implements ResourceAccessRules {
 
 	private static final String ROLE_FORUM_WRITE = "ROLE_ZFGC_FORUM_WRITE";
@@ -69,8 +72,30 @@ public class ForumAccessRules implements ResourceAccessRules {
 		return switch (action) {
 			case "message.restore" -> moderatorAllowed(actor);
 			case "message.delete" -> allowsMessageDelete(actor, messageId);
+			case "message.edit" -> allowsMessageEdit(actor, messageId);
 			default -> false;
 		};
+	}
+
+	private boolean allowsMessageEdit(User actor, int messageId) {
+		return editableMessageState(actor, messageId).isPresent();
+	}
+
+	public Optional<MessageState> editableMessageState(User actor, int messageId) {
+		if (!tiers.authenticated(actor) || tiers.isReadOnly(actor))
+			return Optional.empty();
+		MessageState message = loadMessageState(messageId);
+		if (message == null || message.thread() == null)
+			return Optional.empty();
+		return canEditMessage(actor, message) ? Optional.of(message) : Optional.empty();
+	}
+
+	public boolean canEditMessage(User actor, MessageState message) {
+		if (!tiers.authenticated(actor) || tiers.isReadOnly(actor))
+			return false;
+		boolean owner = actor.getUserId().equals(message.ownerUserId());
+		return tiers.hasRole(actor, ROLE_FORUM_MODERATE)
+				|| (owner && !message.thread().locked() && !message.thread().recycled());
 	}
 
 	private boolean allowsMessageDelete(User actor, int messageId) {
@@ -92,11 +117,7 @@ public class ForumAccessRules implements ResourceAccessRules {
 	}
 
 	public boolean canDeleteMessage(User actor, MessageState message) {
-		if (!tiers.authenticated(actor) || tiers.isReadOnly(actor))
-			return false;
-		ThreadState thread = message.thread();
-		boolean owner = actor.getUserId().equals(message.ownerUserId());
-		return tiers.hasRole(actor, ROLE_FORUM_MODERATE) || (owner && !thread.locked() && !thread.recycled());
+		return canEditMessage(actor, message);
 	}
 
 	public boolean canRestoreThread(User actor, ThreadState thread) {
@@ -106,9 +127,7 @@ public class ForumAccessRules implements ResourceAccessRules {
 	}
 
 	public boolean canRestoreMessage(User actor, MessageState message) {
-		if (!tiers.authenticated(actor) || tiers.isReadOnly(actor))
-			return false;
-		return message.thread().recycled() && tiers.hasRole(actor, ROLE_FORUM_MODERATE);
+		return canRestoreThread(actor, message.thread());
 	}
 
 	public boolean isForumModerator(User actor) {
@@ -141,6 +160,8 @@ public class ForumAccessRules implements ResourceAccessRules {
 		Set<String> permitted = new LinkedHashSet<>();
 		if (canDeleteMessage(actor, message))
 			permitted.add("message.delete");
+		if (canEditMessage(actor, message))
+			permitted.add("message.edit");
 		if (canRestoreMessage(actor, message))
 			permitted.add("message.restore");
 		return permitted;
@@ -151,7 +172,7 @@ public class ForumAccessRules implements ResourceAccessRules {
 	}
 
 	private ThreadState loadThreadState(Integer threadId) {
-		return threadDao.get(threadId).map(this::toThreadState).orElse(null);
+		return threadDao.find(threadId).map(this::toThreadState).orElse(null);
 	}
 
 	private ThreadState toThreadState(ThreadDbo thread) {

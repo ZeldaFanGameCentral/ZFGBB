@@ -3,7 +3,6 @@ package com.zfgc.zfgbb.controller.forum;
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.CacheControl;
@@ -20,24 +19,26 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.CreateThreadRequest;
+import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.model.forum.Thread;
+import com.zfgc.zfgbb.model.forum.ThreadDeletionResponse;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
+import lombok.RequiredArgsConstructor;
+import java.util.Set;
 
 @Slf4j
 @RestController
 @RequestMapping("/thread")
+@RequiredArgsConstructor
 public class ThreadController extends BaseController {
-	
-	@Autowired
-	private ForumService forumService;
 
-	@Autowired
-	private ForumModerationOrchestrator forumModerationOrchestrator;
+	private final ForumService forumService;
+
+	private final ForumModerationOrchestrator forumModerationOrchestrator;
 	
 	@GetMapping("/template")
 	@AllowAnonymous
@@ -62,7 +63,7 @@ public class ThreadController extends BaseController {
 
 	@GetMapping("/{threadId}/allowed-actions")
 	@AllowAnonymous
-	public ResponseEntity<java.util.Set<String>> getAllowedActions(@PathVariable("threadId") Integer threadId) {
+	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable("threadId") Integer threadId) {
      log.info("Executing getAllowedActions");
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
 				.body(forumService.threadAllowedActions(threadId, super.zfgcUser()));
@@ -70,14 +71,14 @@ public class ThreadController extends BaseController {
 	
 	@DeleteMapping("/{threadId}")
 	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
-	public ResponseEntity<ForumService.ThreadDeletionResponse> deleteThread(@PathVariable("threadId") Integer threadId) {
+	public ResponseEntity<ThreadDeletionResponse> deleteThread(@PathVariable("threadId") Integer threadId) {
      log.info("Executing deleteThread");
 		return ResponseEntity.ok(forumModerationOrchestrator.deleteThread(threadId, super.zfgcUser()));
 	}
 
 	@PutMapping("/{threadId}/restore")
 	@PreAuthorize("hasPermission(#threadId, 'THREAD', 'thread.restore')")
-	public ResponseEntity<ForumService.RestoreResponse> restoreThread(@PathVariable("threadId") Integer threadId) {
+	public ResponseEntity<RestoreResponse> restoreThread(@PathVariable("threadId") Integer threadId) {
      log.info("Executing restoreThread");
 		return ResponseEntity.ok(forumModerationOrchestrator.restoreThread(threadId, super.zfgcUser()));
 	}

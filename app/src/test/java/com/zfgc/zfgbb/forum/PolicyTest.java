@@ -1,6 +1,10 @@
 package com.zfgc.zfgbb.forum;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noConstructors;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 import static com.zfgc.zfgbb.testsupport.AccessControlFixtures.MEMBER_ID;
 import static com.zfgc.zfgbb.testsupport.AccessControlFixtures.OTHER_ID;
 import static com.zfgc.zfgbb.testsupport.AccessControlFixtures.guest;
@@ -12,79 +16,287 @@ import static com.zfgc.zfgbb.testsupport.AccessControlFixtures.siteAdmin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import jakarta.annotation.PostConstruct;
+
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.Dependency;
+import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaCodeUnit;
+import com.tngtech.archunit.core.domain.JavaConstructor;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaFieldAccess;
+import com.tngtech.archunit.core.domain.JavaMethod;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.zfgc.zfgbb.authorization.AuthorityTiers;
-import com.zfgc.zfgbb.authorization.RawSqlAccess;
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
+import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
+import com.zfgc.zfgbb.testsupport.RawSqlIdentifiers;
+import com.zfgc.zfgbb.dataprovider.users.GuestPermissionDataProvider;
 import com.zfgc.zfgbb.dataprovider.users.UserProfileFacade;
 import com.zfgc.zfgbb.dbo.UserAggregateDbo;
 import com.zfgc.zfgbb.mappers.custom.UserProfileHydrationMapper;
-import com.zfgc.zfgbb.services.core.GuestPermissionService;
-import com.zfgc.zfgbb.config.loadoption.user.BasicUserLoadOptions;
-import com.zfgc.zfgbb.content.renderer.ContentRenderer;
-import com.zfgc.zfgbb.dao.UserPermissionViewDao;
-import com.zfgc.zfgbb.dao.users.AvatarDao;
+import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.content.renderer.ContentOutputSanitizer;
+import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
+import com.zfgc.zfgbb.content.renderer.RenderedTextEnricher;
+import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder;
+import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeRenderer;
+import com.zfgc.zfgbb.content.renderer.markdown.MarkdownRenderer;
+import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
+import com.zfgc.zfgbb.dao.users.EmailAddressDao;
 import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dataprovider.cms.ProjectDataProvider;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
-import com.zfgc.zfgbb.dbo.AvatarDboExample;
-import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.ProjectNewsDbo;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
-import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
+import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
+import com.zfgc.zfgbb.mappers.AwardDboMapper;
 import com.zfgc.zfgbb.mappers.MessageDboMapper;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mappers.ProjectNewsDboMapper;
 import com.zfgc.zfgbb.mappers.ThreadDboMapper;
+import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
+import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
+import com.zfgc.zfgbb.mappers.UserPermissionViewDboMapper;
 import com.zfgc.zfgbb.mappers.UserReactionSummaryViewDboMapper;
+import com.zfgc.zfgbb.mappers.UserSettingsDboMapper;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
+import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
+import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.model.User;
 import com.zfgc.zfgbb.model.cms.ProjectNews;
+import com.zfgc.zfgbb.model.forum.Board;
+import com.zfgc.zfgbb.model.forum.BoardSummary;
 import com.zfgc.zfgbb.model.forum.Thread;
+import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
+import com.zfgc.zfgbb.services.AbstractService;
 import com.zfgc.zfgbb.services.forum.ForumAccessRules;
 import com.zfgc.zfgbb.services.forum.ForumAccessRules.MessageState;
 import com.zfgc.zfgbb.services.forum.ForumAccessRules.ThreadState;
+import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
 import com.zfgc.zfgbb.services.forum.ForumService;
 
 class PolicyTest {
+
+	@Nested
+	class DependencyInjectionArchitecture {
+
+		@Test
+		void productionCodeUsesConstructorInjectionWithoutAutowiredAnnotations() {
+			JavaClasses productionClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			noFields().should().beAnnotatedWith(Autowired.class).check(productionClasses);
+			noConstructors().should().beAnnotatedWith(Autowired.class).check(productionClasses);
+		}
+
+		@Test
+		void renderingLaneInternalsAreReachedOnlyThroughTheContentRenderingFrontDoor() {
+			JavaClasses productionClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			noClasses().that().resideOutsideOfPackage("com.zfgc.zfgbb.content.renderer..")
+					.should().dependOnClassesThat(JavaClass.Predicates.belongToAnyOf(
+							BBCodeRenderer.class, MarkdownRenderer.class, BBCodeGrammarHolder.class,
+							ContentOutputSanitizer.class, RenderedTextEnricher.class))
+					.as("rendering-lane internals are reached only through the ContentRenderingService front door")
+					.because("BBCodeRenderer.render returns unsanitized HTML and the grammar holder exposes raw "
+							+ "grammar state; both are safe only behind the front door's sanitize chokepoint and "
+							+ "quote scope, so a caller wiring them directly bypasses the sanitizer")
+					.check(productionClasses);
+		}
+
+		@Test
+		void testMappersBindValuesInsteadOfInterpolatingThem() {
+			JavaClasses testMappers = new ClassFileImporter()
+					.importPackages("com.zfgc.zfgbb.testsupport.mappers");
+
+			methods().that(new DescribedPredicate<JavaMethod>("declare MyBatis SQL") {
+				@Override
+				public boolean test(JavaMethod method) {
+					return !statementsOf(method).isEmpty();
+				}
+			}).should(new ArchCondition<JavaMethod>(
+					"bind every value with #{} unless @RawSqlIdentifiers justifies an identifier") {
+				@Override
+				public void check(JavaMethod method, ConditionEvents events) {
+					boolean interpolates = statementsOf(method).stream().anyMatch(sql -> sql.contains("${"));
+					if (interpolates && !method.isAnnotatedWith(RawSqlIdentifiers.class))
+						events.add(SimpleConditionEvent.violated(method, method.getFullName()
+								+ " interpolates SQL with ${}; bind the value with #{} or, if it is genuinely"
+								+ " an identifier, annotate the method with @RawSqlIdentifiers"));
+				}
+			}).check(testMappers);
+		}
+
+		private static final Set<String> SPRING_BEAN_SENTINELS = Set.of(
+				"com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader",
+				"com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder",
+				"com.zfgc.zfgbb.content.renderer.bbcode.BBCodeRenderer",
+				"com.zfgc.zfgbb.content.renderer.ContentOutputSanitizer",
+				"com.zfgc.zfgbb.content.renderer.RenderedTextEnricher",
+				"com.zfgc.zfgbb.content.renderer.markdown.MarkdownRenderer",
+				"com.zfgc.zfgbb.services.cms.wiki.WikiService",
+				"com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider");
+
+		private static boolean isSpringBean(JavaClass javaClass) {
+			return javaClass.isAnnotatedWith(Component.class) || javaClass.isMetaAnnotatedWith(Component.class);
+		}
+
+		private static JavaClass topLevelClassOf(JavaClass javaClass) {
+			JavaClass current = javaClass;
+			while (current.getEnclosingClass().isPresent())
+				current = current.getEnclosingClass().get();
+			return current;
+		}
+
+		@Test
+		void springBeansReachIntoOneAnotherOnlyThroughMethodCalls() {
+			JavaClasses productionAndTestClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
+					.importPackages("com.zfgc.zfgbb");
+
+			Set<String> resolvedBeans = new HashSet<>();
+			for (JavaClass javaClass : productionAndTestClasses)
+				if (isSpringBean(javaClass))
+					resolvedBeans.add(javaClass.getFullName());
+			assertTrue(resolvedBeans.containsAll(SPRING_BEAN_SENTINELS),
+					"springBeansReachIntoOneAnotherOnlyThroughMethodCalls resolved " + resolvedBeans.size()
+							+ " Spring beans and is missing at least one sentinel. The rule only reports a field "
+							+ "access whose OWNER is a resolved bean, so a stereotype this predicate stops "
+							+ "recognising -- @Service and @Repository are only reachable through the meta "
+							+ "annotation -- would leave the rule green while guarding nothing. Resolved: "
+							+ resolvedBeans);
+
+			ArchRule rule = classes()
+					.should(new ArchCondition<JavaClass>(
+							"reach another Spring bean's instance state only through its methods") {
+						@Override
+						public void check(JavaClass javaClass, ConditionEvents events) {
+							for (JavaFieldAccess access : javaClass.getFieldAccessesFromSelf()) {
+								JavaClass owner = access.getTargetOwner();
+								if (!isSpringBean(owner))
+									continue;
+								if (access.getTarget().resolveMember()
+										.map(field -> field.getModifiers().contains(JavaModifier.STATIC))
+										.orElse(true))
+									continue;
+								if (topLevelClassOf(javaClass).equals(topLevelClassOf(owner)))
+									continue;
+								events.add(SimpleConditionEvent.violated(access, access.getDescription()
+										+ "; call an accessor on " + owner.getSimpleName()
+										+ " instead of reading its field"));
+							}
+						}
+					})
+					.as("a Spring bean's instance state is reached through its methods, never through a field")
+					.because("Spring wraps a bean carrying @Transactional in a CGLIB subclass whose own fields are "
+							+ "never initialised: a method call on the proxy delegates to the target, but a field "
+							+ "read resolves against the proxy's null field, so the collaborator silently reads null "
+							+ "in production while every unit test that constructs the bean directly still passes; "
+							+ "expose the state as an accessor and call it. Tests are in scope because a test that "
+							+ "assigns or reads a bean's field is what keeps that field widened past private, and a "
+							+ "field the test lane can reach is a field production can reach too");
+
+			rule.check(productionAndTestClasses);
+		}
+
+		@Test
+		void noBeanReadsThePublishedGrammarBeforeTheContextFinishesBuilding() {
+			JavaClasses productionClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			List<String> readers = new ArrayList<>();
+			List<String> readWhileTheBeanIsStillBeingBuilt = new ArrayList<>();
+			for (JavaClass javaClass : productionClasses)
+				for (JavaCodeUnit codeUnit : javaClass.getCodeUnits()) {
+					if (codeUnit.getMethodCallsFromSelf().stream()
+							.noneMatch(call -> call.getTargetOwner().isEquivalentTo(BBCodeGrammarHolder.class)
+									&& call.getName().equals("current")))
+						continue;
+					readers.add(javaClass.getSimpleName() + "." + codeUnit.getName());
+					if (codeUnit instanceof JavaConstructor || codeUnit.isAnnotatedWith(PostConstruct.class))
+						readWhileTheBeanIsStillBeingBuilt.add(javaClass.getFullName() + "." + codeUnit.getName());
+				}
+
+			assertTrue(readers.size() >= 4,
+					"this rule only says something while beans actually read the published grammar; a reader "
+							+ "that stops calling current() escapes it silently: " + readers);
+			assertTrue(readWhileTheBeanIsStillBeingBuilt.isEmpty(),
+					"BBCodeGrammarHolder starts on the grammar that declares nothing and is filled by "
+							+ "BBCodeGrammarLoader's @PostConstruct. Bean build order is free precisely because every "
+							+ "reader calls current() per render, by which time the context is up; a reader that "
+							+ "calls it while it is itself being built captures the empty grammar for the process "
+							+ "lifetime and no reload can reach it: " + readWhileTheBeanIsStillBeingBuilt);
+		}
+
+		private List<String> statementsOf(JavaMethod method) {
+			List<String> statements = new ArrayList<>();
+			if (method.isAnnotatedWith(Select.class))
+				statements.addAll(List.of(method.getAnnotationOfType(Select.class).value()));
+			if (method.isAnnotatedWith(Insert.class))
+				statements.addAll(List.of(method.getAnnotationOfType(Insert.class).value()));
+			if (method.isAnnotatedWith(Update.class))
+				statements.addAll(List.of(method.getAnnotationOfType(Update.class).value()));
+			if (method.isAnnotatedWith(Delete.class))
+				statements.addAll(List.of(method.getAnnotationOfType(Delete.class).value()));
+			return statements;
+		}
+	}
 
 	@Nested
 	class ModerationRules {
@@ -165,6 +377,152 @@ class PolicyTest {
 	}
 
 	@Nested
+	class ResourcePermissions {
+
+		private static final int BOARD_READ_PERMISSION_ID = 1;
+		private static final int STAFF_ONLY_PERMISSION_ID = 2;
+
+		private List<Permission> permissions(Integer... permissionIds) {
+			List<Permission> permissions = new ArrayList<>();
+			for (Integer permissionId : permissionIds) {
+				Permission permission = new Permission();
+				permission.setPermissionId(permissionId);
+				permissions.add(permission);
+			}
+			return permissions;
+		}
+
+		private User actorHolding(Integer... permissionIds) {
+			return User.builder().userId(MEMBER_ID).permissions(permissions(permissionIds)).build();
+		}
+
+		private Thread threadRequiring(Integer... permissionIds) {
+			Thread thread = new Thread();
+			thread.setBoardPermissions(permissions(permissionIds));
+			return thread;
+		}
+
+		private Board boardRequiring(Integer... permissionIds) {
+			Board board = new Board();
+			board.setBoardPerms(permissions(permissionIds));
+			return board;
+		}
+
+		private BoardSummary boardSummaryRequiring(Integer... permissionIds) {
+			BoardSummary boardSummary = new BoardSummary();
+			boardSummary.setBoardPerms(permissions(permissionIds));
+			return boardSummary;
+		}
+
+		private final AbstractService securingService = new AbstractService() {};
+
+		@Test
+		void securedResourceAdmitsOverlappingPermissionAndRejectsDisjointOne() {
+			assertTrue(actorHolding(BOARD_READ_PERMISSION_ID)
+					.canAccess(threadRequiring(BOARD_READ_PERMISSION_ID, STAFF_ONLY_PERMISSION_ID)));
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID)
+					.canAccess(threadRequiring(STAFF_ONLY_PERMISSION_ID)));
+		}
+
+		@Test
+		void securedResourceWithoutRequiredPermissionsRejectsEveryActor() {
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID).canAccess(threadRequiring()));
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID).canAccess(boardRequiring()));
+		}
+
+		@Test
+		void everyBoardShapedResourceAnswersTheSameOverlapQuestion() {
+			User reader = actorHolding(BOARD_READ_PERMISSION_ID);
+			assertTrue(reader.canAccess(boardRequiring(BOARD_READ_PERMISSION_ID)));
+			assertFalse(reader.canAccess(boardRequiring(STAFF_ONLY_PERMISSION_ID)));
+			assertTrue(reader.canAccess(boardSummaryRequiring(BOARD_READ_PERMISSION_ID)));
+			assertFalse(reader.canAccess(boardSummaryRequiring(STAFF_ONLY_PERMISSION_ID)));
+		}
+
+		@Test
+		void securingAServiceResourceRaisesUnauthorizedOnlyWhenAccessIsDenied() {
+			ReflectionTestUtils.invokeMethod(securingService, "secureObject",
+					threadRequiring(BOARD_READ_PERMISSION_ID), actorHolding(BOARD_READ_PERMISSION_ID));
+			assertThrows(ZfgcUnauthorizedException.class,
+					() -> ReflectionTestUtils.invokeMethod(securingService, "secureObject",
+							threadRequiring(STAFF_ONLY_PERMISSION_ID), actorHolding(BOARD_READ_PERMISSION_ID)));
+		}
+
+		@Test
+		void permissionIdOverlapDecidesAttachmentVisibility() {
+			assertTrue(actorHolding(STAFF_ONLY_PERMISSION_ID, BOARD_READ_PERMISSION_ID)
+					.hasAnyPermissionId(List.of(BOARD_READ_PERMISSION_ID)));
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID)
+					.hasAnyPermissionId(List.of(STAFF_ONLY_PERMISSION_ID)));
+			assertFalse(actorHolding().hasAnyPermissionId(List.of(BOARD_READ_PERMISSION_ID)));
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID).hasAnyPermissionId(List.of()));
+		}
+
+		@Test
+		void unhydratedPermissionListDeniesInsteadOfFailing() {
+			User unhydratedReader = new User();
+			unhydratedReader.setPermissions(null);
+			assertEquals(List.of(), unhydratedReader.permissionIds());
+			assertFalse(unhydratedReader.hasAnyPermissionId(List.of(BOARD_READ_PERMISSION_ID)));
+			assertFalse(unhydratedReader.canAccess(threadRequiring(BOARD_READ_PERMISSION_ID)));
+			Thread unhydratedResource = new Thread();
+			unhydratedResource.setBoardPermissions(null);
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID).canAccess(unhydratedResource));
+			assertFalse(actorHolding(BOARD_READ_PERMISSION_ID).canAccess(null));
+		}
+
+		@Test
+		void permissionsWithoutIdsNeverOverlapEachOther() {
+			User actorWithUnidentifiedPermission = User.builder().userId(MEMBER_ID)
+					.permissions(new ArrayList<>(List.of(new Permission()))).build();
+			assertEquals(List.of(), actorWithUnidentifiedPermission.permissionIds());
+			assertFalse(actorWithUnidentifiedPermission.canAccess(threadRequiring((Integer) null)));
+			assertFalse(actorWithUnidentifiedPermission.hasAnyPermissionId(singletonListOfNull()));
+		}
+
+		private List<Integer> singletonListOfNull() {
+			List<Integer> ids = new ArrayList<>();
+			ids.add(null);
+			return ids;
+		}
+
+		private static final ArchCondition<JavaClass> neverReadPermissionIdsDirectly =
+				new ArchCondition<JavaClass>("never read Permission.getPermissionId() directly") {
+					@Override
+					public void check(JavaClass javaClass, ConditionEvents events) {
+						List<JavaAccess<?>> accesses = new ArrayList<>();
+						accesses.addAll(javaClass.getMethodCallsFromSelf());
+						accesses.addAll(javaClass.getMethodReferencesFromSelf());
+						for (JavaAccess<?> access : accesses)
+							if (access.getTargetOwner().isEquivalentTo(Permission.class)
+									&& "getPermissionId".equals(access.getTarget().getName()))
+								events.add(SimpleConditionEvent.violated(javaClass, access.getDescription()
+										+ " reads a permission id outside the actor model, which is how every "
+										+ "hand-rolled permission-overlap check has started"));
+					}
+				};
+
+		@Test
+		void permissionOverlapIsAskedOfTheActorAndNowhereElse() {
+			JavaClasses appClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			ArchRule rule = classes()
+					.that().resideOutsideOfPackages("com.zfgc.zfgbb.model..", "com.zfgc.zfgbb.mapstruct..")
+					.should(neverReadPermissionIdsDirectly)
+					.as("only the actor model may read the id off a Permission")
+					.because("'does the actor hold any permission this resource requires' is one question with one "
+							+ "answer: User.canAccess(Securable) for a secured resource, User.hasAnyPermissionId "
+							+ "for permission ids that came back from a query. Projecting Permission ids anywhere "
+							+ "else is the first line of a fifth copy of that predicate; ask the actor instead");
+
+			rule.check(appClasses);
+		}
+	}
+
+	@Nested
 	class RestoreProvenance {
 		@Test
 		void restoreLocksHighWrapperAndLowOriginInAscendingOrder() {
@@ -178,9 +536,9 @@ class PolicyTest {
 			wrapper.setRecycledFromThreadId(7);
 			Thread origin = new Thread();
 			origin.setThreadId(8);
-			assertFalse(ForumService.restoreProvenanceMatches(wrapper, origin, 9));
+			assertFalse(ForumModerationOrchestrator.restoreProvenanceMatches(wrapper, origin, 9));
 			origin.setThreadId(7);
-			assertTrue(ForumService.restoreProvenanceMatches(wrapper, origin, 9));
+			assertTrue(ForumModerationOrchestrator.restoreProvenanceMatches(wrapper, origin, 9));
 		}
 	}
 
@@ -233,10 +591,10 @@ class PolicyTest {
 			newsMapper = mock(ProjectNewsDboMapper.class);
 			threadMapper = mock(ThreadDboMapper.class);
 			boardPermissionViewDboMapper = mock(BoardPermissionViewDboMapper.class);
-			provider = new ProjectDataProvider();
-			GuestPermissionService guestPermissionService = new GuestPermissionService();
-			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
-			ReflectionTestUtils.setField(provider, "guestPermissionService", guestPermissionService);
+			provider = mock(ProjectDataProvider.class, CALLS_REAL_METHODS);
+			GuestPermissionDataProvider guestPermissionDataProvider =
+					new GuestPermissionDataProvider(boardPermissionViewDboMapper);
+			ReflectionTestUtils.setField(provider, "guestPermissionDataProvider", guestPermissionDataProvider);
 			ReflectionTestUtils.setField(provider, "newsMapper", newsMapper);
 			ReflectionTestUtils.setField(provider, "threadMapper", threadMapper);
 			when(newsMapper.selectByExample(any()))
@@ -302,22 +660,12 @@ class PolicyTest {
 		private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
 		private MessageDboMapper messageDboMapper;
 		private MessagePostCountMapper messagePostCountMapper;
-		private ContentRenderer contentRenderer;
+		private ContentRenderingService contentRenderingService;
 		private UserBioInfoMap userBioInfoMap;
 		private UserMap userMap;
 		private UserDataProvider provider;
 
-		private final BasicUserLoadOptions bioOnly = new BasicUserLoadOptions() {
-			@Override
-			public boolean loadAvatar() {
-				return false;
-			}
-
-			@Override
-			public boolean loadReactions() {
-				return false;
-			}
-		};
+		private final UserLoadOptions bioOnly = new UserLoadOptions(false, true, false, false, false, false, false);
 
 		@BeforeEach
 		void setup() {
@@ -326,26 +674,39 @@ class PolicyTest {
 			boardPermissionViewDboMapper = mock(BoardPermissionViewDboMapper.class);
 			messageDboMapper = mock(MessageDboMapper.class);
 			messagePostCountMapper = mock(MessagePostCountMapper.class);
-			contentRenderer = mock(ContentRenderer.class);
+			contentRenderingService = mock(ContentRenderingService.class);
 			userBioInfoMap = mock(UserBioInfoMap.class);
 			userMap = mock(UserMap.class);
-			provider = new UserDataProvider();
-			UserProfileFacade userProfileFacade = new UserProfileFacade();
-			GuestPermissionService guestPermissionService = new GuestPermissionService();
+			GuestPermissionDataProvider guestPermissionDataProvider =
+					new GuestPermissionDataProvider(boardPermissionViewDboMapper);
 			UserProfileHydrationMapper userProfileHydrationMapper = mock(UserProfileHydrationMapper.class);
-			ReflectionTestUtils.setField(userProfileFacade, "messagePostCountMapper", messagePostCountMapper);
-			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "guestPermissionService", guestPermissionService);
-			ReflectionTestUtils.setField(userProfileFacade, "userProfileHydrationMapper", userProfileHydrationMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "contentRenderer", contentRenderer);
-			ReflectionTestUtils.setField(userProfileFacade, "userBioInfoMap", userBioInfoMap);
-			ReflectionTestUtils.setField(userProfileFacade, "userMap", userMap);
-			ReflectionTestUtils.setField(provider, "userProfileFacade", userProfileFacade);
-			ReflectionTestUtils.setField(provider, "userDao", userDao);
-			ReflectionTestUtils.setField(provider, "bioInfoDao", bioInfoDao);
-			ReflectionTestUtils.setField(provider, "contentRenderer", contentRenderer);
-			ReflectionTestUtils.setField(provider, "userBioInfoMap", userBioInfoMap);
-			ReflectionTestUtils.setField(provider, "userMap", userMap);
+			UserProfileFacade userProfileFacade = new UserProfileFacade(
+					userProfileHydrationMapper,
+					mock(UserPermissionViewDboMapper.class),
+					contentRenderingService,
+					userMap,
+					userBioInfoMap,
+					mock(UserContactInfoMap.class),
+					mock(AvatarMap.class),
+					mock(PermissionMap.class),
+					mock(UserReactionSummaryViewDboMapper.class),
+					mock(UserAwardDboMapper.class),
+					mock(AwardDboMapper.class),
+					messagePostCountMapper,
+					guestPermissionDataProvider);
+			provider = new UserDataProvider(
+					userDao,
+					mock(BrUserPermissionDao.class),
+					mock(EmailAddressDao.class),
+					bioInfoDao,
+					mock(UserContactInfoDboMapper.class),
+					userMap,
+					userBioInfoMap,
+					mock(EmailAddressMap.class),
+					mock(UserSettingsDboMapper.class),
+						mock(AwardDboMapper.class),
+						mock(UserAwardDboMapper.class),
+						userProfileFacade);
 
 			UserDbo userDbo = new UserDbo();
 			userDbo.setUserId(USER_ID);
@@ -355,7 +716,6 @@ class PolicyTest {
 			agg.setBio(bioDbo);
 			when(userProfileHydrationMapper.hydrateUsers(any())).thenReturn(List.of(agg));
 			when(userDao.get(any(UserDboExample.class))).thenReturn(List.of(userDbo));
-			when(bioInfoDao.get(USER_ID)).thenReturn(Optional.of(new UserBioInfoDbo()));
 			when(userBioInfoMap.toModel(any())).thenReturn(new UserBioInfo());
 			when(userMap.toModel(any())).thenReturn(new User());
 		}
@@ -370,11 +730,11 @@ class PolicyTest {
 			BoardPermissionViewDbo perm = new BoardPermissionViewDbo();
 			perm.setBoardId(1);
 			when(boardPermissionViewDboMapper.selectByExample(any())).thenReturn(List.of(perm));
-			ArgumentCaptor<com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample> exampleCaptor = ArgumentCaptor.forClass(com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample.class);
+			ArgumentCaptor<BoardPermissionViewDboExample> exampleCaptor = ArgumentCaptor.forClass(BoardPermissionViewDboExample.class);
 			loadBio();
 			verify(boardPermissionViewDboMapper).selectByExample(exampleCaptor.capture());
 			List<String> conditions = exampleCaptor.getValue().getOredCriteria().get(0).getAllCriteria().stream()
-					.map(com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample.Criterion::getCondition).toList();
+					.map(BoardPermissionViewDboExample.Criterion::getCondition).toList();
 			assertTrue(conditions.stream().anyMatch(condition -> condition.contains("permission_id in")));
 		}
 
@@ -383,7 +743,7 @@ class PolicyTest {
 			when(boardPermissionViewDboMapper.selectByExample(any())).thenReturn(List.of());
 			UserBioInfo bio = loadBio();
 			assertEquals(0, bio.getPostCount().intValue());
-			verify(messageDboMapper, never()).countByExample(any());
+			verify(messagePostCountMapper, never()).postCountsByOwnerWithinBoards(any(), any());
 		}
 
 		@Test
@@ -407,14 +767,12 @@ class PolicyTest {
 	class BatchAuthorLoading {
 
 		private UserDao userDao;
-		private UserPermissionViewDao userPermissionDao;
-		private UserBioInfoDao bioInfoDao;
-		private AvatarDao avatarDao;
+		private UserPermissionViewDboMapper userPermissionViewDboMapper;
 		private UserReactionSummaryViewDboMapper reactionSummaryMapper;
 		private MessagePostCountMapper messagePostCountMapper;
 		private UserProfileHydrationMapper userProfileHydrationMapper;
 		private BoardPermissionViewDboMapper boardPermissionViewDboMapper;
-		private ContentRenderer contentRenderer;
+		private ContentRenderingService contentRenderingService;
 		private UserMap userMap;
 		private UserBioInfoMap userBioInfoMap;
 		private PermissionMap permissionMap;
@@ -424,25 +782,18 @@ class PolicyTest {
 		@BeforeEach
 		void setup() {
 			userDao = mock(UserDao.class);
-			userPermissionDao = mock(UserPermissionViewDao.class);
-			bioInfoDao = mock(UserBioInfoDao.class);
-			avatarDao = mock(AvatarDao.class);
+			userPermissionViewDboMapper = mock(UserPermissionViewDboMapper.class);
 			reactionSummaryMapper = mock(UserReactionSummaryViewDboMapper.class);
 			messagePostCountMapper = mock(MessagePostCountMapper.class);
 			boardPermissionViewDboMapper = mock(BoardPermissionViewDboMapper.class);
-			contentRenderer = mock(ContentRenderer.class);
+			contentRenderingService = mock(ContentRenderingService.class);
 			userMap = mock(UserMap.class);
 			userBioInfoMap = mock(UserBioInfoMap.class);
 			permissionMap = mock(PermissionMap.class);
 			avatarMap = mock(AvatarMap.class);
-			provider = new UserDataProvider();
-			UserProfileFacade userProfileFacade = new UserProfileFacade();
-			GuestPermissionService guestPermissionService = new GuestPermissionService();
+			GuestPermissionDataProvider guestPermissionDataProvider =
+					new GuestPermissionDataProvider(boardPermissionViewDboMapper);
 			userProfileHydrationMapper = mock(UserProfileHydrationMapper.class);
-			ReflectionTestUtils.setField(guestPermissionService, "boardPermissionViewDboMapper", boardPermissionViewDboMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "guestPermissionService", guestPermissionService);
-			ReflectionTestUtils.setField(userProfileFacade, "userProfileHydrationMapper", userProfileHydrationMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "contentRenderer", contentRenderer);
 			when(userProfileHydrationMapper.hydrateUsers(any())).thenAnswer(invocation -> {
 				List<Integer> userIds = invocation.getArgument(0);
 				return userIds.stream().map(userId -> {
@@ -453,20 +804,33 @@ class PolicyTest {
 					return agg;
 				}).toList();
 			});
-			ReflectionTestUtils.setField(userProfileFacade, "userPermissionDao", userPermissionDao);
-			ReflectionTestUtils.setField(userProfileFacade, "reactionSummaryMapper", reactionSummaryMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "messagePostCountMapper", messagePostCountMapper);
-			ReflectionTestUtils.setField(userProfileFacade, "userMap", userMap);
-			ReflectionTestUtils.setField(userProfileFacade, "userBioInfoMap", userBioInfoMap);
-			ReflectionTestUtils.setField(userProfileFacade, "avatarMap", avatarMap);
-			ReflectionTestUtils.setField(provider, "userProfileFacade", userProfileFacade);
-			ReflectionTestUtils.setField(provider, "userDao", userDao);
-			ReflectionTestUtils.setField(provider, "userPermissionDao", userPermissionDao);
-			ReflectionTestUtils.setField(provider, "bioInfoDao", bioInfoDao);
-			ReflectionTestUtils.setField(provider, "avatarDao", avatarDao);
-			ReflectionTestUtils.setField(provider, "contentRenderer", contentRenderer);
-			ReflectionTestUtils.setField(provider, "userMap", userMap);
-			ReflectionTestUtils.setField(provider, "userBioInfoMap", userBioInfoMap);
+			UserProfileFacade userProfileFacade = new UserProfileFacade(
+					userProfileHydrationMapper,
+					userPermissionViewDboMapper,
+					contentRenderingService,
+					userMap,
+					userBioInfoMap,
+					mock(UserContactInfoMap.class),
+					avatarMap,
+					permissionMap,
+					reactionSummaryMapper,
+					mock(UserAwardDboMapper.class),
+					mock(AwardDboMapper.class),
+					messagePostCountMapper,
+					guestPermissionDataProvider);
+			provider = new UserDataProvider(
+					userDao,
+					mock(BrUserPermissionDao.class),
+					mock(EmailAddressDao.class),
+					mock(UserBioInfoDao.class),
+					mock(UserContactInfoDboMapper.class),
+					userMap,
+					userBioInfoMap,
+					mock(EmailAddressMap.class),
+					mock(UserSettingsDboMapper.class),
+						mock(AwardDboMapper.class),
+						mock(UserAwardDboMapper.class),
+						userProfileFacade);
 
 			BoardPermissionViewDbo perm = new BoardPermissionViewDbo();
 			perm.setBoardId(1);
@@ -475,22 +839,9 @@ class PolicyTest {
 			when(userBioInfoMap.toModel(any())).thenReturn(new UserBioInfo());
 		}
 
-		private void primeSubEntitiesFor(List<Integer> userIds) {
-			List<UserDbo> userDbos = userIds.stream().map(userId -> {
-				UserDbo userDbo = new UserDbo();
-				userDbo.setUserId(userId);
-				return userDbo;
-			}).toList();
-			List<UserBioInfoDbo> bioDbos = userIds.stream().map(userId -> {
-				UserBioInfoDbo bioDbo = new UserBioInfoDbo();
-				bioDbo.setUserId(userId);
-				bioDbo.setAvatarId(500 + userId);
-				return bioDbo;
-			}).toList();
-			when(userDao.get(any(UserDboExample.class))).thenReturn(userDbos);
-			when(bioInfoDao.get(any(UserBioInfoDboExample.class))).thenReturn(bioDbos);
-			when(userPermissionDao.get(any(UserPermissionViewDboExample.class))).thenReturn(List.of());
-			when(avatarDao.get(any(AvatarDboExample.class))).thenReturn(List.of());
+		private void primeSubEntities() {
+			when(userPermissionViewDboMapper.selectByExample(any(UserPermissionViewDboExample.class)))
+					.thenReturn(List.of());
 			when(reactionSummaryMapper.selectByExample(any())).thenReturn(List.of());
 			when(messagePostCountMapper.postCountsByOwnerWithinBoards(any(), any())).thenReturn(List.of());
 		}
@@ -504,14 +855,14 @@ class PolicyTest {
 
 		@Test
 		void singleAuthorIssuesOneQueryPerSubEntity() {
-			primeSubEntitiesFor(List.of(100));
+			primeSubEntities();
 			provider.findPublicAuthorsByIds(List.of(100));
 			verifyExactlyOneQueryPerSubEntity();
 		}
 
 		@Test
 		void manyAuthorsStillIssueOneQueryPerSubEntity() {
-			primeSubEntitiesFor(List.of(100, 101, 102, 103, 104));
+			primeSubEntities();
 			provider.findPublicAuthorsByIds(List.of(100, 101, 102, 103, 104));
 			verifyExactlyOneQueryPerSubEntity();
 		}
@@ -520,31 +871,51 @@ class PolicyTest {
 	@Nested
 	class ReadChokepoint {
 
-		private static final Set<String> RAW_BOARD_READ_ACCESSOR_NAMES = Set.of(
-				"com.zfgc.zfgbb.dao.BoardDao",
-				"com.zfgc.zfgbb.dao.ThreadDao",
-				"com.zfgc.zfgbb.dao.forum.MessageDao",
-				"com.zfgc.zfgbb.dao.forum.MessageHistoryDao",
-				"com.zfgc.zfgbb.dao.forum.CurrentMessageDao",
+		private static final String DBO_PACKAGE = "com.zfgc.zfgbb.dbo";
+
+		private static final String EXAMPLE_SUFFIX = "Example";
+
+		private static final Set<String> BOARD_SCOPED_DBO_SIMPLE_NAMES = Set.of(
+				"BoardDbo",
+				"ThreadDbo",
+				"MessageDbo",
+				"MessageHistoryDbo",
+				"CurrentMessageDbo",
+				"BoardSummaryViewDbo",
+				"ChildBoardViewDbo",
+				"LatestMessageInThreadViewDbo",
+				"RecentActivityViewDbo",
+				"AttachmentBoardViewDbo");
+
+		private static final Set<String> UNDERIVABLE_BOARD_READ_ACCESSOR_NAMES = Set.of(
+				"com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper");
+
+		private static final Set<String> ALWAYS_DERIVED_BOARD_READ_ACCESSOR_NAMES = Set.of(
 				"com.zfgc.zfgbb.mappers.BoardDboMapper",
 				"com.zfgc.zfgbb.mappers.ThreadDboMapper",
 				"com.zfgc.zfgbb.mappers.MessageDboMapper",
 				"com.zfgc.zfgbb.mappers.MessageHistoryDboMapper",
-				"com.zfgc.zfgbb.mappers.CurrentMessageDboMapper",
-				"com.zfgc.zfgbb.mappers.BoardSummaryViewDboMapper",
-				"com.zfgc.zfgbb.mappers.ChildBoardViewDboMapper",
-				"com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper",
-				"com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper",
-				"com.zfgc.zfgbb.mappers.RecentActivityViewDboMapper",
-				"com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper");
+				"com.zfgc.zfgbb.mappers.CurrentMessageDboMapper");
 
-		private static final DescribedPredicate<JavaClass> areRawUnfilteredBoardReadAccessors =
-				new DescribedPredicate<JavaClass>("raw unfiltered board/thread/message read accessors") {
-					@Override
-					public boolean test(JavaClass javaClass) {
-						return RAW_BOARD_READ_ACCESSOR_NAMES.contains(javaClass.getFullName());
-					}
-				};
+		private static final DescribedPredicate<JavaClass> resideInTheDataAccessLayer =
+				JavaClass.Predicates.resideInAnyPackage("com.zfgc.zfgbb.dao..", "com.zfgc.zfgbb.mappers..");
+
+		private static String withoutExampleSuffix(String simpleName) {
+			return simpleName.endsWith(EXAMPLE_SUFFIX)
+					? simpleName.substring(0, simpleName.length() - EXAMPLE_SUFFIX.length())
+					: simpleName;
+		}
+
+		private static boolean isBoardScopedDbo(JavaClass javaClass) {
+			return javaClass.getPackageName().equals(DBO_PACKAGE)
+					&& BOARD_SCOPED_DBO_SIMPLE_NAMES.contains(withoutExampleSuffix(javaClass.getSimpleName()));
+		}
+
+		private static boolean readsBoardScopedDbos(JavaClass javaClass) {
+			return javaClass.getDirectDependenciesFromSelf().stream()
+					.map(Dependency::getTargetClass)
+					.anyMatch(ReadChokepoint::isBoardScopedDbo);
+		}
 
 		@Test
 		void rawBoardReadsOnlyThroughFilteredPathOrAnnotatedReaders() {
@@ -553,19 +924,116 @@ class PolicyTest {
 					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
 					.importPackages("com.zfgc.zfgbb");
 
+			Set<String> resolvedBoardScopedDboNames = new HashSet<>();
+			Set<String> boardReadAccessorNames = new HashSet<>(UNDERIVABLE_BOARD_READ_ACCESSOR_NAMES);
+			for (JavaClass javaClass : appClasses) {
+				if (isBoardScopedDbo(javaClass))
+					resolvedBoardScopedDboNames.add(withoutExampleSuffix(javaClass.getSimpleName()));
+				if (resideInTheDataAccessLayer.test(javaClass) && readsBoardScopedDbos(javaClass))
+					boardReadAccessorNames.add(javaClass.getFullName());
+			}
+
+			assertEquals(BOARD_SCOPED_DBO_SIMPLE_NAMES, resolvedBoardScopedDboNames,
+					"every board-scoped Dbo name must resolve against the imported classes; a rename that matched "
+							+ "nothing would silently empty the derived accessor set and disable this rule");
+			assertTrue(boardReadAccessorNames.containsAll(ALWAYS_DERIVED_BOARD_READ_ACCESSOR_NAMES),
+					"derivation stopped seeing the generated board mappers, which name their Dbo only as a type "
+							+ "argument of the root interface they extend; the rule would still pass while "
+							+ "guarding nothing. Derived: " + boardReadAccessorNames);
+
+			DescribedPredicate<JavaClass> areBoardReadAccessors =
+					new DescribedPredicate<JavaClass>("board/thread/message read accessors") {
+						@Override
+						public boolean test(JavaClass javaClass) {
+							return boardReadAccessorNames.contains(javaClass.getFullName());
+						}
+					};
+
 			ArchRule rule = noClasses()
-					.that().resideOutsideOfPackages(
-							"com.zfgc.zfgbb.migrator..",
-							"com.zfgc.zfgbb.dao..",
-							"com.zfgc.zfgbb.services.forum..",
-							"com.zfgc.zfgbb.services.search..",
-							"com.zfgc.zfgbb.dataprovider.forum..")
+					.that().resideOutsideOfPackages("com.zfgc.zfgbb.migrator..")
+					.and(DescribedPredicate.not(areBoardReadAccessors))
+					.and().areNotAnnotatedWith(BoardVisibilityChokepoint.class)
 					.and().areNotAnnotatedWith(UnfilteredBoardRead.class)
-					.should().dependOnClassesThat(areRawUnfilteredBoardReadAccessors)
+					.should().dependOnClassesThat(areBoardReadAccessors)
 					.as("board/thread/message content must be read only through the board-visibility-filtered chokepoint")
 					.because("raw unfiltered reads of board/thread/message can leak hidden-board content; "
-							+ "route the read through ForumService or SearchService, or annotate the class with "
-							+ "@UnfilteredBoardRead(\"honest reason\") when the unfiltered access is deliberate and safe");
+							+ "route the read through an existing chokepoint, or annotate the class with "
+							+ "@BoardVisibilityChokepoint(\"how it filters\") when the class itself enforces board "
+							+ "visibility, or @UnfilteredBoardRead(\"honest reason\") when the unfiltered access is "
+							+ "deliberate and safe");
+
+			rule.check(appClasses);
+		}
+	}
+
+	@Nested
+	class LayerDirection {
+
+		private static final String SERVICE_LAYER_PACKAGE_PREFIX = "com.zfgc.zfgbb.services.";
+
+		private static final DescribedPredicate<JavaClass> areServiceLayerClasses =
+				JavaClass.Predicates.resideInAPackage(SERVICE_LAYER_PACKAGE_PREFIX + ".");
+
+		private static final Set<String> SERVICE_LAYER_SENTINELS = Set.of(
+				"com.zfgc.zfgbb.services.forum.ForumService",
+				"com.zfgc.zfgbb.services.users.UserService",
+				"com.zfgc.zfgbb.services.system.InstallService",
+				"com.zfgc.zfgbb.services.cms.wiki.WikiService");
+
+		private static void requireTheForbiddenTargetsWereFound(JavaClasses appClasses,
+				DescribedPredicate<JavaClass> forbiddenTargets, String rule) {
+			Set<String> matched = new HashSet<>();
+			for (JavaClass javaClass : appClasses)
+				if (forbiddenTargets.test(javaClass))
+					matched.add(javaClass.getFullName());
+			assertTrue(matched.containsAll(SERVICE_LAYER_SENTINELS),
+					rule + " resolved " + matched.size() + " service-layer classes and is missing at least one "
+							+ "sentinel. noClasses().should().dependOnClassesThat(...) passes silently when the "
+							+ "TARGET set is empty -- failOnEmptyShould only guards the subject -- so renaming or "
+							+ "emptying the services package would leave this rule green while guarding nothing. "
+							+ "Matched: " + matched);
+		}
+
+		@Test
+		void operationalArchiveUtilitiesNeverDependOnTheServiceLayer() {
+			JavaClasses appClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			requireTheForbiddenTargetsWereFound(appClasses, areServiceLayerClasses,
+					"operationalArchiveUtilitiesNeverDependOnTheServiceLayer");
+
+			ArchRule rule = noClasses()
+					.that().resideInAPackage("com.zfgc.zfgbb.operations..")
+					.should().dependOnClassesThat(areServiceLayerClasses)
+					.as("the operations layer must not depend on the service layer")
+					.because("services.system already builds on operations.archive, so any dependency back into "
+							+ "services closes a package cycle and drags Spring-free archive and dump utilities "
+							+ "into the service layer; a helper both sides need belongs in operations, the way "
+							+ "BackupArchiveWriter.isOperationalArtifact and OperationFiles.deleteTree do");
+
+			rule.check(appClasses);
+		}
+
+		@Test
+		void layersBelowTheServiceLayerNeverDependOnIt() {
+			JavaClasses appClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			requireTheForbiddenTargetsWereFound(appClasses, areServiceLayerClasses,
+					"layersBelowTheServiceLayerNeverDependOnIt");
+
+			ArchRule rule = noClasses()
+					.that().resideInAnyPackage("..dataprovider..", "..content..", "..mappers..", "..dao..")
+					.should().dependOnClassesThat(areServiceLayerClasses)
+					.as("the dataprovider, content, mapper and dao layers must not depend on the service layer")
+					.because("services orchestrate dataproviders, data access and content rendering, never the "
+							+ "reverse; a query several services share belongs in the layer below them, not in a "
+							+ "service they call back into, and a row a mapper reads or writes is a model type, not "
+							+ "a service type");
 
 			rule.check(appClasses);
 		}
@@ -575,7 +1043,7 @@ class PolicyTest {
 	class PersistenceMechanism {
 
 		@Test
-		void rawJdbcTemplateOnlyThroughAnnotatedRepositories() {
+		void rawJdbcTemplateBannedFromProductionCode() {
 			JavaClasses appClasses = new ClassFileImporter()
 					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
 					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -583,14 +1051,10 @@ class PolicyTest {
 
 			ArchRule rule = noClasses()
 					.that().resideOutsideOfPackages("com.zfgc.zfgbb.migrator..")
-					.and().areNotAnnotatedWith(RawSqlAccess.class)
 					.should().dependOnClassesThat().areAssignableTo(JdbcTemplate.class)
 					.orShould().dependOnClassesThat().areAssignableTo(NamedParameterJdbcTemplate.class)
-					.as("plain single-table equality/IN CRUD against the zfgbb schema must use the generated "
-							+ "*DboMapper/*DboExample, never raw JdbcTemplate")
-					.because("raw JdbcTemplate against the zfgbb target schema is banned; hand SQL is allowed only "
-							+ "for CAS / FOR UPDATE / null-set / ON CONFLICT / aggregates / joins / isGeneratedAlways / "
-							+ "legacy-SMF-source, and such a class must declare @RawSqlAccess(\"honest reason\")");
+					.as("production classes must never depend on raw JdbcTemplate")
+					.because("raw JdbcTemplate is strictly banned from production code; all data access must use MyBatis mappers or services");
 
 			rule.check(appClasses);
 		}

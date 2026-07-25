@@ -6,6 +6,12 @@ declare raw_code text := normalize(regexp_replace(replace(trim(p_code), '_', ' '
 begin
 
 	p_code := zfgbb.canonical_template_code(raw_code);
+
+	if exists (select 1 from zfgbb.content_template
+		where code = p_code and wiki_page_id is not null) then
+		return;
+	end if;
+
 	update zfgbb.content_template set source_code = raw_code, scope = p_scope, source = p_source, body = p_body,
 		updated_ts = current_timestamp
 	where code = p_code and content_format = p_format and wiki_page_id is null;
@@ -42,16 +48,16 @@ select zfgbb.seed_content_template('projectcard', 'MARKDOWN', 'ALL', '/projects/
 	E'{{#found}}**[{{title}}](/projects/{{slug}})**\n\n{{stats}}\n\n{{summary}}{{/found}}{{^found}}*No featured project configured.*{{/found}}');
 
 select zfgbb.seed_content_template('featuredproject', 'BBCODE', 'ALL', '/projects/card?slug={_1}',
-	'{{#found}}<div class="p-4">[grid=2]<div>{{#preview}}<a class="bb-resource-link" href="/content/projects/{{slug}}"><img class="bb-code-preview" src="/content/{{preview}}" alt=""/></a>{{/preview}}</div><div><h5 class="text-highlighted"><a class="bb-resource-link" href="/content/projects/{{slug}}">{{title}}</a></h5>{{#author}}<h6 class="text-dimmed">Developer: {{#authorUserId}}[member={{authorUserId}}]{{author}}[/member]{{/authorUserId}}{{^authorUserId}}{{author}}{{/authorUserId}}</h6>{{/author}}{{#stats}}<h6 class="text-dimmed">{{stats}}</h6>{{/stats}}<a class="bb-resource-link text-sm text-highlighted" href="/content/projects/{{slug}}">View project &rarr;</a></div>[/grid]</div>{{/found}}{{^found}}[i]No featured project configured.[/i]{{/found}}');
+	'{{#found}}<div class="bb-template-panel">[grid=2]<div>{{#preview}}<a class="bb-resource-link" href="/content/projects/{{slug}}"><img class="bb-code-preview" src="/content/{{preview}}" alt=""/></a>{{/preview}}</div><div><h5 class="bb-template-title"><a class="bb-resource-link" href="/content/projects/{{slug}}">{{title}}</a></h5>{{#author}}<h6 class="bb-template-byline">Developer: {{#authorUserId}}[member={{authorUserId}}]{{author}}[/member]{{/authorUserId}}{{^authorUserId}}{{author}}{{/authorUserId}}</h6>{{/author}}{{#stats}}<h6 class="bb-template-byline">{{stats}}</h6>{{/stats}}<a class="bb-resource-link bb-template-action" href="/content/projects/{{slug}}">View project &rarr;</a></div>[/grid]</div>{{/found}}{{^found}}[i]No featured project configured.[/i]{{/found}}');
 
 select zfgbb.seed_content_template('recentactivity', 'BBCODE', 'ALL', '/board/recent-activity?limit={limit}',
-	'<div class="p-4 space-y-2">{{#data}}<div class="text-sm">[thread={{threadId}}]{{threadName}}[/thread]<div class="text-dimmed">in {{boardName}}{{#lastPosterId}} by [member={{lastPosterId}}]{{lastPoster}}[/member]{{/lastPosterId}} &middot; {{#formatDate}}{{lastPostTs}}{{/formatDate}}</div></div>{{/data}}{{^data}}[i]No recent activity.[/i]{{/data}}</div>');
+	'<div class="bb-template-panel bb-template-stacked">{{#data}}<div class="bb-template-entry">[thread={{threadId}}]{{threadName}}[/thread]<div class="bb-template-byline">in {{#boardId}}[board={{boardId}}]{{boardName}}[/board]{{/boardId}}{{^boardId}}{{boardName}}{{/boardId}}{{#lastPosterId}} by [member={{lastPosterId}}]{{lastPoster}}[/member]{{/lastPosterId}} &middot; {{#formatDate}}{{lastPostTs}}{{/formatDate}}</div></div>{{/data}}{{^data}}[i]No recent activity.[/i]{{/data}}</div>');
 
 select zfgbb.seed_content_template('announcements', 'BBCODE', 'ALL', '/board/recent-activity?boardId={boardId}&limit={limit}',
-	E'<div class="p-4">{{#data}}{{#-first}}{{#template}}announcementlead\nthreadId={{threadId}}\n{{/template}}{{/-first}}{{/data}}<ul class="mt-4 border-t border-default pt-3 space-y-1">{{#data}}{{^-first}}<li class="text-sm">[thread={{threadId}}]{{threadName}}[/thread]<span class="text-dimmed"> &middot; {{#lastPosterId}}[member={{lastPosterId}}]{{lastPoster}}[/member]{{/lastPosterId}} &middot; {{#formatDate}}{{lastPostTs}}{{/formatDate}}</span></li>{{/-first}}{{/data}}</ul>{{^data}}[i]No announcements yet.[/i]{{/data}}</div>');
+	E'<div class="bb-template-panel">{{#data}}{{#-first}}{{#template}}announcementlead\nthreadId={{threadId}}\n{{/template}}{{/-first}}{{/data}}<ul class="bb-template-list">{{#data}}{{^-first}}<li class="bb-template-entry">[thread={{threadId}}]{{threadName}}[/thread]<span class="bb-template-byline"> &middot; {{#lastPosterId}}[member={{lastPosterId}}]{{lastPoster}}[/member]{{/lastPosterId}} &middot; {{#formatDate}}{{lastPostTs}}{{/formatDate}}</span></li>{{/-first}}{{/data}}</ul>{{^data}}[i]No announcements yet.[/i]{{/data}}</div>');
 
 select zfgbb.seed_content_template('announcementlead', 'BBCODE', 'ALL', '/thread/{threadId}?page=1&pageSize=1',
-	'<div><h1 class="text-4xl text-highlighted">[thread={{id}}]{{threadName}}[/thread]</h1><h2 class="text-base italic text-muted">{{#messages}}{{#-first}}{{#createdUser.id}}[member={{createdUser.id}}]{{createdUser.displayName}}[/member]{{/createdUser.id}}{{^createdUser.id}}{{createdUser.displayName}}{{/createdUser.id}} &middot; {{#formatDate}}{{createdTs}}{{/formatDate}}{{/-first}}{{/messages}}</h2><div class="mt-4">{{#messages}}{{#-first}}{{currentMessage.messageText}}{{/-first}}{{/messages}}</div></div>');
+	'<div><h1 class="bb-template-lead-title">[thread={{id}}]{{threadName}}[/thread]</h1><h2 class="bb-template-lead-byline">{{#messages}}{{#-first}}{{#createdUser.id}}[member={{createdUser.id}}]{{createdUser.displayName}}[/member]{{/createdUser.id}}{{^createdUser.id}}{{createdUser.displayName}}{{/createdUser.id}} &middot; {{#formatDate}}{{createdTs}}{{/formatDate}}{{/-first}}{{/messages}}</h2><div class="bb-template-lead-body">{{#messages}}{{#-first}}{{currentMessage.messageText}}{{/-first}}{{/messages}}</div></div>');
 
 select zfgbb.seed_content_template('projectnews', 'BBCODE', 'ALL', '/projects/news?slug={_1}&limit={_2}',
 	E'{{#empty}}[i]No news yet.[/i]{{/empty}}{{^empty}}[list]\n{{#items}}{{#threadId}}[li][thread={{threadId}}]{{subject}}[/thread]{{date}}[/li]\n{{/threadId}}{{^threadId}}[li][b]{{subject}}[/b]{{date}}[/li]\n{{/threadId}}{{/items}}[/list]{{/empty}}');

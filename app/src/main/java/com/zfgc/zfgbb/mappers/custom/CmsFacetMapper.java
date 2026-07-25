@@ -4,27 +4,16 @@ import java.util.List;
 
 import org.apache.ibatis.annotations.Select;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public interface CmsFacetMapper {
 
+	@Getter
+	@Setter
 	class FacetCount {
 		private String value;
 		private long count;
-
-		public String getValue() {
-			return value;
-		}
-
-		public void setValue(String value) {
-			this.value = value;
-		}
-
-		public long getCount() {
-			return count;
-		}
-
-		public void setCount(long count) {
-			this.count = count;
-		}
 	}
 
 	@Select("""

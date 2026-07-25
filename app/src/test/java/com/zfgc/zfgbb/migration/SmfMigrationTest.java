@@ -1,14 +1,19 @@
 package com.zfgc.zfgbb.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,7 +21,10 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.zfgc.zfgbb.dbo.*;
+import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.migrator.jobs.Job;
 import com.zfgc.zfgbb.migrator.jobs.JobState;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
@@ -25,12 +33,36 @@ import com.zfgc.zfgbb.migrator.jobs.JobType;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SmfMigrationTest extends MigrationE2E {
 
-	private static final Map<Pattern, String> REF_SOURCES = Map.of(
-			Pattern.compile("\\[attach=(\\d+)\\]"), "select file_attachment_id from zfgbb.file_attachments",
-			Pattern.compile("\\[thread=(\\d+)(?:\\s|\\])"), "select thread_id from zfgbb.thread",
-			Pattern.compile("\\[board=(\\d+)\\]"), "select board_id from zfgbb.board",
-			Pattern.compile("\\[member=(\\d+)\\]"), "select user_id from zfgbb.\"user\"",
-			Pattern.compile("msg=(\\d+)"), "select message_id from zfgbb.message");
+	@Autowired private AvatarDboMapper avatarDboMapper;
+	@Autowired private AwardDboMapper awardDboMapper;
+	@Autowired private BoardDboMapper boardDboMapper;
+	@Autowired private BrBoardPermissionDboMapper brBoardPermissionDboMapper;
+	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
+	@Autowired private CategoryDboMapper categoryDboMapper;
+	@Autowired private EmailAddressDboMapper emailAddressDboMapper;
+	@Autowired private MigratorIdMapDboMapper migratorIdMapDboMapper;
+	@Autowired private PermissionDboMapper permissionDboMapper;
+	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
+	@Autowired private FileAttachmentDboMapper fileAttachmentDboMapper;
+	@Autowired private IpAddressDboMapper ipAddressDboMapper;
+	@Autowired private MigratorAttachmentRefRewriteDboMapper migratorAttachmentRefRewriteDboMapper;
+	@Autowired private ModerationLogDboMapper moderationLogDboMapper;
+	@Autowired private NotificationSubscriptionDboMapper notificationSubscriptionDboMapper;
+	@Autowired private PermissionGroupAssocDboMapper permissionGroupAssocDboMapper;
+	@Autowired private PermissionGroupDboMapper permissionGroupDboMapper;
+	@Autowired private PersonalMessageConversationDboMapper personalMessageConversationDboMapper;
+	@Autowired private PersonalMessageDboMapper personalMessageDboMapper;
+	@Autowired private PersonalMessageRecipientDboMapper personalMessageRecipientDboMapper;
+	@Autowired private PollChoiceDboMapper pollChoiceDboMapper;
+	@Autowired private PollDboMapper pollDboMapper;
+	@Autowired private ReactionDboMapper reactionDboMapper;
+	@Autowired private ReactionTypeDboMapper reactionTypeDboMapper;
+	@Autowired private UserBioInfoDboMapper userBioInfoDboMapper;
+	@Autowired private UserContactInfoDboMapper userContactInfoDboMapper;
+	@Autowired private UserDboMapper userDboMapper;
+	@Autowired private UserPermissionGroupAssocDboMapper userPermissionGroupAssocDboMapper;
+	@Autowired private UserPollChoiceDboMapper userPollChoiceDboMapper;
+	@Autowired private UserWarningDboMapper userWarningDboMapper;
 
 	@Test
 	@Order(1)
@@ -38,105 +70,110 @@ class SmfMigrationTest extends MigrationE2E {
 		assertEquals(JobType.SMF_INSTALLATION_PIPELINE.size(), smfJobs.size(),
 				"Pipeline should submit one job per converter type");
 
-		assertSameCount(smf, "smf_1members", "zfgbb.\"user\" where user_id <> 0");
-		assertSameCount(smf, "smf_1categories", "zfgbb.category");
-		assertSameCount(smf, "smf_1boards", "zfgbb.board");
-		assertEquals(1, count("zfgbb.br_board_permission bp "
-				+ "join zfgbb.permission p on p.permission_id = bp.permission_id "
-				+ "join zfgbb.migrator_id_map m on m.zfgbb_id = bp.board_id "
-				+ "where m.entity_type = 'BOARD' and m.legacy_id = 1 and p.permission_code = 'ZFGC_WIKI_MODERATOR'"),
+		UserDboExample migratedUsers = new UserDboExample();
+		migratedUsers.createCriteria().andUserIdNotEqualTo(0).andUserNameNotEqualTo(ADMIN_USER);
+		assertSameCount(smf, "smf_1members", userDboMapper.countByExample(migratedUsers));
+		assertSameCount(smf, "smf_1categories", categoryDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1boards", boardsMappedFromLegacy("BOARD"));
+		assertEquals(1, migratedBoardPermissions(1, "ZFGC_WIKI_MODERATOR"),
 				"BoardConverter honors the operator group->permission map: SMF group 9 -> ZFGC_WIKI_MODERATOR on board 1");
-		assertEquals(1, count("zfgbb.br_board_permission bp "
-				+ "join zfgbb.permission p on p.permission_id = bp.permission_id "
-				+ "join zfgbb.migrator_id_map m on m.zfgbb_id = bp.board_id "
-				+ "where m.entity_type = 'BOARD' and m.legacy_id = 1 and p.permission_code = 'ZFGC_GUEST'"),
+		assertEquals(1, migratedBoardPermissions(1, "ZFGC_GUEST"),
 				"reserved SMF guest group (-1) maps to ZFGC_GUEST on the migrated board");
-		assertSourceMatchesTarget(smf, "select count(*) from smf_1topics",
-				"select " + forumCountsAfterSmf.get("thread"));
-		assertSourceMatchesTarget(smf, "select count(*) from smf_1messages",
-				"select " + forumCountsAfterSmf.get("message"));
-		assertSameCount(smf, "smf_1members", "zfgbb.user_bio_info");
-		assertSameCount(smf, "smf_1members", "zfgbb.user_contact_info");
-		assertSameCount(smf, "smf_1members", "zfgbb.email_address");
-		assertSameCount(smf, "smf_1polls", "zfgbb.poll");
-		assertSameCount(smf, "smf_1poll_choices", "zfgbb.poll_choice");
-		assertSameCount(smf, "smf_1log_karma", "zfgbb.reaction where reactable_type = 'MESSAGE'");
-		assertEquals(5, count("zfgbb.reaction_type"), "the reaction vocabulary is seeded");
+		assertSourceMatchesTarget(smf, "select count(*) from smf_1topics", threadCountAfterSmf);
+		assertSourceMatchesTarget(smf, "select count(*) from smf_1messages", messageCountAfterSmf);
+
+		UserBioInfoDboExample migratedBios = new UserBioInfoDboExample();
+		migratedBios.createCriteria().andUserIdNotEqualTo(1);
+		assertSameCount(smf, "smf_1members", userBioInfoDboMapper.countByExample(migratedBios));
+
+		UserContactInfoDboExample migratedContacts = new UserContactInfoDboExample();
+		migratedContacts.createCriteria().andUserIdNotEqualTo(1);
+		assertSameCount(smf, "smf_1members", userContactInfoDboMapper.countByExample(migratedContacts));
+
+		assertSameCount(smf, "smf_1members", emailAddressesNotHeldByUser(1));
+		assertSameCount(smf, "smf_1polls", pollDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1poll_choices", pollChoiceDboMapper.countByExample(null));
+
+		ReactionDboExample messageReactions = new ReactionDboExample();
+		messageReactions.createCriteria().andReactableTypeEqualTo("MESSAGE");
+		assertSameCount(smf, "smf_1log_karma", reactionDboMapper.countByExample(messageReactions));
+		assertEquals(5, reactionTypeDboMapper.countByExample(null), "the reaction vocabulary is seeded");
 		assertSourceMatchesTarget(smf, "select count(*) from smf_1log_karma where action = 1",
-				"select count(*) from zfgbb.reaction r join zfgbb.reaction_type t on t.reaction_type_id = r.reaction_type_id "
-						+ "where t.code = 'LIKE'");
-		assertEquals(3, count("zfgbb.award"), "the award catalog is seeded");
-		assertSameCount(smf, "smf_1attachments where id_msg > 0", "zfgbb.file_attachments");
-		assertSameCount(smf,
+				reactionsWithCode("LIKE"));
+		assertEquals(3, awardDboMapper.countByExample(null), "the award catalog is seeded");
+		assertSameCount(smf, "smf_1attachments where id_msg > 0", fileAttachmentDboMapper.countByExample(null));
+		assertSameCount(smf, 
 				"smf_1members m where m.avatar != '' or exists "
 						+ "(select 1 from smf_1attachments a where a.id_member = m.id_member and a.id_msg = 0)",
-				"zfgbb.avatar");
-		assertSameCount(smf, "smf_1membergroups", "zfgbb.permission_group");
-		assertSameCount(smf, "smf_1personal_messages", "zfgbb.personal_message");
-		assertSameCount(smf, "smf_1pm_recipients", "zfgbb.personal_message_recipient");
+				avatarDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1membergroups", permissionGroupDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1personal_messages", personalMessageDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1pm_recipients", personalMessageRecipientDboMapper.countByExample(null));
 		assertSameCount(smf, "(select distinct id_pm_head from smf_1personal_messages) heads",
-				"zfgbb.personal_message_conversation");
-		assertSameCount(smf, "smf_1log_notify", "zfgbb.notification_subscription");
-		assertSameCount(smf, "smf_1log_comments where comment_type = 'warning'", "zfgbb.user_warning");
-		assertSourceMatchesTarget(smf,
+				personalMessageConversationDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1log_notify", notificationSubscriptionDboMapper.countByExample(null));
+		assertSameCount(smf, "smf_1log_comments where comment_type = 'warning'",
+				userWarningDboMapper.countByExample(null));
+		assertSourceMatchesTarget(smf, 
 				"select (select count(*) from smf_1log_actions where action != 'delete_member') "
 						+ "+ (select count(*) from smf_1log_comments where comment_type = 'warning')",
-				"select count(*) from zfgbb.moderation_log");
+				moderationLogDboMapper.countByExample(null));
 		assertSameCount(smf, "smf_1log_comments where comment_type = 'warning'",
-				"zfgbb.moderation_log where action = 'WARN'");
-		assertSourceMatchesTarget(smf,
+				countModerationLog(criteria -> criteria.andActionEqualTo("WARN")));
+		assertSourceMatchesTarget(smf, 
 				"select count(*) from (select poster_ip from smf_1messages union "
 						+ "select postIP from smf_1game_comments union "
 						+ "select postIP from smf_1resource_comments) ips",
-				"select count(*) from zfgbb.ip_address");
-		assertSourceMatchesTarget(smf,
+				ipAddressDboMapper.countByExample(null));
+		assertSourceMatchesTarget(smf, 
 				"select (select count(*) from smf_1messages) + (select count(*) from smf_1messages_history)",
-				"select " + forumCountsAfterSmf.get("message_history"));
-		assertSourceMatchesTarget(smf,
-				"select count(*) from smf_1log_polls where id_member != 0",
-				"select count(*) from zfgbb.user_poll_choice");
+				messageHistoryCountAfterSmf);
+		assertSourceMatchesTarget(smf, "select count(*) from smf_1log_polls where id_member != 0",
+				userPollChoiceDboMapper.countByExample(null));
 
-		assertNoOrphanRewrittenBbcodes();
+		assertNoOrphanRewrittenBBCodes();
 		assertAllMigratedAttachmentsPresent();
 	}
 
 	@Test
 	@Order(4)
 	void socialDataCarriesStateAndRelationships() {
-		assertEquals(2, count("zfgbb.personal_message where deleted_by_sender"),
+		PersonalMessageDboExample senderDeleted = new PersonalMessageDboExample();
+		senderDeleted.createCriteria().andDeletedBySenderEqualTo(true);
+		assertEquals(2, personalMessageDboMapper.countByExample(senderDeleted),
 				"the sender-deleted PMs keep their mailbox state");
-		assertEquals(1, count("zfgbb.personal_message_recipient where bcc"),
+		assertEquals(1, countPmRecipients(criteria -> criteria.andBccEqualTo(true)),
 				"the BCC recipient survives with the flag");
-		assertEquals(3, count("zfgbb.personal_message_recipient where read_flag"),
+		assertEquals(3, countPmRecipients(criteria -> criteria.andReadFlagEqualTo(true)),
 				"read state migrates");
-		assertEquals(1, count("zfgbb.personal_message_recipient where deleted_flag"),
+		assertEquals(1, countPmRecipients(criteria -> criteria.andDeletedFlagEqualTo(true)),
 				"recipient-side deletes migrate");
-		assertEquals(2, count("zfgbb.personal_message m join zfgbb.personal_message_conversation c "
-				+ "on c.personal_message_conversation_id = m.personal_message_conversation_id "
-				+ "where c.subject = 'kamehameha'"),
+		assertEquals(2, messagesInConversationSubject("kamehameha"),
 				"the reply chain lands in one conversation without Re: prefixes");
-		assertEquals(2, count("zfgbb.notification_subscription where board_id is not null"),
+		assertEquals(2, countSubscriptions(criteria -> criteria.andBoardIdIsNotNull()),
 				"board watches migrate");
-		assertEquals(3, count("zfgbb.notification_subscription where thread_id is not null"),
+		assertEquals(3, countSubscriptions(criteria -> criteria.andThreadIdIsNotNull()),
 				"topic watches migrate");
-		assertEquals(1, count("zfgbb.user_warning where points = 20"),
+
+		UserWarningDboExample pointedWarnings = new UserWarningDboExample();
+		pointedWarnings.createCriteria().andPointsEqualTo(20);
+		assertEquals(1, userWarningDboMapper.countByExample(pointedWarnings),
 				"a warning carries its points on the per-warning ledger");
-		assertEquals(0, count("zfgbb.moderation_log where action = 'DELETE_MEMBER'"),
+		assertEquals(0, countModerationLog(criteria -> criteria.andActionEqualTo("DELETE_MEMBER")),
 				"spam-purge noise is not migrated");
-		assertTrue(count("zfgbb.moderation_log where action = 'LOCK_THREAD' and thread_id is not null") >= 1,
+		assertTrue(countModerationLog(
+				criteria -> criteria.andActionEqualTo("LOCK_THREAD").andThreadIdIsNotNull()) >= 1,
 				"mod actions keep their remapped thread references");
-		assertEquals(2, count("zfgbb.permission_group where color is not null"),
+
+		PermissionGroupDboExample coloredGroups = new PermissionGroupDboExample();
+		coloredGroups.createCriteria().andColorIsNotNull();
+		assertEquals(2, permissionGroupDboMapper.countByExample(coloredGroups),
 				"group colors migrate");
-		assertTrue(count("zfgbb.user_permission_group_assoc") >= 4,
+		assertTrue(userPermissionGroupAssocDboMapper.countByExample(null) >= 4,
 				"primary, post, and additional group memberships all land");
-		assertTrue(count("zfgbb.permission_group_assoc") > 0,
+		assertTrue(permissionGroupAssocDboMapper.countByExample(null) > 0,
 				"groups grant permissions via permission_group_assoc");
-		assertEquals(1, jdbcTemplate.queryForObject(
-				"select count(*) from zfgbb.br_user_permission bup "
-						+ "join zfgbb.permission p on p.permission_id = bup.user_permission_id "
-						+ "join zfgbb.migrator_id_map m on m.zfgbb_id = bup.user_id "
-						+ "where m.entity_type = 'USER' and m.legacy_id = 3 and p.permission_code = 'ZFGC_WIKI_MODERATOR'",
-				Integer.class),
+		assertEquals(1, migratedUserPermissions(3, "ZFGC_WIKI_MODERATOR"),
 				"the wiki-maintainer group expands into the enforced br_user_permission");
 	}
 
@@ -144,7 +181,7 @@ class SmfMigrationTest extends MigrationE2E {
 	@Order(2)
 	void rerunningAttachmentsDoesNotDoubleRewrite() throws Exception {
 		List<String> beforeBodies = attachBodies();
-		int markersBefore = count("zfgbb.migrator_attachment_ref_rewrites");
+		long markersBefore = migratorAttachmentRefRewriteDboMapper.countByExample(null);
 
 		Job rerun = jobService.submit(JobType.ATTACHMENTS, params()).get(0);
 		Job finished = waitForAllTerminal(List.of(rerun), Duration.ofMinutes(2)).get(0);
@@ -153,43 +190,176 @@ class SmfMigrationTest extends MigrationE2E {
 						+ " (error=" + finished.getError() + ")");
 
 		assertEquals(beforeBodies, attachBodies(), "[attach=N] bodies must be unchanged on re-run");
-		assertEquals(markersBefore, count("zfgbb.migrator_attachment_ref_rewrites"),
+		assertEquals(markersBefore, migratorAttachmentRefRewriteDboMapper.countByExample(null),
 				"re-run should not add new rewrite markers");
 	}
 
-	private List<String> attachBodies() {
-		return jdbcTemplate.queryForList(
-				"select message_text from zfgbb.message_history where message_text like '%[attach=%' order by message_history_id",
-				String.class);
+	private Integer permissionIdOf(String permissionCode) {
+		PermissionDboExample byCode = new PermissionDboExample();
+		byCode.createCriteria().andPermissionCodeEqualTo(permissionCode);
+		return permissionDboMapper.selectByExample(byCode).stream()
+				.map(PermissionDbo::getPermissionId).findFirst().orElse(null);
 	}
 
-	private void assertNoOrphanRewrittenBbcodes() {
-		List<String> bodies = jdbcTemplate.queryForList(
-				"select message_text from zfgbb.message_history", String.class);
-		REF_SOURCES.forEach((pattern, validIdsQuery) -> {
-			Set<Integer> validIds = new HashSet<>(jdbcTemplate.queryForList(validIdsQuery, Integer.class));
+	private List<Integer> zfgbbIdsMappedFrom(String entityType, Integer legacyId) {
+		MigratorIdMapDboExample mapped = new MigratorIdMapDboExample();
+		MigratorIdMapDboExample.Criteria criteria = mapped.createCriteria().andEntityTypeEqualTo(entityType);
+		if (legacyId != null)
+			criteria.andLegacyIdEqualTo(legacyId);
+		return migratorIdMapDboMapper.selectByExample(mapped).stream()
+				.map(MigratorIdMapDbo::getZfgbbId).toList();
+	}
+
+	private long boardsMappedFromLegacy(String entityType) {
+		List<Integer> mappedBoardIds = zfgbbIdsMappedFrom(entityType, null);
+		if (mappedBoardIds.isEmpty())
+			return 0;
+		BoardDboExample migratedBoards = new BoardDboExample();
+		migratedBoards.createCriteria().andBoardIdIn(mappedBoardIds);
+		return boardDboMapper.countByExample(migratedBoards);
+	}
+
+	private long migratedBoardPermissions(int legacyBoardId, String permissionCode) {
+		List<Integer> boardIds = zfgbbIdsMappedFrom("BOARD", legacyBoardId);
+		Integer permissionId = permissionIdOf(permissionCode);
+		if (boardIds.isEmpty() || permissionId == null)
+			return 0;
+		BrBoardPermissionDboExample grants = new BrBoardPermissionDboExample();
+		grants.createCriteria().andBoardIdIn(boardIds).andPermissionIdEqualTo(permissionId);
+		return brBoardPermissionDboMapper.countByExample(grants);
+	}
+
+	private long migratedUserPermissions(int legacyUserId, String permissionCode) {
+		List<Integer> userIds = zfgbbIdsMappedFrom("USER", legacyUserId);
+		Integer permissionId = permissionIdOf(permissionCode);
+		if (userIds.isEmpty() || permissionId == null)
+			return 0;
+		BrUserPermissionDboExample grants = new BrUserPermissionDboExample();
+		grants.createCriteria().andUserIdIn(userIds).andUserPermissionIdEqualTo(permissionId);
+		return brUserPermissionDboMapper.countByExample(grants);
+	}
+
+	private long messagesInConversationSubject(String subject) {
+		PersonalMessageConversationDboExample bySubject = new PersonalMessageConversationDboExample();
+		bySubject.createCriteria().andSubjectEqualTo(subject);
+		List<Integer> conversationIds = personalMessageConversationDboMapper.selectByExample(bySubject).stream()
+				.map(PersonalMessageConversationDbo::getPersonalMessageConversationId).toList();
+		if (conversationIds.isEmpty())
+			return 0;
+		PersonalMessageDboExample inConversation = new PersonalMessageDboExample();
+		inConversation.createCriteria().andPersonalMessageConversationIdIn(conversationIds);
+		return personalMessageDboMapper.countByExample(inConversation);
+	}
+
+	private long emailAddressesNotHeldByUser(int excludedUserId) {
+		UserContactInfoDboExample heldByExcluded = new UserContactInfoDboExample();
+		heldByExcluded.createCriteria().andUserIdEqualTo(excludedUserId);
+		List<Integer> excludedAddressIds = userContactInfoDboMapper.selectByExample(heldByExcluded).stream()
+				.map(UserContactInfoDbo::getEmailAddressId).filter(Objects::nonNull).toList();
+		if (excludedAddressIds.isEmpty())
+			return emailAddressDboMapper.countByExample(null);
+		EmailAddressDboExample others = new EmailAddressDboExample();
+		others.createCriteria().andEmailAddressIdNotIn(excludedAddressIds);
+		return emailAddressDboMapper.countByExample(others);
+	}
+
+	private long reactionsWithCode(String reactionCode) {
+		ReactionTypeDboExample byCode = new ReactionTypeDboExample();
+		byCode.createCriteria().andCodeEqualTo(reactionCode);
+		Integer reactionTypeId = reactionTypeDboMapper.selectByExample(byCode).stream()
+				.map(ReactionTypeDbo::getReactionTypeId).findFirst().orElse(null);
+		if (reactionTypeId == null)
+			return 0;
+		ReactionDboExample given = new ReactionDboExample();
+		given.createCriteria().andReactionTypeIdEqualTo(reactionTypeId);
+		return reactionDboMapper.countByExample(given);
+	}
+
+	private long countPmRecipients(Consumer<PersonalMessageRecipientDboExample.Criteria> criteria) {
+		PersonalMessageRecipientDboExample example = new PersonalMessageRecipientDboExample();
+		criteria.accept(example.createCriteria());
+		return personalMessageRecipientDboMapper.countByExample(example);
+	}
+
+	private long countSubscriptions(Consumer<NotificationSubscriptionDboExample.Criteria> criteria) {
+		NotificationSubscriptionDboExample example = new NotificationSubscriptionDboExample();
+		criteria.accept(example.createCriteria());
+		return notificationSubscriptionDboMapper.countByExample(example);
+	}
+
+	private long countModerationLog(Consumer<ModerationLogDboExample.Criteria> criteria) {
+		ModerationLogDboExample example = new ModerationLogDboExample();
+		criteria.accept(example.createCriteria());
+		return moderationLogDboMapper.countByExample(example);
+	}
+
+	private List<String> attachBodies() {
+		MessageHistoryDboExample rewrittenBodies = new MessageHistoryDboExample();
+		rewrittenBodies.createCriteria().andMessageTextLike("%[attach=%");
+		rewrittenBodies.setOrderByClause("message_history_id");
+		return messageHistoryDboMapper.selectByExample(rewrittenBodies).stream()
+				.map(MessageHistoryDbo::getMessageText).toList();
+	}
+
+	private Map<Pattern, Supplier<List<Integer>>> refSources() {
+		return Map.of(
+				Pattern.compile("\\[attach=(\\d+)\\]"),
+				() -> fileAttachmentDboMapper.selectByExample(new FileAttachmentDboExample()).stream()
+						.map(FileAttachmentDbo::getFileAttachmentId).toList(),
+				Pattern.compile("\\[thread=(\\d+)(?:\\s|\\])"),
+				() -> threadDboMapper.selectByExample(new ThreadDboExample()).stream()
+						.map(ThreadDbo::getThreadId).toList(),
+				Pattern.compile("\\[board=(\\d+)\\]"),
+				() -> boardDboMapper.selectByExample(new BoardDboExample()).stream()
+						.map(BoardDbo::getBoardId).toList(),
+				Pattern.compile("\\[member=(\\d+)\\]"),
+				() -> userDboMapper.selectByExample(new UserDboExample()).stream()
+						.map(UserDbo::getUserId).toList(),
+				Pattern.compile("msg=(\\d+)"),
+				() -> messageDboMapper.selectByExample(new MessageDboExample()).stream()
+						.map(MessageDbo::getMessageId).toList());
+	}
+
+	private void assertNoOrphanRewrittenBBCodes() {
+		List<String> bodies = messageHistoryDboMapper.selectByExample(new MessageHistoryDboExample()).stream()
+				.map(MessageHistoryDbo::getMessageText).toList();
+		assertFalse(bodies.isEmpty(), "the migration must produce message bodies to scan for orphan refs");
+		List<String> patternsWithoutCoverage = new ArrayList<>();
+		int scannedRefs = 0;
+		for (Map.Entry<Pattern, Supplier<List<Integer>>> refSource : refSources().entrySet()) {
+			Pattern pattern = refSource.getKey();
+			Set<Integer> validIds = new HashSet<>(refSource.getValue().get());
+			int matchesForPattern = 0;
 			for (String body : bodies) {
 				Matcher m = pattern.matcher(body);
 				while (m.find()) {
 					int id = Integer.parseInt(m.group(1));
 					assertTrue(validIds.contains(id),
-							pattern + " ref " + id + " does not resolve via `" + validIdsQuery + "`: " + body);
+							pattern + " ref " + id + " does not resolve to a migrated row: " + body);
+					matchesForPattern++;
 				}
 			}
-		});
+			if (matchesForPattern == 0)
+				patternsWithoutCoverage.add(pattern.pattern());
+			scannedRefs += matchesForPattern;
+		}
+		assertTrue(scannedRefs > 0,
+				"no migrated body carries any rewritten ref, so this check proves nothing; "
+						+ "uncovered patterns: " + patternsWithoutCoverage);
 	}
 
 	private void assertAllMigratedAttachmentsPresent() {
-		List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-				"select cr.content_resource_id, cr.storage_dir, cr.filename from zfgbb.content_resource cr "
-						+ "join zfgbb.file_attachments fa on fa.content_resource_id = cr.content_resource_id");
-		for (Map<String, Object> row : rows) {
-			assertEquals("forum/attachments", row.get("storage_dir"),
-					"attachments must be organized under forum/attachments: " + row);
-			assertTrue(Files.exists(contentTarget.resolve((String) row.get("storage_dir"))
-					.resolve(String.valueOf(row.get("content_resource_id")))
-					.resolve((String) row.get("filename"))),
-					"attachment should keep its original filename on disk: " + row);
+		List<FileAttachmentDbo> attachments = fileAttachmentDboMapper.selectByExample(null);
+		assertFalse(attachments.isEmpty(), "the migration must produce attachments to verify on disk");
+		for (FileAttachmentDbo attachment : attachments) {
+			ContentResourceDbo stored =
+					contentResourceDboMapper.selectByPrimaryKey(attachment.getContentResourceId());
+			assertEquals("forum/attachments", stored.getStorageDir(),
+					"attachments must be organized under forum/attachments: " + stored.getContentResourceId());
+			assertTrue(Files.exists(contentTarget.resolve(stored.getStorageDir())
+					.resolve(String.valueOf(stored.getContentResourceId()))
+					.resolve(stored.getFilename())),
+					"attachment should keep its original filename on disk: " + stored.getFilename());
 		}
 	}
 }

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,22 +18,20 @@ import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogNotifyDb;
 import com.zfgc.zfgbb.migrator.smf.dbo.SMFLogNotifyDbExample;
 import com.zfgc.zfgbb.migrator.smf.mappers.SMFLogNotifyDbMapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class SubscriptionsConverter extends AbstractConverter<Void> {
+
+	private final SMFLogNotifyDbMapper smfNotifyMapper;
+	private final NotificationSubscriptionDboMapper subscriptionMapper;
+	private final MigratorIdMapService idMap;
 
 	@Override
 	public JobType getType() {
 		return JobType.SUBSCRIPTIONS;
 	}
-
-	@Autowired
-	private SMFLogNotifyDbMapper smfNotifyMapper;
-
-	@Autowired
-	private NotificationSubscriptionDboMapper subscriptionMapper;
-
-	@Autowired
-	private MigratorIdMapService idMap;
 
 	private Map<Integer, Integer> userMap;
 	private Map<Integer, Integer> threadMap;

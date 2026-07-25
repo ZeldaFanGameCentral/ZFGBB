@@ -1,8 +1,10 @@
 package com.zfgc.zfgbb.forum;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,58 +13,84 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.OffsetDateTime;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 
+import com.zfgc.zfgbb.dbo.*;
+import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
+import com.zfgc.zfgbb.mappers.*;
+import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.services.contentstore.ContentService;
+import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
 import tools.jackson.databind.JsonNode;
 
 class MemberTest extends PostgresIntegrationTest {
 
+	@Autowired protected MessageDboMapper messageDboMapper;
+	@Autowired private ForumService forumService;
+	@Autowired private BoardDboMapper boardDboMapper;
+	@Autowired private BrBoardPermissionDboMapper brBoardPermissionDboMapper;
+	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
+	@Autowired private ContentEntityDboMapper contentEntityDboMapper;
+	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
+	@Autowired private ContentResourceTypeDboMapper contentResourceTypeDboMapper;
+	@Autowired private ContentService contentService;
+	@Autowired private FileAttachmentDboMapper fileAttachmentDboMapper;
+	@Autowired private MessageHistoryDboMapper messageHistoryDboMapper;
+	@Autowired private PermissionDboMapper permissionDboMapper;
+	@Autowired private ProjectNewsDboMapper projectNewsDboMapper;
+	@Autowired private ReactionTypeDboMapper reactionTypeDboMapper;
+	@Autowired private SystemConfigDboMapper systemConfigDboMapper;
+	@Autowired private ThreadDboMapper threadDboMapper;
+	@Autowired private UserBioInfoDboMapper userBioInfoDboMapper;
+
 	@Nested
 	class Guest {
 
-		private static final int GUEST_PERMISSION_ID = 2;
-		private static final int READ_ONLY_PERMISSION_ID = 9;
-		private static final int ZFGC_USER_PERMISSION_ID = 1;
 		private static final int VISIBLE_BOARD_ID = 1;
 		private static final String OCARINA_SLUG = "ocarina-of-time";
 		private static final int OCARINA_ENTITY_ID = 1;
 
 		@Test
 		void postCountExcludesHiddenAndRecycleBoards() throws Exception {
-			String ownerName = "vis_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
-			int ownerId = userIdOf(ownerName);
+			TestUser owner = createUser("vis_" + suffix);
+			String adminToken = getAdminToken();
 
-			postThread(ownerToken, "Vis A " + suffix, "op body");
-			int threadB = postThread(ownerToken, "Vis B " + suffix, "op body");
-			postReply(ownerToken, threadB, "reply to recycle");
+			postThread(owner.token(), "Vis A " + suffix, "op body");
+			int threadB = postThread(owner.token(), "Vis B " + suffix, "op body");
+			postReply(owner.token(), threadB, "reply to recycle");
 
 			int hiddenBoardId = insertBoard("Hidden " + suffix);
-			grantBoardPermission(hiddenBoardId, ZFGC_USER_PERMISSION_ID);
-			int hiddenThreadId = insertThread("Hidden thread " + suffix, hiddenBoardId, ownerId);
-			insertMessage(ownerId, hiddenThreadId, hiddenBoardId);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_USER"));
+			int hiddenThreadId = insertThread("Hidden thread " + suffix, hiddenBoardId, owner.id());
+			insertMessage(owner.id(), hiddenThreadId, hiddenBoardId);
 
 			int recycledMessageId = messageIdAt(threadB, 2);
 			mockMvc.perform(delete("/message/" + recycledMessageId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"));
 
-			mockMvc.perform(get("/user-profile/" + ownerId))
+			mockMvc.perform(get("/users/" + owner.id()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.bioInfo.postCount").value(2));
 
-			mockMvc.perform(get("/user-profile/" + ownerId)
+			mockMvc.perform(get("/users/" + owner.id())
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.bioInfo.postCount").value(2));
@@ -70,46 +98,30 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void threadPageRendersEveryDistinctAuthorCardCorrectly() throws Exception {
-			String authorAName = "aAuth_" + suffix;
-			String authorBName = "bAuth_" + suffix;
-			register(authorAName, "password123");
-			register(authorBName, "password123");
-			String tokenA = login(authorAName, "password123").get("accessToken").asString();
-			String tokenB = login(authorBName, "password123").get("accessToken").asString();
-			int authorAId = userIdOf(authorAName);
-			int authorBId = userIdOf(authorBName);
+			TestUser authorA = createUser("aAuth_" + suffix);
+			TestUser authorB = createUser("bAuth_" + suffix);
 
-			Integer moderatorPermissionId = jdbcTemplate.queryForObject(
-					"select permission_id from zfgbb.permission where permission_code = 'ZFGC_SITE_MODERATOR'",
-					Integer.class);
-			assertNotNull(moderatorPermissionId);
-			jdbcTemplate.update("insert into zfgbb.br_user_permission (user_id, user_permission_id) values (?, ?)",
-					authorBId, moderatorPermissionId);
+			grantUserPermission(authorB.id(), permissionIdOf("ZFGC_SITE_MODERATOR"));
 
-			jdbcTemplate.update("update zfgbb.user_bio_info set signature = ? where user_id = ?",
-					"[b]author A signature[/b]", authorAId);
-			jdbcTemplate.update("update zfgbb.user_bio_info set signature = ? where user_id = ?",
-					"[b]author B signature[/b]", authorBId);
+			setSignature(authorA.id(), "[b]author A signature[/b]");
+			setSignature(authorB.id(), "[b]author B signature[/b]");
 
-			int threadId = postThread(tokenA, "Multi author thread " + suffix, "opening body by A");
-			postReply(tokenB, threadId, "reply body by B");
-			postReply(tokenA, threadId, "second reply body by A");
+			int threadId = postThread(authorA.token(), "Multi author thread " + suffix, "opening body by A");
+			postReply(authorB.token(), threadId, "reply body by B");
+			postReply(authorA.token(), threadId, "second reply body by A");
 
 			int hiddenBoardId = insertBoard("Hidden multi " + suffix);
-			grantBoardPermission(hiddenBoardId, ZFGC_USER_PERMISSION_ID);
-			int hiddenThreadId = insertThread("Hidden multi thread " + suffix, hiddenBoardId, authorAId);
-			insertMessage(authorAId, hiddenThreadId, hiddenBoardId);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_USER"));
+			int hiddenThreadId = insertThread("Hidden multi thread " + suffix, hiddenBoardId, authorA.id());
+			insertMessage(authorA.id(), hiddenThreadId, hiddenBoardId);
 
 			int authorBMessageId = messageIdAt(threadId, 2);
-			Integer reactionTypeId = jdbcTemplate.queryForObject(
-					"select min(reaction_type_id) from zfgbb.reaction_type", Integer.class);
-			assertNotNull(reactionTypeId);
 			mockMvc.perform(post("/reactions")
-					.header("Authorization", "Bearer " + tokenA)
+					.header("Authorization", "Bearer " + authorA.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("""
 							{"reactableType": "MESSAGE", "reactableId": %d, "reactionTypeId": %d}
-							""".formatted(authorBMessageId, reactionTypeId)))
+							""".formatted(authorBMessageId, anyReactionTypeId())))
 					.andExpect(status().isOk());
 
 			MvcResult result = mockMvc.perform(get("/thread/" + threadId)
@@ -124,9 +136,9 @@ class MemberTest extends PostgresIntegrationTest {
 			JsonNode authorBCard = authorCardForPost(messages, 2);
 			JsonNode authorASecondCard = authorCardForPost(messages, 3);
 
-			assertEquals(authorAName, authorACard.get("displayName").asText());
-			assertEquals(authorBName, authorBCard.get("displayName").asText());
-			assertEquals(authorAName, authorASecondCard.get("displayName").asText());
+			assertEquals(authorA.userName(), authorACard.get("displayName").asString());
+			assertEquals(authorB.userName(), authorBCard.get("displayName").asString());
+			assertEquals(authorA.userName(), authorASecondCard.get("displayName").asString());
 
 			assertTrue(permissionCodesOf(authorACard).isEmpty(),
 					"a plain member's public card must expose no rank permissions after retain");
@@ -161,7 +173,7 @@ class MemberTest extends PostgresIntegrationTest {
 			JsonNode signature = bioInfo.get("signature");
 			assertTrue(signature == null || signature.isNull(), "the raw signature must be stripped from public cards");
 			JsonNode signatureParsed = bioInfo.get("signatureParsed");
-			assertTrue(signatureParsed != null && signatureParsed.isTextual() && !signatureParsed.asText().isBlank(),
+			assertTrue(signatureParsed != null && signatureParsed.isString() && !signatureParsed.asString().isBlank(),
 					"the rendered signature must survive the strip");
 		}
 
@@ -170,39 +182,34 @@ class MemberTest extends PostgresIntegrationTest {
 			JsonNode permissions = createdUser.get("permissions");
 			if (permissions != null && !permissions.isNull())
 				for (JsonNode permission : permissions)
-					codes.add(permission.get("permissionCode").asText());
+					codes.add(permission.get("permissionCode").asString());
 			return codes;
 		}
 
 		@Test
 		void readOnlyOnlyBoardCountsTowardGuestBaseline() throws Exception {
-			String ownerName = "ro_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			int ownerId = userIdOf(ownerName);
+			TestUser owner = createUser("ro_" + suffix);
 
-			postThread(ownerToken, "Read only base " + suffix, "op body");
+			postThread(owner.token(), "Read only base " + suffix, "op body");
 
 			int readOnlyBoardId = insertBoard("Read only " + suffix);
-			grantBoardPermission(readOnlyBoardId, READ_ONLY_PERMISSION_ID);
-			int readOnlyThreadId = insertThread("Read only thread " + suffix, readOnlyBoardId, ownerId);
-			insertMessage(ownerId, readOnlyThreadId, readOnlyBoardId);
+			grantBoardPermission(readOnlyBoardId, permissionIdOf("ZFGC_READ_ONLY"));
+			int readOnlyThreadId = insertThread("Read only thread " + suffix, readOnlyBoardId, owner.id());
+			insertMessage(owner.id(), readOnlyThreadId, readOnlyBoardId);
 
-			mockMvc.perform(get("/user-profile/" + ownerId))
+			mockMvc.perform(get("/users/" + owner.id()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.bioInfo.postCount").value(2));
 		}
 
 		@Test
 		void projectNewsHidesHiddenBoardThreadTitle() throws Exception {
-			String authorName = "news_" + suffix;
-			register(authorName, "password123");
-			int authorId = userIdOf(authorName);
+			TestUser author = createUser("news_" + suffix);
 
-			int publicThreadId = insertThread("PUBLIC_TITLE", VISIBLE_BOARD_ID, authorId);
+			int publicThreadId = insertThread("PUBLIC_TITLE", VISIBLE_BOARD_ID, author.id());
 			int hiddenBoardId = insertBoard("Secret board " + suffix);
-			grantBoardPermission(hiddenBoardId, ZFGC_USER_PERMISSION_ID);
-			int secretThreadId = insertThread("SECRET_TITLE", hiddenBoardId, authorId);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_USER"));
+			int secretThreadId = insertThread("SECRET_TITLE", hiddenBoardId, author.id());
 
 			insertProjectNews(OCARINA_ENTITY_ID, publicThreadId, "Public update " + suffix, "public body");
 			insertProjectNews(OCARINA_ENTITY_ID, secretThreadId, "Hidden update " + suffix, "hidden body");
@@ -217,7 +224,7 @@ class MemberTest extends PostgresIntegrationTest {
 			JsonNode news = json.readTree(body).get("news");
 			JsonNode publicEntry = newsEntryFor(news, publicThreadId);
 			JsonNode secretEntry = newsEntryFor(news, secretThreadId);
-			assertEquals("PUBLIC_TITLE", publicEntry.get("threadName").asText());
+			assertEquals("PUBLIC_TITLE", publicEntry.get("threadName").asString());
 			assertTrue(secretEntry.get("threadName") == null || secretEntry.get("threadName").isNull(),
 					"hidden-board news entry must not resolve a thread name");
 			assertEquals(publicThreadId, publicEntry.get("threadId").asInt());
@@ -226,15 +233,12 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void hiddenBoardThreadIsSearchableOnlyWithTheBoardPermission() throws Exception {
-			String memberName = "srch_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
-			int memberId = userIdOf(memberName);
+			TestUser member = createUser("srch_" + suffix);
 
 			String uniqueTitle = "SearchVisHidden" + suffix;
 			int hiddenBoardId = insertBoard("Search hidden " + suffix);
-			grantBoardPermission(hiddenBoardId, ZFGC_USER_PERMISSION_ID);
-			insertThread(uniqueTitle, hiddenBoardId, memberId);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_USER"));
+			insertThread(uniqueTitle, hiddenBoardId, member.id());
 
 			MvcResult anonymousResult = mockMvc.perform(get("/search").param("q", uniqueTitle))
 					.andExpect(status().isOk())
@@ -244,7 +248,7 @@ class MemberTest extends PostgresIntegrationTest {
 
 			MvcResult memberResult = mockMvc.perform(get("/search")
 					.param("q", uniqueTitle)
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andReturn();
 			assertTrue(forumGroupHasThreadTitled(memberResult.getResponse().getContentAsString(), uniqueTitle),
@@ -252,32 +256,68 @@ class MemberTest extends PostgresIntegrationTest {
 		}
 
 		@Test
-		void forumIndexCacheServesDeepCopiesAndEvictsOnWrites() throws Exception {
-			Integer adminPermissionId = jdbcTemplate.queryForObject(
-					"select permission_id from zfgbb.permission where permission_code = 'ZFGC_SITE_ADMIN'",
-					Integer.class);
-			jdbcTemplate.update("""
-					insert into zfgbb.board (board_id, board_name, category_id, seqno, created_ts, updated_ts)
-					values (999, 'Restricted Cache Probe', 1, 99, now(), now())
-					on conflict (board_id) do nothing
-					""");
-			jdbcTemplate.update("""
-					insert into zfgbb.br_board_permission (br_board_permission_id, board_id, permission_id)
-					values (999, 999, ?)
-					on conflict (br_board_permission_id) do nothing
-					""", adminPermissionId);
+		void aTitleTheValidatorAcceptsIsStoredWhole() throws Exception {
+			TestUser member = createUser("title_" + suffix);
+			String longTitle = "T".repeat(100);
 
-			String memberName = "cache_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			MvcResult created = mockMvc.perform(post("/thread")
+					.param("boardId", String.valueOf(VISIBLE_BOARD_ID))
+					.header("Authorization", "Bearer " + member.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(json.writeValueAsString(Map.of("title", longTitle, "body", "body text"))))
+					.andExpect(status().isCreated())
+					.andReturn();
+
+			assertEquals(longTitle,
+					json.readTree(created.getResponse().getContentAsString()).get("threadName").asString(),
+					"the request validator accepts 100 characters, so storage must not silently rewrite a "
+							+ "65-100 character title to an ellipsised 64");
+		}
+
+		@Test
+		void everyRealmTheSearchApiPublishesIsARealmSearchCanFilterBy() throws Exception {
+			TestUser member = createUser("realm_" + suffix);
+			String uniqueTitle = "SearchRealmProbe" + suffix;
+			int boardId = insertBoard("Search realm " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_USER"));
+			insertThread(uniqueTitle, boardId, member.id());
+
+			JsonNode realms = json.readTree(mockMvc.perform(get("/search/realms"))
+					.andExpect(status().isOk())
+					.andReturn().getResponse().getContentAsString());
+
+			for (JsonNode realm : realms) {
+				String type = realm.get("type").asString();
+				if (type.isEmpty())
+					continue;
+				MvcResult filtered = mockMvc.perform(get("/search")
+						.param("q", uniqueTitle)
+						.param("types", type)
+						.header("Authorization", "Bearer " + member.token()))
+						.andExpect(status().isOk())
+						.andReturn();
+				JsonNode groups = json.readTree(filtered.getResponse().getContentAsString()).get("groups");
+				assertTrue(groups.size() == 1 && type.equals(groups.get(0).get("type").asString()),
+						"filtering by the realm id the API itself publishes must run that realm's lane; a "
+								+ "published id no lane matches silently returns nothing for '" + type + "': "
+								+ groups);
+			}
+		}
+
+		@Test
+		void forumIndexCacheServesDeepCopiesAndEvictsOnWrites() throws Exception {
+			int restrictedBoardId = insertBoard("Restricted Cache Probe " + suffix, 1, 99, null);
+			grantBoardPermission(restrictedBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+
+			TestUser member = createUser("cache_" + suffix);
+			String adminToken = getAdminToken();
 
 			JsonNode adminFirstView = fetchForum(adminToken);
-			assertTrue(boardIdsOf(adminFirstView).contains(999),
+			assertTrue(boardIdsOf(adminFirstView).contains(restrictedBoardId),
 					"admin must see the restricted board on the forum index");
 
-			JsonNode memberView = fetchForum(memberToken);
-			assertFalse(boardIdsOf(memberView).contains(999),
+			JsonNode memberView = fetchForum(member.token());
+			assertFalse(boardIdsOf(memberView).contains(restrictedBoardId),
 					"member must not see the restricted board on the forum index");
 
 			JsonNode adminSecondView = fetchForum(adminToken);
@@ -290,10 +330,10 @@ class MemberTest extends PostgresIntegrationTest {
 					""".formatted(evictionProbeName);
 			mockMvc.perform(post("/thread")
 					.param("boardId", "1")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(threadBody))
-					.andExpect(status().isOk());
+					.andExpect(status().isCreated());
 
 			JsonNode adminAfterPostView = fetchForum(adminToken);
 			assertEquals(evictionProbeName, latestThreadNameOfBoard(adminAfterPostView, 1),
@@ -316,27 +356,25 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void hiddenChildBoardSummaryDoesNotLeakToGuests() throws Exception {
-			String ownerName = "childleak_" + suffix;
-			register(ownerName, "password123");
-			int ownerId = userIdOf(ownerName);
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
-			int siteAdminPermissionId = siteAdminPermissionId();
+			TestUser owner = createUser("childleak_" + suffix);
+			String adminToken = getAdminToken();
+			int siteAdminPermissionId = permissionIdOf("ZFGC_SITE_ADMIN");
 
-			int parentBoardId = insertBoard("Parent leak " + suffix);
-			grantBoardPermission(parentBoardId, GUEST_PERMISSION_ID);
+			int parentBoardId = insertBoard("Parent leak " + suffix, 1, 99, null);
+			grantBoardPermission(parentBoardId, permissionIdOf("ZFGC_GUEST"));
 			grantBoardPermission(parentBoardId, siteAdminPermissionId);
 
 			int hiddenChildId = insertChildBoard("Hidden child " + suffix, parentBoardId);
 			grantBoardPermission(hiddenChildId, siteAdminPermissionId);
 			String hiddenThreadTitle = "HIDDENCHILDLEAK" + suffix;
-			int hiddenThreadId = insertThread(hiddenThreadTitle, hiddenChildId, ownerId);
-			insertMessage(ownerId, hiddenThreadId, hiddenChildId);
+			int hiddenThreadId = insertThread(hiddenThreadTitle, hiddenChildId, owner.id());
+			insertMessage(owner.id(), hiddenThreadId, hiddenChildId);
 
 			int visibleChildId = insertChildBoard("Visible child " + suffix, parentBoardId);
-			grantBoardPermission(visibleChildId, GUEST_PERMISSION_ID);
+			grantBoardPermission(visibleChildId, permissionIdOf("ZFGC_GUEST"));
 			grantBoardPermission(visibleChildId, siteAdminPermissionId);
-			int visibleThreadId = insertThread("VisibleChildThread" + suffix, visibleChildId, ownerId);
-			insertMessage(ownerId, visibleThreadId, visibleChildId);
+			int visibleThreadId = insertThread("VisibleChildThread" + suffix, visibleChildId, owner.id());
+			insertMessage(owner.id(), visibleThreadId, visibleChildId);
 
 			MvcResult anonymousResult = mockMvc.perform(get("/board/" + parentBoardId))
 					.andExpect(status().isOk())
@@ -357,23 +395,37 @@ class MemberTest extends PostgresIntegrationTest {
 			Set<Integer> adminChildIds = childBoardIdsOf(adminResult.getResponse().getContentAsString());
 			assertTrue(adminChildIds.contains(hiddenChildId), "an admin must still see the hidden child board");
 			assertTrue(adminChildIds.contains(visibleChildId), "an admin must still see the visible child board");
+
+			forumService.evictUnfilteredForumCache();
+			MvcResult anonymousForum = mockMvc.perform(get("/board/forum"))
+					.andExpect(status().isOk())
+					.andReturn();
+			Set<Integer> anonymousForumChildIds =
+					forumChildBoardIdsOf(anonymousForum.getResponse().getContentAsString());
+			assertFalse(anonymousForumChildIds.contains(hiddenChildId),
+					"the forum index serializes each board's child list too, so it must filter the "
+							+ "hidden child board exactly like the board view does");
+			assertTrue(anonymousForumChildIds.contains(visibleChildId),
+					"the guest-readable sibling child must survive the forum index filter");
+
+			MvcResult adminForum = mockMvc.perform(get("/board/forum")
+					.header("Authorization", "Bearer " + adminToken))
+					.andExpect(status().isOk())
+					.andReturn();
+			assertTrue(forumChildBoardIdsOf(adminForum.getResponse().getContentAsString()).contains(hiddenChildId),
+					"filtering the forum index must copy rather than mutate the shared board cache, "
+							+ "or the guest request above would strip the child board for everyone");
 		}
 
 		@Test
 		void hiddenThreadReadsReturn404NotDistinguishableFromMissing() throws Exception {
-			String ownerName = "hidthr_" + suffix;
-			register(ownerName, "password123");
-			int ownerId = userIdOf(ownerName);
-			int siteAdminPermissionId = siteAdminPermissionId();
+			TestUser owner = createUser("hidthr_" + suffix);
 
 			int hiddenBoardId = insertBoard("Hidden thread board " + suffix);
-			grantBoardPermission(hiddenBoardId, siteAdminPermissionId);
-			int hiddenThreadId = insertThread("Hidden thread " + suffix, hiddenBoardId, ownerId);
-			insertMessage(ownerId, hiddenThreadId, hiddenBoardId);
-			Integer hiddenMessageId = jdbcTemplate.queryForObject(
-					"select message_id from zfgbb.message where thread_id = ? and post_in_thread = 1",
-					Integer.class, hiddenThreadId);
-			assertNotNull(hiddenMessageId);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			int hiddenThreadId = insertThread("Hidden thread " + suffix, hiddenBoardId, owner.id());
+			insertMessage(owner.id(), hiddenThreadId, hiddenBoardId);
+			int hiddenMessageId = messageIdAt(hiddenThreadId, 1);
 
 			int missingThreadId = 2_000_000_000;
 
@@ -386,32 +438,56 @@ class MemberTest extends PostgresIntegrationTest {
 			mockMvc.perform(get("/message/" + hiddenMessageId + "/allowed-actions"))
 					.andExpect(status().isNotFound());
 
-			int visibleThreadId = insertThread("Visible thread " + suffix, VISIBLE_BOARD_ID, ownerId);
-			insertMessage(ownerId, visibleThreadId, VISIBLE_BOARD_ID);
+			int visibleThreadId = insertThread("Visible thread " + suffix, VISIBLE_BOARD_ID, owner.id());
+			insertMessage(owner.id(), visibleThreadId, VISIBLE_BOARD_ID);
 			mockMvc.perform(get("/thread/" + visibleThreadId + "/allowed-actions"))
 					.andExpect(status().isOk());
 		}
 
 		@Test
+		void unreadableBoardIsNotFetchableDirectly() throws Exception {
+			int hiddenBoardId = insertBoard("Unfetchable board " + suffix, 1, 99, null);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+
+			mockMvc.perform(get("/board/" + hiddenBoardId))
+					.andExpect(status().isNotFound());
+
+			MvcResult adminResult = mockMvc.perform(get("/board/" + hiddenBoardId)
+					.header("Authorization", "Bearer " + getAdminToken()))
+					.andExpect(status().isOk())
+					.andReturn();
+			assertFalse(adminResult.getResponse().getContentAsString().contains("permission"),
+					"making a board Securable must not start serializing its permission list to clients");
+
+			forumService.evictUnfilteredForumCache();
+			MvcResult adminForum = mockMvc.perform(get("/board/forum")
+					.header("Authorization", "Bearer " + getAdminToken()))
+					.andExpect(status().isOk())
+					.andReturn();
+			assertFalse(adminForum.getResponse().getContentAsString().contains("permission"),
+					"making a board summary Securable must not start serializing its permission list either");
+		}
+
+		@Test
+		void attachmentOnAnUnreadableBoardIsNotFound() throws Exception {
+			TestUser owner = createUser("attach_" + suffix);
+			int hiddenBoardId = insertBoard("Attachment board " + suffix);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			int hiddenThreadId = insertThread("Attachment thread " + suffix, hiddenBoardId, owner.id());
+			insertMessage(owner.id(), hiddenThreadId, hiddenBoardId);
+			int resourceId = insertAttachment(messageIdAt(hiddenThreadId, 1), owner.id());
+
+			assertThrows(ZfgcNotFoundException.class,
+					() -> contentService.authorizeAccess(resourceId, actorHolding("ZFGC_USER")),
+					"an attachment must inherit the board permissions of the message it hangs off");
+			contentService.authorizeAccess(resourceId, actorHolding("ZFGC_SITE_ADMIN"));
+		}
+
+		@Test
 		void hugePageNumberOnBoardListingReturnsEmptyPageNot500() throws Exception {
 			mockMvc.perform(get("/board/" + VISIBLE_BOARD_ID).param("page", "2000000000"))
-					.andExpect(status().isOk());
-		}
-
-		private int siteAdminPermissionId() {
-			Integer permissionId = jdbcTemplate.queryForObject(
-					"select permission_id from zfgbb.permission where permission_code = 'ZFGC_SITE_ADMIN'",
-					Integer.class);
-			assertNotNull(permissionId);
-			return permissionId;
-		}
-
-		private int insertChildBoard(String boardName, int parentBoardId) {
-			Integer boardId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.board (board_name, seqno, parent_board_id) values (?, 0, ?) returning board_id",
-					Integer.class, boardName, parentBoardId);
-			assertNotNull(boardId);
-			return boardId;
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.unStickyThreads", hasSize(0)));
 		}
 
 		private Set<Integer> childBoardIdsOf(String boardResponseBody) {
@@ -420,6 +496,19 @@ class MemberTest extends PostgresIntegrationTest {
 			if (childBoards != null && !childBoards.isNull())
 				for (JsonNode childBoard : childBoards)
 					childBoardIds.add(childBoard.get("boardId").asInt());
+			return childBoardIds;
+		}
+
+		private Set<Integer> forumChildBoardIdsOf(String forumResponseBody) {
+			Set<Integer> childBoardIds = new HashSet<>();
+			for (JsonNode category : json.readTree(forumResponseBody).get("categories"))
+				for (JsonNode board : category.get("boards")) {
+					JsonNode childBoards = board.get("childBoards");
+					if (childBoards == null || childBoards.isNull())
+						continue;
+					for (JsonNode childBoard : childBoards)
+						childBoardIds.add(childBoard.get("boardId").asInt());
+				}
 			return childBoardIds;
 		}
 
@@ -443,10 +532,10 @@ class MemberTest extends PostgresIntegrationTest {
 			JsonNode groups = json.readTree(responseBody).get("groups");
 			assertNotNull(groups, "search response must carry a groups array");
 			for (JsonNode group : groups) {
-				if (!"forum".equals(group.get("type").asText()))
+				if (!"forum".equals(group.get("type").asString()))
 					continue;
 				for (JsonNode hit : group.get("hits"))
-					if (hit.hasNonNull("title") && title.equals(hit.get("title").asText()))
+					if (hit.hasNonNull("title") && title.equals(hit.get("title").asString()))
 						return true;
 			}
 			return false;
@@ -460,37 +549,18 @@ class MemberTest extends PostgresIntegrationTest {
 			throw new AssertionError("no project-news entry linked thread " + threadId);
 		}
 
-		private int insertBoard(String boardName) {
-			Integer boardId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.board (board_name, seqno) values (?, 0) returning board_id",
-					Integer.class, boardName);
-			assertNotNull(boardId);
-			return boardId;
-		}
-
-		private void grantBoardPermission(int boardId, int permissionId) {
-			jdbcTemplate.update("insert into zfgbb.br_board_permission (board_id, permission_id) values (?, ?)",
-					boardId, permissionId);
-		}
-
-		private int insertThread(String threadName, int boardId, int createdUserId) {
-			Integer threadId = jdbcTemplate.queryForObject(
-					"insert into zfgbb.thread (thread_name, board_id, created_user_id) values (?, ?, ?) returning thread_id",
-					Integer.class, threadName, boardId, createdUserId);
-			assertNotNull(threadId);
-			return threadId;
-		}
-
-		private void insertMessage(int ownerId, int threadId, int boardId) {
-			jdbcTemplate.update(
-					"insert into zfgbb.message (owner_id, thread_id, board_id, post_in_thread) values (?, ?, ?, 1)",
-					ownerId, threadId, boardId);
+		private int insertChildBoard(String boardName, int parentBoardId) {
+			return insertBoard(boardName, null, 0, parentBoardId);
 		}
 
 		private void insertProjectNews(int contentEntityId, int threadId, String subject, String body) {
-			jdbcTemplate
-					.update("insert into zfgbb.project_news (content_entity_id, thread_id, subject, body, published_ts)"
-							+ " values (?, ?, ?, ?, current_timestamp)", contentEntityId, threadId, subject, body);
+			ProjectNewsDbo news = new ProjectNewsDbo();
+			news.setContentEntityId(contentEntityId);
+			news.setThreadId(threadId);
+			news.setSubject(subject);
+			news.setBody(body);
+			news.setPublishedTs(OffsetDateTime.now());
+			projectNewsDboMapper.insertSelective(news);
 		}
 	}
 
@@ -499,114 +569,210 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void registerLoginThreadAndReply() throws Exception {
-			String userName = "it_" + suffix;
-			register(userName, "password123");
+			TestUser user = createUser("it_" + suffix);
 
-			JsonNode loginJson = login(userName, "password123");
-			String accessToken = loginJson.get("accessToken").asString();
 
 			String threadBody = """
-					{"title": "Hello world", "body": "First post!"}
-					""";
-			MvcResult threadResult = mockMvc.perform(post("/thread")
+					{"title": "Hello world %s", "body": "First post!"}
+					""".formatted(suffix);
+			mockMvc.perform(post("/thread")
 					.param("boardId", "1")
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + user.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(threadBody))
+					.andExpect(status().isCreated());
+
+			assertEquals(1, threadCount(criteria -> criteria.andThreadNameEqualTo("Hello world " + suffix)));
+			MessageDboExample authoredScope = new MessageDboExample();
+			authoredScope.createCriteria().andOwnerIdEqualTo(user.id());
+			assertEquals(1, messageDboMapper.countByExample(authoredScope));
+		}
+
+		@Test
+		void replyTemplateIsAddressedToTheRequestedThread() throws Exception {
+			TestUser member = createUser("tmpl_" + suffix);
+			int threadId = postThread(member.token(), "Template thread " + suffix, "op body");
+
+			mockMvc.perform(get("/message/template")
+					.param("threadId", String.valueOf(threadId))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
-					.andReturn();
-			int threadId = json.readTree(threadResult.getResponse().getContentAsString()).get("id").asInt();
-
-			String replyBody = """
-					{"body": "A reply!"}
-					""";
-			mockMvc.perform(post("/message/" + threadId)
-					.header("Authorization", "Bearer " + accessToken)
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(replyBody))
-					.andExpect(status().isOk());
-
-			assertEquals(2, count("zfgbb.message where thread_id = " + threadId + " and board_id = 1"),
-					"posted messages must carry their board's id for the board_summary view");
+					.andExpect(jsonPath("$.message.threadId").value(threadId))
+					.andExpect(jsonPath("$.message.ownerId").value(member.id()))
+					.andExpect(jsonPath("$.message.currentMessage.currentFlag").value(true))
+					.andExpect(jsonPath("$.message.currentMessage.contentFormat").value("BBCODE"));
 		}
 
 		@Test
 		void memberEditsTheirOwnPostAndTheRevisionIsRecorded() throws Exception {
-			String editorName = "edit_" + suffix;
-			register(editorName, "password123");
-			String accessToken = login(editorName, "password123").get("accessToken").asString();
-			int threadId = postThread(accessToken, "Editable " + suffix, "Original body");
+			TestUser editor = createUser("edit_" + suffix);
+			int threadId = postThread(editor.token(), "Editable " + suffix, "Original body");
 			int messageId = messageIdAt(threadId, 1);
 
 			mockMvc.perform(put("/message/" + messageId)
-					.header("Authorization", "Bearer " + accessToken)
+					.header("Authorization", "Bearer " + editor.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("{\"body\": \"Edited body\"}"))
 					.andExpect(status().isOk());
 
-			assertEquals("Edited body", jdbcTemplate.queryForObject(
-					"select message_text from zfgbb.message_history where message_id = ? and current_flag = true",
-					String.class, messageId),
+			assertEquals("Edited body", messageHistoryDboMapper.selectByExample(messageHistoryWhere(
+					criteria -> criteria.andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true)))
+					.get(0).getMessageText(),
 					"editing must replace the current revision body");
-			assertEquals(2, count("zfgbb.message_history where message_id = " + messageId),
+			assertEquals(2, messageHistoryDboMapper.countByExample(
+					messageHistoryWhere(criteria -> criteria.andMessageIdEqualTo(messageId))),
 					"editing must record a new revision instead of overwriting history");
 		}
 
 		@Test
+		void savingAndEditingAMessageReturnTheTimestampsTheDatabaseAssigned() throws Exception {
+			TestUser author = createUser("mts_" + suffix);
+			int threadId = postThread(author.token(), "Timestamped " + suffix, "First post!");
+
+			mockMvc.perform(post("/message/" + threadId)
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"body\": \"a reply worth timestamping\"}"))
+					.andExpect(status().isCreated())
+					.andExpect(jsonPath("$.message.createdTs").isNotEmpty())
+					.andExpect(jsonPath("$.message.updatedTs").isNotEmpty())
+					.andExpect(jsonPath("$.message.currentMessage.createdTs").isNotEmpty())
+					.andExpect(jsonPath("$.message.currentMessage.updatedTs").isNotEmpty());
+
+			editMessage(author.token(), messageIdAt(threadId, 2), "an edited body")
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.message.currentMessage.createdTs").isNotEmpty())
+					.andExpect(jsonPath("$.message.currentMessage.updatedTs").isNotEmpty());
+		}
+
+		@Test
+		void messageEditsAreRefusedOnBoardsTheEditorCannotRead() throws Exception {
+			TestUser owner = createUser("bedit_" + suffix);
+			TestUser moderator = createUser("bmod_" + suffix);
+			grantUserPermission(moderator.id(), permissionIdOf("ZFGC_FORUM_MODERATE"));
+			String adminToken = getAdminToken();
+
+			int threadId = postThread(owner.token(), "Board scoped edit " + suffix, "Original body");
+			int messageId = messageIdAt(threadId, 1);
+
+			String readableBoardEdit = "Moderator edit on a readable board";
+			editMessage(moderator.token(), messageId, readableBoardEdit)
+					.andExpect(status().isOk());
+			assertEquals(readableBoardEdit, currentBodyOf(messageId),
+					"a forum moderator must still edit posts on a board they hold a permission for");
+
+			int restrictedBoardId = insertBoard("Restricted edit " + suffix);
+			grantBoardPermission(restrictedBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			moveThreadToBoard(threadId, restrictedBoardId);
+
+			for (TestUser locked : List.of(moderator, owner))
+				mockMvc.perform(get("/thread/" + threadId)
+						.param("page", "1")
+						.param("pageSize", "10")
+						.header("Authorization", "Bearer " + locked.token()))
+						.andExpect(status().isNotFound());
+
+			long revisionsBefore = messageHistoryDboMapper.countByExample(
+					messageHistoryWhere(criteria -> criteria.andMessageIdEqualTo(messageId)));
+
+			editMessage(moderator.token(), messageId, "Moderator rewrite behind the board wall")
+					.andExpect(status().isForbidden());
+			assertEquals(readableBoardEdit, currentBodyOf(messageId),
+					"ZFGC_FORUM_MODERATE is granted globally rather than per board, so the board "
+							+ "permissions must still gate the write");
+
+			editMessage(owner.token(), messageId, "Owner rewrite behind the board wall")
+					.andExpect(status().isForbidden());
+			assertEquals(readableBoardEdit, currentBodyOf(messageId),
+					"still owning a post that was moved beyond the owner's board permissions must "
+							+ "not re-open the write");
+
+			assertEquals(revisionsBefore, messageHistoryDboMapper.countByExample(
+					messageHistoryWhere(criteria -> criteria.andMessageIdEqualTo(messageId))),
+					"a refused edit must not leave a revision behind");
+
+			String restrictedBoardEdit = "Admin edit on the restricted board";
+			editMessage(adminToken, messageId, restrictedBoardEdit)
+					.andExpect(status().isOk());
+			assertEquals(restrictedBoardEdit, currentBodyOf(messageId),
+					"an editor holding the restricted board's permission must still be able to edit");
+		}
+
+		@Test
+		void editingIsOfferedToAndPermittedForTheAuthorOnly() throws Exception {
+			TestUser author = createUser("actauth_" + suffix);
+			TestUser bystander = createUser("actbys_" + suffix);
+
+			int threadId = postThread(author.token(), "Allowed actions " + suffix, "Original body");
+			int messageId = messageIdAt(threadId, 1);
+
+			assertTrue(allowedMessageActions(author.token(), messageId).contains("message.edit"),
+					"the author of an open post must be offered the edit action");
+			assertFalse(allowedMessageActions(bystander.token(), messageId).contains("message.edit"),
+					"a member who neither wrote the post nor moderates must not be offered the edit action");
+
+			String bodyBeforeTheRefusedEdit = currentBodyOf(messageId);
+			editMessage(bystander.token(), messageId, "Bystander rewrite")
+					.andExpect(status().isForbidden());
+			assertEquals(bodyBeforeTheRefusedEdit, currentBodyOf(messageId),
+					"a member must not be able to rewrite a post they did not write");
+		}
+
+		@Test
 		void memberListsOwnPostHistoryPaged() throws Exception {
-			String memberName = "hist_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
-			int memberId = userIdOf(memberName);
+			TestUser member = createUser("hist_" + suffix);
 
 			String openingBody = "history op body " + suffix;
-			int threadId = postThread(memberToken, "History " + suffix, openingBody);
+			int threadId = postThread(member.token(), "History " + suffix, openingBody);
 			for (int replyNumber = 2; replyNumber <= 4; replyNumber++)
-				postReply(memberToken, threadId, "history reply " + replyNumber + " " + suffix);
+				postReply(member.token(), threadId, "[b]history reply " + replyNumber + " " + suffix + "[/b]");
 
-			MvcResult firstPageResult = mockMvc.perform(get("/message/user/" + memberId)
+			MvcResult firstPageResult = mockMvc.perform(get("/message/user/" + member.id())
 					.param("page", "1")
 					.param("pageSize", "3")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andReturn();
-			MvcResult secondPageResult = mockMvc.perform(get("/message/user/" + memberId)
+			MvcResult secondPageResult = mockMvc.perform(get("/message/user/" + member.id())
 					.param("page", "2")
 					.param("pageSize", "3")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andReturn();
 
 			JsonNode firstPage = json.readTree(firstPageResult.getResponse().getContentAsString());
 			JsonNode secondPage = json.readTree(secondPageResult.getResponse().getContentAsString());
+
+			assertTrue(firstPage.toString().contains("bb-code-b") && !firstPage.toString().contains("[b]"),
+					"post history must return rendered BBCode, not the raw markup the member typed: "
+							+ firstPage);
 			assertEquals(3, firstPage.size(), "the first page must hold exactly pageSize messages");
 			assertEquals(1, secondPage.size(), "the second page must hold the remaining message");
 
 			Set<Integer> pagedMessageIds = new HashSet<>();
 			for (JsonNode message : firstPage)
-				pagedMessageIds.add(message.get("id").asInt());
+				pagedMessageIds.add(message.get("message").get("id").asInt());
 			for (JsonNode message : secondPage)
-				pagedMessageIds.add(message.get("id").asInt());
+				pagedMessageIds.add(message.get("message").get("id").asInt());
 			assertEquals(4, pagedMessageIds.size(), "the two pages must partition the member's post history");
-			assertTrue(secondPage.get(0).get("currentMessage").get("messageText").asText().contains(openingBody),
+			assertTrue(secondPage.get(0).get("message").get("currentMessage").get("messageText").asString()
+					.contains(openingBody),
 					"newest-first paging must leave the opening post on the last page, rendered");
 		}
 
 		@Test
-		void memberPreviewsBbcodeWithQuoteScope() throws Exception {
-			String memberName = "prev_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
+		void memberPreviewsBBCodeWithQuoteScope() throws Exception {
+			TestUser member = createUser("prev_" + suffix);
 
 			String sourceBody = "Preview quote source " + suffix;
-			int threadId = postThread(memberToken, "Preview thread " + suffix, sourceBody);
+			int threadId = postThread(member.token(), "Preview thread " + suffix, sourceBody);
 			int sourceMessageId = messageIdAt(threadId, 1);
 
 			String previewPayload = """
 					{"content": "[quote msg=%d][/quote][b]bold preview[/b]", "scope": "FORUM"}
 					""".formatted(sourceMessageId);
 			MvcResult previewResult = mockMvc.perform(post("/content/preview")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(previewPayload))
 					.andExpect(status().isOk())
@@ -621,72 +787,414 @@ class MemberTest extends PostgresIntegrationTest {
 		}
 
 		@Test
+		void quotingAMessageFromABoardTheViewerCannotSeeRevealsNothing() throws Exception {
+			TestUser insider = createUser("qins_" + suffix);
+			TestUser outsider = createUser("qout_" + suffix);
+
+			int hiddenBoardId = insertBoard("Quote hidden " + suffix);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			String secretBody = "SecretQuotedBody" + suffix;
+			int hiddenThreadId = postThread(insider.token(), "Quote hidden thread " + suffix, secretBody);
+			int hiddenMessageId = messageIdAt(hiddenThreadId, 1);
+			moveIntoBoard(hiddenThreadId, hiddenMessageId, hiddenBoardId);
+
+			String previewPayload = """
+					{"content": "[quote author=Somebody thread=%d msg=%d][/quote]tail", "scope": "FORUM"}
+					""".formatted(hiddenThreadId, hiddenMessageId);
+			MvcResult previewResult = mockMvc.perform(post("/content/preview")
+					.header("Authorization", "Bearer " + outsider.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(previewPayload))
+					.andExpect(status().isOk())
+					.andReturn();
+
+			String contentParsed = json.readTree(previewResult.getResponse().getContentAsString())
+					.get("contentParsed").asString();
+			assertFalse(contentParsed.contains(secretBody),
+					"a quote of a board the viewer cannot read must never splice that board's body: "
+							+ contentParsed);
+			assertTrue(contentParsed.contains("tail"),
+					"the unreadable quote degrades in place and the rest of the post still renders: "
+							+ contentParsed);
+		}
+
+		@Test
+		void aThreadTemplateAnswersForTheReaderNotForAGuest() throws Exception {
+			TestUser insider = createUser("tmplin_" + suffix);
+			TestUser outsider = createUser("tmplout_" + suffix);
+
+			int restrictedBoardId = insertBoard("Template restricted " + suffix);
+			grantBoardPermission(restrictedBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			String leadBody = "TemplateLeadBody" + suffix;
+			int threadId = postThread(insider.token(), "Template lead thread " + suffix, leadBody);
+			moveIntoBoard(threadId, messageIdAt(threadId, 1), restrictedBoardId);
+			grantBoardPermission(restrictedBoardId, permissionIdOf("ZFGC_USER"));
+
+			String payload = """
+					{"content": "[template=announcementlead]threadId=%d[/template]", "scope": "FORUM"}
+					""".formatted(threadId);
+
+			String forTheMember = json.readTree(mockMvc.perform(post("/content/preview")
+					.header("Authorization", "Bearer " + outsider.token())
+					.contentType(MediaType.APPLICATION_JSON).content(payload))
+					.andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+					.get("contentParsed").asString();
+
+			assertTrue(forTheMember.contains(leadBody),
+					"a template whose data source takes the viewer must answer for the reader; while the "
+							+ "fetcher hardcoded User.guest() this rendered blank for every logged-in member: "
+							+ forTheMember);
+		}
+
+		@Test
+		void aThreadTemplateRevealsNothingToAReaderWhoCannotSeeTheBoard() throws Exception {
+			TestUser insider = createUser("tmplden_" + suffix);
+			TestUser outsider = createUser("tmplno_" + suffix);
+
+			int hiddenBoardId = insertBoard("Template hidden " + suffix);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			String secretLead = "TemplateSecretLead" + suffix;
+			int threadId = postThread(insider.token(), "Template hidden thread " + suffix, secretLead);
+			moveIntoBoard(threadId, messageIdAt(threadId, 1), hiddenBoardId);
+
+			String payload = """
+					{"content": "[template=announcementlead]threadId=%d[/template]tail", "scope": "FORUM"}
+					""".formatted(threadId);
+
+			String forTheOutsider = json.readTree(mockMvc.perform(post("/content/preview")
+					.header("Authorization", "Bearer " + outsider.token())
+					.contentType(MediaType.APPLICATION_JSON).content(payload))
+					.andExpect(status().isOk()).andReturn().getResponse().getContentAsString())
+					.get("contentParsed").asString();
+
+			assertFalse(forTheOutsider.contains(secretLead),
+					"passing the real viewer to template data sources must not widen what they can see; the "
+							+ "source enforces its own permissions and an unreadable thread renders blank: "
+							+ forTheOutsider);
+			assertTrue(forTheOutsider.contains("tail"),
+					"a blank widget degrades in place: " + forTheOutsider);
+		}
+
+		@Test
 		void memberStartsDiscussionThread() throws Exception {
-			jdbcTemplate.update("""
-					insert into zfgbb.system_config (config_key, config_value)
-					values ('cms_discussion_board_id', '1')
-					on conflict (config_key) do update set config_value = '1'
-					""");
-			String memberName = "disc_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
+			setSystemConfig("cms_discussion_board_id", "1");
+			TestUser member = createUser("disc_" + suffix);
 
 			MvcResult projectResult = mockMvc.perform(post("/projects/majora-s-mask-3d/discussion")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andReturn();
 			int projectThreadId = json.readTree(projectResult.getResponse().getContentAsString())
 					.get("threadId").asInt();
-			assertEquals(1, count("zfgbb.thread where thread_id = " + projectThreadId + " and board_id = 1"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(projectThreadId)
+					.andBoardIdEqualTo(1)),
 					"the project discussion thread must open on the configured discussion board");
-			assertEquals(1, count("zfgbb.content_entity where slug = 'majora-s-mask-3d'"
-					+ " and thread_id = " + projectThreadId),
+			assertEquals(1, contentEntityCount(criteria -> criteria.andSlugEqualTo("majora-s-mask-3d")
+					.andThreadIdEqualTo(projectThreadId)),
 					"the project must link its freshly opened discussion thread");
 
 			mockMvc.perform(post("/projects/majora-s-mask-3d/discussion")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.threadId").value(projectThreadId));
 
 			MvcResult resourceResult = mockMvc.perform(post("/resources/eiji-aonuma-zelda-credits-list/discussion")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isOk())
 					.andReturn();
 			int resourceThreadId = json.readTree(resourceResult.getResponse().getContentAsString())
 					.get("threadId").asInt();
-			assertEquals(1, count("zfgbb.thread where thread_id = " + resourceThreadId + " and board_id = 1"),
+			assertEquals(1, threadCount(criteria -> criteria.andThreadIdEqualTo(resourceThreadId)
+					.andBoardIdEqualTo(1)),
 					"the resource discussion thread must open on the configured discussion board");
-			assertEquals(1, count("zfgbb.content_entity where slug = 'eiji-aonuma-zelda-credits-list'"
-					+ " and thread_id = " + resourceThreadId),
+			assertEquals(1, contentEntityCount(criteria -> criteria
+					.andSlugEqualTo("eiji-aonuma-zelda-credits-list").andThreadIdEqualTo(resourceThreadId)),
 					"the resource must link its freshly opened discussion thread");
 		}
 
 		@Test
 		void readOnlyMemberCannotStartCmsDiscussion() throws Exception {
-			jdbcTemplate.update("""
-					insert into zfgbb.system_config (config_key, config_value)
-					values ('cms_discussion_board_id', '1')
-					on conflict (config_key) do update set config_value = '1'
-					""");
-			jdbcTemplate.update("update zfgbb.content_entity set thread_id = null where slug = 'majora-s-mask-3d'");
+			setSystemConfig("cms_discussion_board_id", "1");
+			unlinkDiscussionThread("majora-s-mask-3d");
 
-			String memberName = "rodisc_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
-			int memberId = userIdOf(memberName);
-			jdbcTemplate.update(
-					"insert into zfgbb.br_user_permission (user_id, user_permission_id) values (?, 9)", memberId);
+			TestUser member = createUser("rodisc_" + suffix);
+			grantUserPermission(member.id(), 9);
 
-			long board1ThreadsBefore = count("zfgbb.thread where board_id = 1");
+			long board1ThreadsBefore = threadCount(criteria -> criteria.andBoardIdEqualTo(1));
 
 			mockMvc.perform(post("/projects/majora-s-mask-3d/discussion")
-					.header("Authorization", "Bearer " + memberToken))
+					.header("Authorization", "Bearer " + member.token()))
 					.andExpect(status().isForbidden());
 
-			assertEquals(board1ThreadsBefore, count("zfgbb.thread where board_id = 1"),
+			assertEquals(board1ThreadsBefore, threadCount(criteria -> criteria.andBoardIdEqualTo(1)),
 					"a read-only member must not open a CMS discussion thread");
-			assertEquals(1, count("zfgbb.content_entity where slug = 'majora-s-mask-3d' and thread_id is null"),
+			assertEquals(1, contentEntityCount(criteria -> criteria.andSlugEqualTo("majora-s-mask-3d")
+					.andThreadIdIsNull()),
 					"the project must remain unlinked after the rejected read-only discussion attempt");
+		}
+
+		private ResultActions editMessage(String token, int messageId, String body) throws Exception {
+			return mockMvc.perform(put("/message/" + messageId)
+					.header("Authorization", "Bearer " + token)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"body\": \"" + body + "\"}"));
+		}
+
+		@Test
+		void aPostAuthoredAsMarkdownIsStoredAndRenderedThroughTheMarkdownLane() throws Exception {
+			TestUser author = createUser("mdpost_" + suffix);
+			int threadId = postThread(author.token(), "Markdown thread " + suffix, "opening **post** in bbcode");
+
+			mockMvc.perform(post("/message/" + threadId)
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"body\": \"# heading\\n\\nsome **strong** words\", "
+							+ "\"contentFormat\": \"MARKDOWN\"}"))
+					.andExpect(status().isCreated());
+
+			int markdownMessageId = messageIdAt(threadId, 2);
+			assertEquals("MARKDOWN", currentRevisionContentFormat(markdownMessageId),
+					"a post authored as markdown must persist its own format, not the engine default");
+
+			JsonNode messages = threadMessages(threadId);
+			assertTrue(renderedBodyOfPost(messages, 2).contains("<strong>strong</strong>"),
+					"the markdown post must reach the markdown lane: " + renderedBodyOfPost(messages, 2));
+			assertTrue(renderedBodyOfPost(messages, 2).contains("<h1"),
+					"an ATX heading only renders as a heading through the markdown lane: "
+							+ renderedBodyOfPost(messages, 2));
+			assertFalse(renderedBodyOfPost(messages, 1).contains("<strong>"),
+					"the bbcode post in the same thread must still render through the bbcode lane: "
+							+ renderedBodyOfPost(messages, 1));
+		}
+
+		@Test
+		void flippingTheSiteDefaultNeverRestampsOrRerendersPostsThatAlreadyHaveAFormat() throws Exception {
+			TestUser author = createUser("mdflip_" + suffix);
+			int threadId = postThread(author.token(), "Flip thread " + suffix, "**not** markdown [b]bbcode[/b]");
+			int bbcodeMessageId = messageIdAt(threadId, 1);
+			assertEquals("BBCODE", currentRevisionContentFormat(bbcodeMessageId));
+
+			setSystemConfig("authoring_default_content_format", "MARKDOWN");
+			try {
+				editMessage(author.token(), bbcodeMessageId, "still **not** markdown [b]bbcode[/b]")
+						.andExpect(status().isOk());
+
+				assertEquals("BBCODE", currentRevisionContentFormat(bbcodeMessageId),
+						"an edit that names no format must inherit the format the post already had; "
+								+ "stamping the site default here would silently re-render existing bbcode");
+				assertFalse(renderedBodyOfPost(threadMessages(threadId), 1).contains("<strong>"),
+						"flipping the authoring default must not change how existing content renders");
+
+				mockMvc.perform(post("/message/" + threadId)
+						.header("Authorization", "Bearer " + author.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"body\": \"brand new **markdown** post\"}"))
+						.andExpect(status().isCreated());
+				assertEquals("MARKDOWN", currentRevisionContentFormat(messageIdAt(threadId, 2)),
+						"content with no predecessor takes the site authoring default");
+
+				mockMvc.perform(get("/message/template")
+						.param("threadId", String.valueOf(threadId))
+						.header("Authorization", "Bearer " + author.token()))
+						.andExpect(status().isOk())
+						.andExpect(jsonPath("$.message.currentMessage.contentFormat").value("MARKDOWN"));
+			} finally {
+				setSystemConfig("authoring_default_content_format", "BBCODE");
+			}
+		}
+
+		@Test
+		void aRevisionNamingAFormatOutsideTheLookupTableIsRejectedByTheDatabase() throws Exception {
+			TestUser author = createUser("mdfk_" + suffix);
+			int threadId = postThread(author.token(), "Format key thread " + suffix, "op body");
+			MessageHistoryDbo smuggled = new MessageHistoryDbo();
+			smuggled.setMessageId(messageIdAt(threadId, 1));
+			smuggled.setMessageText("a body in a format nothing can render");
+			smuggled.setContentFormat("PARCHMENT");
+
+			assertThrows(DataAccessException.class,
+					() -> messageHistoryDboMapper.insertSelective(smuggled),
+					"message_history.content_format must be constrained to the lookup table, or a revision "
+							+ "no renderer knows about lands in the forum and silently renders as bbcode");
+		}
+
+		@Test
+		void thePreviewEndpointRendersTheFormatTheEditorIsComposingIn() throws Exception {
+			TestUser author = createUser("mdprev_" + suffix);
+
+			assertTrue(previewedAs(author.token(), "some **strong** words", "MARKDOWN")
+					.contains("<strong>strong</strong>"),
+					"a markdown preview must reach the markdown lane, or the editor lies about what will "
+							+ "be published");
+			assertFalse(previewedAs(author.token(), "some **strong** words", "BBCODE")
+					.contains("<strong>"),
+					"a bbcode preview must leave markdown emphasis literal");
+			assertFalse(previewedAs(author.token(), "some **strong** words", null).contains("<strong>"),
+					"an unspecified preview format follows the site authoring default, which is bbcode here");
+		}
+
+		private String previewedAs(String token, String content, String contentFormat) throws Exception {
+			String requestBody = contentFormat == null
+					? "{\"content\": \"" + content + "\", \"scope\": \"FORUM\"}"
+					: "{\"content\": \"" + content + "\", \"scope\": \"FORUM\", \"contentFormat\": \""
+							+ contentFormat + "\"}";
+			MvcResult result = mockMvc.perform(post("/content/preview")
+					.header("Authorization", "Bearer " + token)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(requestBody))
+					.andExpect(status().isOk())
+					.andReturn();
+			return json.readTree(result.getResponse().getContentAsString()).get("contentParsed").asString();
+		}
+
+		@Test
+		void theConvertEndpointRewritesTheSourceInBothDirections() throws Exception {
+			TestUser author = createUser("mdconv_" + suffix);
+
+			JsonNode toMarkdown = converted(author.token(),
+					"[b]bold[/b] and 2 * 3\\n\\n[quote msg=7]kept[/quote]", "BBCODE", "MARKDOWN");
+			assertEquals("**bold** and 2 \\* 3\n\n[quote msg=7]kept[/quote]",
+					toMarkdown.get("content").asString(),
+					"the toggle converts what markdown can express, escapes what it would otherwise read as "
+							+ "markup, and leaves a source-referencing quote as bbcode");
+			assertTrue(toMarkdown.get("notes").isEmpty(),
+					"nothing is lost converting to markdown, because the markdown lane renders bbcode too");
+
+			JsonNode toBBCode = converted(author.token(),
+					"## Title\\n\\nsome **bold** and an `[b]example[/b]` span", "MARKDOWN", "BBCODE");
+			assertEquals("[h2]Title[/h2]\n\nsome [b]bold[/b] and an `[b]example[/b]` span",
+					toBBCode.get("content").asString());
+			assertEquals(2, toBBCode.get("notes").size(),
+					"markdown the bbcode lane will render literally has to be named, or the author only finds "
+							+ "out after publishing: " + toBBCode.get("notes"));
+		}
+
+		@Test
+		void theConvertEndpointReportsAPostTheOtherFormatWillNotRenderTheSameWay() throws Exception {
+			TestUser author = createUser("mdconvnote_" + suffix);
+
+			JsonNode converted = converted(author.token(),
+					"[quote author=mgzero thread=3 msg=14]<br /> ???<br /><br />Obviously Stove, and that's not "
+							+ "even an option!<br />[/quote]<br />Yes, but we're all Steve.",
+					"BBCODE", "MARKDOWN");
+
+			assertEquals("[quote author=mgzero thread=3 msg=14]<br /> ???<br /><br />Obviously Stove, and that's "
+					+ "not even an option!<br />[/quote]<br />Yes, but we're all Steve.",
+					converted.get("content").asString(),
+					"the converter leaves this migrated post alone, which is correct and is exactly why the "
+							+ "warning cannot come from predicting which constructs it rewrites");
+			assertEquals(1, converted.get("notes").size(), converted.get("notes").toString());
+			assertTrue(converted.get("notes").get(0).asString().contains("[quote]"),
+					"the endpoint renders its own output and compares, so it can name the construct the other "
+							+ "format prints as plain text: " + converted.get("notes"));
+		}
+
+		private JsonNode converted(String token, String content, String fromContentFormat, String toContentFormat)
+				throws Exception {
+			MvcResult result = mockMvc.perform(post("/content/convert")
+					.header("Authorization", "Bearer " + token)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"content\": \"" + content + "\", \"fromContentFormat\": \"" + fromContentFormat
+							+ "\", \"toContentFormat\": \"" + toContentFormat + "\"}"))
+					.andExpect(status().isOk())
+					.andReturn();
+			return json.readTree(result.getResponse().getContentAsString());
+		}
+
+		@Test
+		void theConvertEndpointRefusesAFormatNothingCanAuthor() throws Exception {
+			TestUser author = createUser("mdconvbad_" + suffix);
+
+			mockMvc.perform(post("/content/convert")
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"content\": \"x\", \"fromContentFormat\": \"BBCODE\","
+							+ " \"toContentFormat\": \"PARCHMENT\"}"))
+					.andExpect(status().isBadRequest());
+
+			mockMvc.perform(post("/content/convert")
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"content\": \"x\", \"toContentFormat\": \"MARKDOWN\"}"))
+					.andExpect(status().isBadRequest());
+
+			mockMvc.perform(post("/content/convert")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"content\": \"x\", \"fromContentFormat\": \"BBCODE\","
+							+ " \"toContentFormat\": \"MARKDOWN\"}"))
+					.andExpect(status().isUnauthorized());
+		}
+
+		@Test
+		void aPostNamingAnUnrenderableFormatIsRefused() throws Exception {
+			TestUser author = createUser("mdbad_" + suffix);
+			int threadId = postThread(author.token(), "Bad format thread " + suffix, "op");
+
+			mockMvc.perform(post("/message/" + threadId)
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"body\": \"<p>raw html</p>\", \"contentFormat\": \"HTML\"}"))
+					.andExpect(status().isBadRequest());
+
+			assertEquals(1, messageDboMapper.countByExample(messagesInThread(threadId)),
+					"a refused format must not leave a post behind");
+		}
+
+		private MessageDboExample messagesInThread(int threadId) {
+			MessageDboExample example = new MessageDboExample();
+			example.createCriteria().andThreadIdEqualTo(threadId);
+			return example;
+		}
+
+		private String currentRevisionContentFormat(int messageId) {
+			return messageHistoryDboMapper.selectByExample(messageHistoryWhere(
+					criteria -> criteria.andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true)))
+					.get(0).getContentFormat();
+		}
+
+		private JsonNode threadMessages(int threadId) throws Exception {
+			MvcResult result = mockMvc.perform(get("/thread/" + threadId)
+					.param("page", "1").param("pageSize", "10"))
+					.andExpect(status().isOk())
+					.andReturn();
+			return json.readTree(result.getResponse().getContentAsString()).get("messages");
+		}
+
+		private String renderedBodyOfPost(JsonNode messages, int postInThread) {
+			for (JsonNode message : messages)
+				if (message.get("postInThread").asInt() == postInThread)
+					return message.get("currentMessage").get("messageText").asString();
+			throw new AssertionError("post " + postInThread + " is not in the thread response");
+		}
+
+		private Set<String> allowedMessageActions(String token, int messageId) throws Exception {
+			MvcResult result = mockMvc.perform(get("/message/" + messageId + "/allowed-actions")
+					.header("Authorization", "Bearer " + token))
+					.andExpect(status().isOk())
+					.andReturn();
+			Set<String> actions = new HashSet<>();
+			for (JsonNode action : json.readTree(result.getResponse().getContentAsString()))
+				actions.add(action.asString());
+			return actions;
+		}
+
+		private String currentBodyOf(int messageId) {
+			return messageHistoryDboMapper.selectByExample(messageHistoryWhere(
+					criteria -> criteria.andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true)))
+					.get(0).getMessageText();
+		}
+
+		private void moveThreadToBoard(int threadId, int boardId) {
+			ThreadDbo relocatedThread = new ThreadDbo();
+			relocatedThread.setThreadId(threadId);
+			relocatedThread.setBoardId(boardId);
+			threadDboMapper.updateByPrimaryKeySelective(relocatedThread);
+			MessageDbo relocatedMessages = new MessageDbo();
+			relocatedMessages.setBoardId(boardId);
+			MessageDboExample inThread = new MessageDboExample();
+			inThread.createCriteria().andThreadIdEqualTo(threadId);
+			messageDboMapper.updateByExampleSelective(relocatedMessages, inThread);
+			forumService.evictUnfilteredForumCache();
 		}
 	}
 
@@ -695,12 +1203,10 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void authenticatedUserCanReactToAMessage() throws Exception {
-			String memberName = "react_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
+			TestUser member = createUser("react_" + suffix);
 
-			int threadId = postThread(memberToken, "React thread " + suffix, "op body");
-			int messageId = openingMessageId(threadId);
+			int threadId = postThread(member.token(), "React thread " + suffix, "op body");
+			int messageId = messageIdAt(threadId, 1);
 			int reactionTypeId = anyReactionTypeId();
 
 			String payload = """
@@ -708,7 +1214,7 @@ class MemberTest extends PostgresIntegrationTest {
 					""".formatted(messageId, reactionTypeId);
 
 			mockMvc.perform(post("/reactions")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(payload))
 					.andExpect(status().isOk())
@@ -720,13 +1226,10 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void readOnlyMemberCannotReact() throws Exception {
-			String memberName = "roreact_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
-			int memberId = userIdOf(memberName);
+			TestUser member = createUser("roreact_" + suffix);
 
-			int threadId = postThread(memberToken, "RO react thread " + suffix, "op body");
-			int messageId = openingMessageId(threadId);
+			int threadId = postThread(member.token(), "RO react thread " + suffix, "op body");
+			int messageId = messageIdAt(threadId, 1);
 			int reactionTypeId = anyReactionTypeId();
 
 			String payload = """
@@ -734,54 +1237,92 @@ class MemberTest extends PostgresIntegrationTest {
 					""".formatted(messageId, reactionTypeId);
 
 			mockMvc.perform(post("/reactions")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(payload))
 					.andExpect(status().isOk());
 
-			jdbcTemplate.update(
-					"insert into zfgbb.br_user_permission (user_id, user_permission_id) values (?, 9)", memberId);
+			grantUserPermission(member.id(), 9);
 
 			mockMvc.perform(post("/reactions")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(payload))
 					.andExpect(status().isForbidden());
 		}
 
 		@Test
-		void unknownReactionTypeIsRejectedWithBadRequest() throws Exception {
-			String memberName = "badtype_" + suffix;
-			register(memberName, "password123");
-			String memberToken = login(memberName, "password123").get("accessToken").asString();
+		void reactingToAMessageOnAnUnreadableBoardIsRefused() throws Exception {
+			TestUser member = createUser("hidreact_" + suffix);
 
-			int threadId = postThread(memberToken, "Bad type thread " + suffix, "op body");
-			int messageId = openingMessageId(threadId);
+			int hiddenBoardId = insertBoard("Hidden react board " + suffix);
+			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
+			int hiddenThreadId = insertThread("Hidden react thread " + suffix, hiddenBoardId, member.id());
+			insertMessage(member.id(), hiddenThreadId, hiddenBoardId);
+			int hiddenMessageId = messageIdAt(hiddenThreadId, 1);
+
+			String payload = """
+					{"reactableType": "MESSAGE", "reactableId": %d, "reactionTypeId": %d}
+					""".formatted(hiddenMessageId, anyReactionTypeId());
+
+			mockMvc.perform(post("/reactions")
+					.header("Authorization", "Bearer " + member.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(payload))
+					.andExpect(status().isForbidden());
+		}
+
+		@Test
+		void removingAReactionClearsItAndIsIdempotent() throws Exception {
+			TestUser member = createUser("unreact_" + suffix);
+
+			int threadId = postThread(member.token(), "Unreact thread " + suffix, "op body");
+			int messageId = messageIdAt(threadId, 1);
+			int reactionTypeId = anyReactionTypeId();
+
+			String payload = """
+					{"reactableType": "MESSAGE", "reactableId": %d, "reactionTypeId": %d}
+					""".formatted(messageId, reactionTypeId);
+
+			mockMvc.perform(post("/reactions")
+					.header("Authorization", "Bearer " + member.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(payload))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.totalCount").value(1));
+
+			mockMvc.perform(delete("/reactions")
+					.header("Authorization", "Bearer " + member.token())
+					.param("reactableType", "MESSAGE")
+					.param("reactableId", String.valueOf(messageId)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.totalCount").value(0))
+					.andExpect(jsonPath("$.userReactionTypeId").doesNotExist());
+
+			mockMvc.perform(delete("/reactions")
+					.header("Authorization", "Bearer " + member.token())
+					.param("reactableType", "MESSAGE")
+					.param("reactableId", String.valueOf(messageId)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.totalCount").value(0));
+		}
+
+		@Test
+		void unknownReactionTypeIsRejectedWithBadRequest() throws Exception {
+			TestUser member = createUser("badtype_" + suffix);
+
+			int threadId = postThread(member.token(), "Bad type thread " + suffix, "op body");
+			int messageId = messageIdAt(threadId, 1);
 
 			String payload = """
 					{"reactableType": "MESSAGE", "reactableId": %d, "reactionTypeId": 999999}
 					""".formatted(messageId);
 
 			mockMvc.perform(post("/reactions")
-					.header("Authorization", "Bearer " + memberToken)
+					.header("Authorization", "Bearer " + member.token())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(payload))
 					.andExpect(status().isBadRequest());
-		}
-
-		private int openingMessageId(int threadId) {
-			Integer messageId = jdbcTemplate.queryForObject(
-					"select message_id from zfgbb.message where thread_id = ? and post_in_thread = 1",
-					Integer.class, threadId);
-			assertNotNull(messageId);
-			return messageId;
-		}
-
-		private int anyReactionTypeId() {
-			Integer reactionTypeId = jdbcTemplate.queryForObject(
-					"select min(reaction_type_id) from zfgbb.reaction_type", Integer.class);
-			assertNotNull(reactionTypeId);
-			return reactionTypeId;
 		}
 	}
 
@@ -790,14 +1331,12 @@ class MemberTest extends PostgresIntegrationTest {
 
 		@Test
 		void ownerCannotRestoreOrDoubleDeleteAndLockedThreadsBlockOwnerDeletes() throws Exception {
-			String ownerName = "authz_" + suffix;
-			register(ownerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+			TestUser owner = createUser("authz_" + suffix);
+			String adminToken = getAdminToken();
 
-			int threadId = postThread(ownerToken, "Authz matrix " + suffix, "OP");
-			postReply(ownerToken, threadId, "first reply");
-			postReply(ownerToken, threadId, "second reply");
+			int threadId = postThread(owner.token(), "Authz matrix " + suffix, "OP");
+			postReply(owner.token(), threadId, "first reply");
+			postReply(owner.token(), threadId, "second reply");
 			int firstReplyId = messageIdAt(threadId, 2);
 			int secondReplyId = messageIdAt(threadId, 3);
 
@@ -805,46 +1344,193 @@ class MemberTest extends PostgresIntegrationTest {
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk());
 			mockMvc.perform(delete("/message/" + firstReplyId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
 			mockMvc.perform(put("/thread/" + threadId + "/lockToggle")
 					.header("Authorization", "Bearer " + adminToken))
 					.andExpect(status().isOk());
 
 			mockMvc.perform(delete("/message/" + secondReplyId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.outcome").value("RECYCLED"));
 			mockMvc.perform(delete("/message/" + secondReplyId)
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
 
-			Integer wrapperThreadId = jdbcTemplate.queryForObject(
-					"select thread_id from zfgbb.message where message_id = ?", Integer.class, secondReplyId);
+			int wrapperThreadId = messageDboMapper.selectByPrimaryKey(secondReplyId).getThreadId();
 			mockMvc.perform(put("/message/" + secondReplyId + "/restore")
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
 			mockMvc.perform(put("/thread/" + wrapperThreadId + "/restore")
-					.header("Authorization", "Bearer " + ownerToken))
+					.header("Authorization", "Bearer " + owner.token()))
 					.andExpect(status().isForbidden());
 		}
 
 		@Test
 		void memberCannotModifyAnotherMembersPost() throws Exception {
-			String ownerName = "authz_" + suffix;
-			String strangerName = "strgr_" + suffix;
-			register(ownerName, "password123");
-			register(strangerName, "password123");
-			String ownerToken = login(ownerName, "password123").get("accessToken").asString();
-			String strangerToken = login(strangerName, "password123").get("accessToken").asString();
+			TestUser owner = createUser("authz_" + suffix);
+			TestUser stranger = createUser("strgr_" + suffix);
 
-			int threadId = postThread(ownerToken, "Authz matrix " + suffix, "OP");
-			postReply(ownerToken, threadId, "first reply");
+			int threadId = postThread(owner.token(), "Authz matrix " + suffix, "OP");
+			postReply(owner.token(), threadId, "first reply");
 			int firstReplyId = messageIdAt(threadId, 2);
 
 			mockMvc.perform(delete("/message/" + firstReplyId)
-					.header("Authorization", "Bearer " + strangerToken))
+					.header("Authorization", "Bearer " + stranger.token()))
 					.andExpect(status().isForbidden());
 		}
+	}
+
+	private int insertBoard(String boardName) {
+		return insertBoard(boardName, null, 0, null);
+	}
+
+	private int insertBoard(String boardName, Integer categoryId, int seqno, Integer parentBoardId) {
+		BoardDbo board = new BoardDbo();
+		board.setBoardName(boardName);
+		board.setCategoryId(categoryId);
+		board.setSeqno(seqno);
+		board.setParentBoardId(parentBoardId);
+		boardDboMapper.insertSelective(board);
+		assertNotNull(board.getBoardId());
+		return board.getBoardId();
+	}
+
+	private void grantBoardPermission(int boardId, int permissionId) {
+		BrBoardPermissionDbo grant = new BrBoardPermissionDbo();
+		grant.setBoardId(boardId);
+		grant.setPermissionId(permissionId);
+		brBoardPermissionDboMapper.insertSelective(grant);
+	}
+
+	private int insertThread(String threadName, int boardId, int createdUserId) {
+		ThreadDbo thread = new ThreadDbo();
+		thread.setThreadName(threadName);
+		thread.setBoardId(boardId);
+		thread.setCreatedUserId(createdUserId);
+		threadDboMapper.insertSelective(thread);
+		assertNotNull(thread.getThreadId());
+		return thread.getThreadId();
+	}
+
+	private void moveIntoBoard(int threadId, int messageId, int boardId) {
+		ThreadDbo thread = new ThreadDbo();
+		thread.setThreadId(threadId);
+		thread.setBoardId(boardId);
+		threadDboMapper.updateByPrimaryKeySelective(thread);
+		MessageDbo message = new MessageDbo();
+		message.setMessageId(messageId);
+		message.setBoardId(boardId);
+		messageDboMapper.updateByPrimaryKeySelective(message);
+	}
+
+	private void insertMessage(int ownerId, int threadId, int boardId) {
+		MessageDbo message = new MessageDbo();
+		message.setOwnerId(ownerId);
+		message.setThreadId(threadId);
+		message.setBoardId(boardId);
+		message.setPostInThread(1);
+		messageDboMapper.insertSelective(message);
+	}
+
+	private int insertAttachment(int messageId, int uploaderUserId) {
+		Integer contentTypeId = contentResourceTypeDboMapper
+				.selectByExample(new ContentResourceTypeDboExample()).stream()
+				.map(ContentResourceTypeDbo::getContentResourceTypeId).min(Integer::compareTo).orElse(null);
+		assertNotNull(contentTypeId, "the fixture must seed at least one content resource type");
+		ContentResourceDbo resource = new ContentResourceDbo();
+		resource.setContentTypeId(contentTypeId);
+		resource.setUploadedUserId(uploaderUserId);
+		resource.setFilename("attachment-" + suffix + ".zip");
+		resource.setChecksum("checksum-" + suffix);
+		resource.setFileExt("zip");
+		resource.setMimeType("application/zip");
+		contentResourceDboMapper.insertSelective(resource);
+		assertNotNull(resource.getContentResourceId());
+		FileAttachmentDbo attachment = new FileAttachmentDbo();
+		attachment.setMessageId(messageId);
+		attachment.setContentResourceId(resource.getContentResourceId());
+		attachment.setActiveFlag(true);
+		fileAttachmentDboMapper.insertSelective(attachment);
+		return resource.getContentResourceId();
+	}
+
+	private int permissionIdOf(String permissionCode) {
+		PermissionDboExample example = new PermissionDboExample();
+		example.createCriteria().andPermissionCodeEqualTo(permissionCode);
+		List<PermissionDbo> permissions = permissionDboMapper.selectByExample(example);
+		assertEquals(1, permissions.size(), permissionCode + " must exist exactly once");
+		return permissions.get(0).getPermissionId();
+	}
+
+	private User actorHolding(String... permissionCodes) {
+		User actor = new User();
+		for (String permissionCode : permissionCodes) {
+			Permission permission = new Permission();
+			permission.setPermissionId(permissionIdOf(permissionCode));
+			permission.setPermissionCode(permissionCode);
+			actor.getPermissions().add(permission);
+		}
+		return actor;
+	}
+
+	private int anyReactionTypeId() {
+		Integer reactionTypeId = reactionTypeDboMapper.selectByExample(new ReactionTypeDboExample()).stream()
+				.map(ReactionTypeDbo::getReactionTypeId).min(Integer::compareTo).orElse(null);
+		assertNotNull(reactionTypeId);
+		return reactionTypeId;
+	}
+
+	private void grantUserPermission(int userId, int permissionId) {
+		BrUserPermissionDbo grant = new BrUserPermissionDbo();
+		grant.setUserId(userId);
+		grant.setUserPermissionId(permissionId);
+		brUserPermissionDboMapper.insertSelective(grant);
+	}
+
+	private void setSignature(int userId, String signature) {
+		UserBioInfoDbo bioInfo = new UserBioInfoDbo();
+		bioInfo.setSignature(signature);
+		UserBioInfoDboExample example = new UserBioInfoDboExample();
+		example.createCriteria().andUserIdEqualTo(userId);
+		userBioInfoDboMapper.updateByExampleSelective(bioInfo, example);
+	}
+
+	private void setSystemConfig(String configKey, String configValue) {
+		SystemConfigDbo config = new SystemConfigDbo();
+		config.setConfigKey(configKey);
+		config.setConfigValue(configValue);
+		if (systemConfigDboMapper.selectByPrimaryKey(configKey) == null)
+			systemConfigDboMapper.insertSelective(config);
+		else
+			systemConfigDboMapper.updateByPrimaryKeySelective(config);
+	}
+
+	private void unlinkDiscussionThread(String slug) {
+		ContentEntityDboExample example = new ContentEntityDboExample();
+		example.createCriteria().andSlugEqualTo(slug);
+		for (ContentEntityDbo entity : contentEntityDboMapper.selectByExample(example)) {
+			entity.setThreadId(null);
+			contentEntityDboMapper.updateByPrimaryKey(entity);
+		}
+	}
+
+	private long threadCount(Consumer<ThreadDboExample.Criteria> criteria) {
+		ThreadDboExample example = new ThreadDboExample();
+		criteria.accept(example.createCriteria());
+		return threadDboMapper.countByExample(example);
+	}
+
+	private long contentEntityCount(Consumer<ContentEntityDboExample.Criteria> criteria) {
+		ContentEntityDboExample example = new ContentEntityDboExample();
+		criteria.accept(example.createCriteria());
+		return contentEntityDboMapper.countByExample(example);
+	}
+
+	private MessageHistoryDboExample messageHistoryWhere(Consumer<MessageHistoryDboExample.Criteria> criteria) {
+		MessageHistoryDboExample example = new MessageHistoryDboExample();
+		criteria.accept(example.createCriteria());
+		return example;
 	}
 }

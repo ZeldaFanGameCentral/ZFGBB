@@ -1,12 +1,18 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import javax.sql.DataSource;
+
+import com.zfgc.zfgbb.wiki.WikiTitle;
 
 public class JobContextHolder {
 
 	public static final String DEFAULT_TABLE_PREFIX = "smf_";
 
-	private static final java.util.regex.Pattern VALID_TABLE_PREFIX = java.util.regex.Pattern.compile("^[A-Za-z0-9_]+$");
+	private static final Pattern VALID_TABLE_PREFIX = Pattern.compile("^[A-Za-z0-9_]+$");
 
 	private static final ThreadLocal<DataSource> DATA_SOURCE = new ThreadLocal<>();
 	private static final ThreadLocal<String> ATTACHMENTS_SOURCE_PATH = new ThreadLocal<>();
@@ -21,11 +27,11 @@ public class JobContextHolder {
 	private static final ThreadLocal<Boolean> CREATE_MEMBER_WIKI_PAGES = new ThreadLocal<>();
 	private static final ThreadLocal<Integer> DISCUSSION_BOARD_ID = new ThreadLocal<>();
 	private static final ThreadLocal<Integer> RESOURCES_BOARD_ID = new ThreadLocal<>();
-	private static final ThreadLocal<java.util.Map<String, Integer>> TALK_BOARD_IDS = new ThreadLocal<>();
-	private static final ThreadLocal<java.util.Map<Integer, java.util.List<String>>> GROUP_PERMISSION_MAP = new ThreadLocal<>();
-	private static final ThreadLocal<java.util.Map<String, String>> WIKI_NAMESPACE_CASE_MODES = new ThreadLocal<>();
-	private static final ThreadLocal<java.util.Map<String, String>> WIKI_NAMESPACE_ALIASES = new ThreadLocal<>();
-	private static final ThreadLocal<java.util.Map<Integer, String>> WIKI_NAMESPACE_IDS = new ThreadLocal<>();
+	private static final ThreadLocal<Map<String, Integer>> TALK_BOARD_IDS = new ThreadLocal<>();
+	private static final ThreadLocal<Map<Integer, List<String>>> GROUP_PERMISSION_MAP = new ThreadLocal<>();
+	private static final ThreadLocal<Map<String, String>> WIKI_NAMESPACE_CASE_MODES = new ThreadLocal<>();
+	private static final ThreadLocal<Map<String, String>> WIKI_NAMESPACE_ALIASES = new ThreadLocal<>();
+	private static final ThreadLocal<Map<Integer, String>> WIKI_NAMESPACE_IDS = new ThreadLocal<>();
 
 	public static void set(DataSource dataSource,
 			String sourcePath,
@@ -40,11 +46,11 @@ public class JobContextHolder {
 			boolean createMemberWikiPages,
 			Integer discussionBoardId,
 			Integer resourcesBoardId,
-			java.util.Map<String, Integer> talkBoardIds,
-			java.util.Map<Integer, java.util.List<String>> groupPermissionMap,
-			java.util.Map<String, String> wikiNamespaceCaseModes,
-			java.util.Map<String, String> wikiNamespaceAliases,
-			java.util.Map<Integer, String> wikiNamespaceIds) {
+			Map<String, Integer> talkBoardIds,
+			Map<Integer, List<String>> groupPermissionMap,
+			Map<String, String> wikiNamespaceCaseModes,
+			Map<String, String> wikiNamespaceAliases,
+			Map<Integer, String> wikiNamespaceIds) {
 		DATA_SOURCE.set(dataSource);
 		ATTACHMENTS_SOURCE_PATH.set(sourcePath);
 		ATTACHMENTS_TARGET_PATH.set(targetPath);
@@ -68,8 +74,8 @@ public class JobContextHolder {
 	public static void set(DataSource dataSource, String sourcePath, String targetPath, String avatarsSourcePath,
 			String cmsFilesSourcePath, String wikiImagesSourcePath, String tablePrefix, String legacyHost,
 			String appBaseUrl, boolean force, boolean createMemberWikiPages, Integer discussionBoardId,
-			Integer resourcesBoardId, java.util.Map<String, Integer> talkBoardIds,
-			java.util.Map<Integer, java.util.List<String>> groupPermissionMap) {
+			Integer resourcesBoardId, Map<String, Integer> talkBoardIds,
+			Map<Integer, List<String>> groupPermissionMap) {
 		set(dataSource, sourcePath, targetPath, avatarsSourcePath, cmsFilesSourcePath, wikiImagesSourcePath,
 				tablePrefix, legacyHost, appBaseUrl, force, createMemberWikiPages, discussionBoardId,
 				resourcesBoardId, talkBoardIds, groupPermissionMap, null, null, null);
@@ -131,26 +137,26 @@ public class JobContextHolder {
 		return value != null ? value : DISCUSSION_BOARD_ID.get();
 	}
 
-	public static java.util.List<String> getGroupPermissionCodes(Integer legacyGroupId) {
-		java.util.Map<Integer, java.util.List<String>> mapping = GROUP_PERMISSION_MAP.get();
+	public static List<String> getGroupPermissionCodes(Integer legacyGroupId) {
+		Map<Integer, List<String>> mapping = GROUP_PERMISSION_MAP.get();
 		return mapping == null ? null : mapping.get(legacyGroupId);
 	}
 
 	public static Integer getTalkBoardId(String subjectNamespace) {
-		java.util.Map<String, Integer> mapping = TALK_BOARD_IDS.get();
+		Map<String, Integer> mapping = TALK_BOARD_IDS.get();
 		Integer value = mapping == null ? null : mapping.get(subjectNamespace);
 		return value != null ? value : DISCUSSION_BOARD_ID.get();
 	}
-	public static java.util.Map<String, String> getWikiNamespaceCaseModes() { return WIKI_NAMESPACE_CASE_MODES.get(); }
-	public static java.util.Map<String, String> getWikiNamespaceAliases() { return WIKI_NAMESPACE_ALIASES.get(); }
-	public static java.util.Map<Integer, String> getWikiNamespaceIds() { return WIKI_NAMESPACE_IDS.get(); }
-	public static com.zfgc.zfgbb.wiki.WikiTitle.CaseMode getWikiNamespaceCaseMode(String namespace) {
+	public static Map<String, String> getWikiNamespaceCaseModes() { return WIKI_NAMESPACE_CASE_MODES.get(); }
+	public static Map<String, String> getWikiNamespaceAliases() { return WIKI_NAMESPACE_ALIASES.get(); }
+	public static Map<Integer, String> getWikiNamespaceIds() { return WIKI_NAMESPACE_IDS.get(); }
+	public static WikiTitle.CaseMode getWikiNamespaceCaseMode(String namespace) {
 		String configured = WIKI_NAMESPACE_CASE_MODES.get() == null ? null : WIKI_NAMESPACE_CASE_MODES.get().get(namespace);
-		return configured == null ? com.zfgc.zfgbb.wiki.WikiTitle.CaseMode.FIRST_LETTER
-				: com.zfgc.zfgbb.wiki.WikiTitle.CaseMode.valueOf(configured);
+		return configured == null ? WikiTitle.CaseMode.FIRST_LETTER
+				: WikiTitle.CaseMode.valueOf(configured);
 	}
-	public static void setResolvedWikiNamespaceCaseModes(java.util.Map<String, String> modes) {
-		WIKI_NAMESPACE_CASE_MODES.set(java.util.Map.copyOf(modes));
+	public static void setResolvedWikiNamespaceCaseModes(Map<String, String> modes) {
+		WIKI_NAMESPACE_CASE_MODES.set(Map.copyOf(modes));
 	}
 
 	public static void clear() {

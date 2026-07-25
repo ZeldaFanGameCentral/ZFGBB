@@ -7,6 +7,7 @@ create or replace view current_message_view as
     m.post_in_thread,
     m.created_ts,
     m.updated_ts,
-    m.board_id
+    m.board_id,
+    h.content_format
    FROM zfgbb.message m
      JOIN zfgbb.message_history h ON h.message_id = m.message_id AND h.current_flag = true;

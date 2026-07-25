@@ -2,35 +2,19 @@ package com.zfgc.zfgbb.model.forum;
 
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-public class ThreadSplit {
-	private Integer threadId;
-	private Integer boardId;
-	private List<Integer> messageIdsToMove = new ArrayList<>();
-	private String newThreadTitle;
-
-	public Integer getThreadId() {
-		return threadId;
-	}
-	public void setThreadId(Integer threadId) {
+public record ThreadSplit(
+		Integer threadId,
+		Integer boardId,
+		List<Integer> messageIdsToMove,
+		@NotBlank @Size(max = 255) String newThreadTitle
+) {
+	public ThreadSplit(Integer threadId, Integer boardId, List<Integer> messageIdsToMove, String newThreadTitle) {
 		this.threadId = threadId;
-	}
-	public Integer getBoardId() {
-		return boardId;
-	}
-	public void setBoardId(Integer boardId) {
 		this.boardId = boardId;
-	}
-	public List<Integer> getMessageIdsToMove() {
-		return messageIdsToMove;
-	}
-	public void setMessageIdsToMove(List<Integer> messageIdsToMove) {
-		this.messageIdsToMove = messageIdsToMove;
-	}
-	public String getNewThreadTitle() {
-		return newThreadTitle;
-	}
-	public void setNewThreadTitle(String newThreadTitle) {
+		this.messageIdsToMove = messageIdsToMove == null ? new ArrayList<>() : messageIdsToMove;
 		this.newThreadTitle = newThreadTitle;
 	}
 }
