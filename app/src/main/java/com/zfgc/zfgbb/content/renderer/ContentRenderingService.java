@@ -28,12 +28,12 @@ public class ContentRenderingService {
 		this.outputSanitizer = outputSanitizer;
 		this.sourceReferenceService = sourceReferenceService;
 		sourceReferenceService.registerSourceBodyRenderer(
-				(rawBody, contentFormat, quotingCreatedTs) ->
-						renderedByTheLaneThatReads(contentFormat, rawBody, quotingCreatedTs,
-								THE_SURFACE_A_QUOTED_BODY_WAS_WRITTEN_ON));
+				(rawBody, contentFormat, quotingCreatedTs) -> renderContent(contentFormat, rawBody, quotingCreatedTs,
+						THE_SURFACE_A_QUOTED_BODY_WAS_WRITTEN_ON));
 	}
 
-	public record QuotingPost(String rawText, OffsetDateTime createdTs) {}
+	public record QuotingPost(String rawText, OffsetDateTime createdTs) {
+	}
 
 	public interface QuoteScope extends AutoCloseable {
 		@Override
@@ -54,7 +54,7 @@ public class ContentRenderingService {
 		if (source == null) {
 			return "";
 		}
-		return outputSanitizer.sanitize(renderedByTheLaneThatReads(format, source, quotingCreatedTs, scope), scope);
+		return outputSanitizer.sanitize(renderContent(format, source, quotingCreatedTs, scope));
 	}
 
 	public String renderWithTemplates(String source, ContentFormat format, ContentScope scope,
@@ -69,10 +69,10 @@ public class ContentRenderingService {
 		}
 		return outputSanitizer.sanitize(format == ContentFormat.MARKDOWN
 				? markdownRenderer.render(source, quotingCreatedTs, scope, context)
-				: bbCodeRenderer.render(source, quotingCreatedTs, scope, context), scope);
+				: bbCodeRenderer.render(source, quotingCreatedTs, scope, context));
 	}
 
-	private String renderedByTheLaneThatReads(ContentFormat format, String source,
+	private String renderContent(ContentFormat format, String source,
 			OffsetDateTime quotingCreatedTs, ContentScope scope) {
 		return format == ContentFormat.MARKDOWN
 				? markdownRenderer.render(source, quotingCreatedTs, scope, Map.of())

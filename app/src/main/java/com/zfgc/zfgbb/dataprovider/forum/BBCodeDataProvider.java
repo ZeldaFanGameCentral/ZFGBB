@@ -81,6 +81,21 @@ public class BBCodeDataProvider {
 		return results.stream().map(bbCodeConfigMap::toModel).toList();
 	}
 
+	public Set<String> codesTooStructuralToScope() {
+		return BBCodeGrammarLoader.codesTooStructuralToScope(everyDeclaredCodeWhetherEnabledOrNot());
+	}
+
+	private Map<String, BBCodeConfig> everyDeclaredCodeWhetherEnabledOrNot() {
+		Map<String, BBCodeConfig> everyCode = new HashMap<>();
+		for (BBCodeConfigDbo dbo : bbCodeConfigDao.get(new BBCodeConfigDboExample())) {
+			BBCodeConfig config = bbCodeConfigMap.toModel(dbo);
+			for (BBCodeAttributeMode mode : getAttributeModesByBBCode(config.getBbCodeConfigId()))
+				config.getAttributeConfig().put(String.valueOf(mode.getBbCodeAttributeModeId()), mode);
+			everyCode.put(config.getCode().toUpperCase(Locale.ROOT), config);
+		}
+		return everyCode;
+	}
+
 	public record BBCodeToggle(String code, boolean enabled, boolean honouredInForum, boolean honouredInWiki,
 			boolean honouredInProject, boolean honouredInResource, boolean honouredInSignature,
 			boolean scopable) {
@@ -89,7 +104,7 @@ public class BBCodeDataProvider {
 	public List<BBCodeToggle> getBBCodeToggles() {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.setOrderByClause("code");
-		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
+		Set<String> tooStructuralToScope = codesTooStructuralToScope();
 		return bbCodeConfigDao.get(ex).stream()
 				.map(dbo -> theToggleFor(dbo, tooStructuralToScope))
 				.toList();
@@ -108,7 +123,7 @@ public class BBCodeDataProvider {
 	public Optional<BBCodeToggle> setBBCodeEnabled(String code, boolean enabled) {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.createCriteria().andCodeEqualTo(code);
-		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
+		Set<String> tooStructuralToScope = codesTooStructuralToScope();
 		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
 			dbo.setEnabledFlag(enabled);
 			bbCodeConfigDao.save(dbo);
@@ -119,18 +134,19 @@ public class BBCodeDataProvider {
 	public Optional<BBCodeToggle> setTheSurfacesThatHonour(String code, ContentScope surface, boolean honoured) {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.createCriteria().andCodeEqualTo(code);
-		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
+		Set<String> tooStructuralToScope = codesTooStructuralToScope();
 		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
 			if (tooStructuralToScope.contains(dbo.getCode().toUpperCase(Locale.ROOT)))
 				throw new IllegalArgumentException("code " + dbo.getCode() + " is honoured on every surface: "
 						+ "its absence changes how neighbouring content parses");
-			String named = surface == null ? "" : surface.name();
-			if ("FORUM".equals(named)) dbo.setHonouredInForumFlag(honoured);
-			else if ("WIKI".equals(named)) dbo.setHonouredInWikiFlag(honoured);
-			else if ("PROJECT".equals(named)) dbo.setHonouredInProjectFlag(honoured);
-			else if ("RESOURCE".equals(named)) dbo.setHonouredInResourceFlag(honoured);
-			else if ("SIGNATURE".equals(named)) dbo.setHonouredInSignatureFlag(honoured);
-			else throw new IllegalArgumentException("not a surface content is read on: " + named);
+			switch (surface) {
+				case FORUM -> dbo.setHonouredInForumFlag(honoured);
+				case WIKI -> dbo.setHonouredInWikiFlag(honoured);
+				case PROJECT -> dbo.setHonouredInProjectFlag(honoured);
+				case RESOURCE -> dbo.setHonouredInResourceFlag(honoured);
+				case SIGNATURE -> dbo.setHonouredInSignatureFlag(honoured);
+				case ALL -> throw new IllegalArgumentException("not a surface content is read on: " + surface);
+			}
 			bbCodeConfigDao.save(dbo);
 			return theToggleFor(dbo, tooStructuralToScope);
 		});
@@ -263,7 +279,7 @@ public class BBCodeDataProvider {
 				bbCode.getAttributeConfig().put(modeKey.toString(), mode);
 			}
 
-			result.put(bbCode.getCode().toUpperCase(), bbCode);
+			result.put(bbCode.getCode().toUpperCase(Locale.ROOT), bbCode);
 		}
 
 		return result;

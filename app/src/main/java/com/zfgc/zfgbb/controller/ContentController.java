@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -81,9 +82,10 @@ public class ContentController extends BaseController {
 
 	@GetMapping("bbcodes")
 	@AllowAnonymous
-	public ResponseEntity<List<? extends Map<String, ?>>> getBBCodes() {
+	public ResponseEntity<List<? extends Map<String, ?>>> getBBCodes(
+			@RequestParam(name = "scope", required = false) String requestedScope) {
      log.info("Executing getBBCodes");
-		return ResponseEntity.ok(grammarLoader.theDeclaredConfigs().stream()
+		return ResponseEntity.ok(grammarLoader.theConfigsHonouredOn(authoringScope(requestedScope)).stream()
 				.map(config -> Map.of(
 						"code", config.getCode(),
 						"selfClosing", Boolean.TRUE.equals(config.getSelfClosingFlag())))

@@ -71,8 +71,8 @@ public class BBCodeGrammarLoader {
 		return bbCodeDataProvider.getBBCodeToggles();
 	}
 
-	public Collection<BBCodeConfig> theDeclaredConfigs() {
-		return grammarHolder.current().configs().values();
+	public Collection<BBCodeConfig> theConfigsHonouredOn(ContentScope surface) {
+		return grammarHolder.current(surface).configs().values();
 	}
 
 	public void reloadFromTheDatabase() {
@@ -102,8 +102,8 @@ public class BBCodeGrammarLoader {
 		Map<String, Boolean> listStyleTypes = bbCodeDataProvider.theDeclaredListStyleTypes();
 		AttributeValuePolicy listStyleValuePolicy = bbCodeDataProvider.compileTheDeclaredValuePolicies()
 				.getOrDefault(AttributeDataType.LIST_TYPE, AttributeValuePolicy.rejectingEveryValue(""));
-		Set<String> tooStructuralToScope = codesTooStructuralToScope(declared);
-		Map<ContentScope, BBCodeGrammar> bySurface = new EnumMap<>(ContentScope.class);
+		Set<String> tooStructuralToScope = bbCodeDataProvider.codesTooStructuralToScope();
+		Map<ContentScope, Map<String, BBCodeConfig>> bySurface = new EnumMap<>(ContentScope.class);
 		for (ContentScope surface : ContentScope.values()) {
 			if (!surface.itsASurfaceContentIsReadOn())
 				continue;
@@ -112,9 +112,15 @@ public class BBCodeGrammarLoader {
 				if (tooStructuralToScope.contains(declaredCode.getKey())
 						|| declaredCode.getValue().isHonouredOn(surface))
 					honoured.put(declaredCode.getKey(), declaredCode.getValue());
-			bySurface.put(surface, theGrammarPreparedFrom(honoured, listStyleTypes, listStyleValuePolicy));
+			bySurface.put(surface, honoured);
 		}
-		grammarHolder.publish(theGrammarPreparedFrom(declared, listStyleTypes, listStyleValuePolicy), bySurface);
+		BBCodeGrammar unfiltered = theGrammarPreparedFrom(declared, listStyleTypes, listStyleValuePolicy);
+		Map<ContentScope, BBCodeGrammar> grammarBySurface = new EnumMap<>(ContentScope.class);
+		for (Map.Entry<ContentScope, Map<String, BBCodeConfig>> honoured : bySurface.entrySet())
+			grammarBySurface.put(honoured.getKey(), honoured.getValue().size() == declared.size()
+					? unfiltered
+					: theGrammarNarrowedTo(honoured.getValue(), unfiltered, listStyleTypes, listStyleValuePolicy));
+		grammarHolder.publish(unfiltered, grammarBySurface);
 	}
 
 	public static Set<String> codesTooStructuralToScope(Map<String, BBCodeConfig> declared) {
@@ -136,6 +142,14 @@ public class BBCodeGrammarLoader {
 			return false;
 		return config.getAttributeConfig().values().stream()
 				.anyMatch(mode -> !Boolean.TRUE.equals(mode.getContentIsAttributeFlag()));
+	}
+
+	private BBCodeGrammar theGrammarNarrowedTo(Map<String, BBCodeConfig> honoured, BBCodeGrammar unfiltered,
+			Map<String, Boolean> listStyleTypesThatNumberTheirItems, AttributeValuePolicy listStyleValuePolicy) {
+		requireOneCanonicalCodePerMarkdownEquivalent(honoured);
+		return new BBCodeGrammar(honoured, listStyleTypesThatNumberTheirItems, listStyleValuePolicy,
+				implicitItemExpansionsDeclaredBy(honoured), unfiltered.sourceReferences(),
+				unfiltered.customProperties());
 	}
 
 	private BBCodeGrammar theGrammarPreparedFrom(Map<String, BBCodeConfig> configs,

@@ -166,10 +166,29 @@ class PolicyTest {
 					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
 					.importPackages("com.zfgc.zfgbb");
 
+			ArchCondition<JavaClass> reachForTheWildcardSurface =
+					new ArchCondition<>("reach for ContentScope.ALL") {
+						@Override
+						public void check(JavaClass reaching, ConditionEvents events) {
+							if (reaching.getModifiers().contains(JavaModifier.SYNTHETIC))
+								return;
+							for (JavaFieldAccess access : reaching.getFieldAccessesFromSelf()) {
+								if (!ContentScope.class.getName().equals(
+										access.getTargetOwner().getFullName())
+										|| !"ALL".equals(access.getTarget().getName()))
+									continue;
+								if (access.getOrigin().getName().startsWith("$SWITCH_TABLE$"))
+									continue;
+								events.add(SimpleConditionEvent.satisfied(reaching, access.getDescription()));
+							}
+						}
+					};
+
 			noClasses().that().doNotBelongToAnyOf(ContentScope.class, ContentTemplateCatalog.class)
-					.should().accessField(ContentScope.class, "ALL")
+					.should(reachForTheWildcardSurface)
 					.as("production code never renders without naming the surface it renders for")
-					.because("ContentScope.ALL is a wildcard a template row stores rather than a surface anything "
+					.because("a switch over the enum is fine -- the compiler's synthetic switch table reads every "
+							+ "constant -- but ContentScope.ALL is a wildcard a template row stores rather than a surface anything "
 							+ "renders on; a caller that reaches it resolves every surface-scoped template to "
 							+ "nothing and, once codes carry per-surface flags, silently escapes scoping "
 							+ "altogether. ContentTemplateCatalog is exempt because comparing a stored scope "

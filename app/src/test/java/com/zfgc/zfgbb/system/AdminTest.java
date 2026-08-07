@@ -218,6 +218,9 @@ class AdminTest extends PostgresIntegrationTest {
 	class Console {
 
 		@Autowired
+		private ContentRenderingService renderingService;
+
+		@Autowired
 		private BBCodeConfigDboMapper bbCodeConfigDboMapper;
 
 		@Autowired
@@ -401,6 +404,52 @@ class AdminTest extends PostgresIntegrationTest {
 				bbCodeConfigDboMapper.deleteByPrimaryKey(tag.getBbCodeConfigId());
 				grammarLoader.loadBBCodeConfig();
 			}
+		}
+
+		@Test
+		void unHonouringASurfaceStopsThatSurfaceRenderingTheCodeAndLeavesTheOthersAlone() throws Exception {
+			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+
+			try {
+				mockMvc.perform(put("/admin/bbcodes/b/surfaces")
+						.header("Authorization", "Bearer " + adminToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"surface\": \"WIKI\", \"honoured\": false}"))
+						.andExpect(status().isOk())
+						.andExpect(jsonPath("$.honouredInWiki").value(false))
+						.andExpect(jsonPath("$.honouredInForum").value(true));
+
+				assertFalse(renderingService
+						.render("[b]loud[/b]", ContentFormat.BBCODE, ContentScope.WIKI).contains("bb-code-b"),
+						"the toggle has to republish the grammar the wiki reads, or the setting only takes "
+								+ "effect on the next restart");
+				assertTrue(renderingService
+						.render("[b]loud[/b]", ContentFormat.BBCODE, ContentScope.FORUM).contains("bb-code-b"),
+						"un-honouring one surface must not disturb the others");
+			} finally {
+				mockMvc.perform(put("/admin/bbcodes/b/surfaces")
+						.header("Authorization", "Bearer " + adminToken)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"surface\": \"WIKI\", \"honoured\": true}"))
+						.andExpect(status().isOk());
+			}
+		}
+
+		@Test
+		void aCodeWhoseAbsenceChangesHowItsNeighboursParseCannotBeUnHonoured() throws Exception {
+			String adminToken = login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
+
+			mockMvc.perform(put("/admin/bbcodes/code/surfaces")
+					.header("Authorization", "Bearer " + adminToken)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"surface\": \"WIKI\", \"honoured\": false}"))
+					.andExpect(status().isBadRequest());
+
+			mockMvc.perform(put("/admin/bbcodes/b/surfaces")
+					.header("Authorization", "Bearer " + adminToken)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"surface\": \"ALL\", \"honoured\": false}"))
+					.andExpect(status().isBadRequest());
 		}
 
 		@Test

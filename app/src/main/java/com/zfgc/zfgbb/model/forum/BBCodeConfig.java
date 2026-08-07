@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.model.forum;
 
 import java.util.ArrayList;
+import com.zfgc.zfgbb.content.ContentScope;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,21 +65,24 @@ public class BBCodeConfig extends BaseModel {
     private Boolean markdownCanonicalFlag = false;
     private String implicitItemMarker;
     private String implicitItemCode;
-    public boolean isHonouredOn(com.zfgc.zfgbb.content.ContentScope surface) {
-        String named = surface == null ? "" : surface.name();
-        if ("FORUM".equals(named)) return !Boolean.FALSE.equals(honouredInForumFlag);
-        if ("WIKI".equals(named)) return !Boolean.FALSE.equals(honouredInWikiFlag);
-        if ("PROJECT".equals(named)) return !Boolean.FALSE.equals(honouredInProjectFlag);
-        if ("RESOURCE".equals(named)) return !Boolean.FALSE.equals(honouredInResourceFlag);
-        if ("SIGNATURE".equals(named)) return !Boolean.FALSE.equals(honouredInSignatureFlag);
-        return true;
-    }
-
     private Boolean honouredInForumFlag = true;
     private Boolean honouredInWikiFlag = true;
     private Boolean honouredInProjectFlag = true;
     private Boolean honouredInResourceFlag = true;
     private Boolean honouredInSignatureFlag = true;
+
+    public boolean isHonouredOn(ContentScope surface) {
+        if (surface == null)
+            return true;
+        return switch (surface) {
+            case FORUM -> !Boolean.FALSE.equals(honouredInForumFlag);
+            case WIKI -> !Boolean.FALSE.equals(honouredInWikiFlag);
+            case PROJECT -> !Boolean.FALSE.equals(honouredInProjectFlag);
+            case RESOURCE -> !Boolean.FALSE.equals(honouredInResourceFlag);
+            case SIGNATURE -> !Boolean.FALSE.equals(honouredInSignatureFlag);
+            case ALL -> true;
+        };
+    }
 
     private Map<String,BBCodeAttributeMode> attributeConfig = new HashMap<>();
     private Map<String,AttributeValuePolicy> valuePolicyByAttributeName = new HashMap<>();

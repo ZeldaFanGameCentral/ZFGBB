@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -112,7 +113,7 @@ public final class BBCodeParser {
 			scan++;
 			while (scan < length && isTagCodeCharacter(source.charAt(scan)))
 				scan++;
-			String candidateCode = source.substring(codeStart, scan).toUpperCase();
+			String candidateCode = source.substring(codeStart, scan).toUpperCase(Locale.ROOT);
 			// check if this matches a valid bbcode. If so, find the next ]
 			// edge cases: we hit the end of the string, or we hit another [
 			// or we're already in a close brace
@@ -158,7 +159,7 @@ public final class BBCodeParser {
 			scan++;
 		if (scan == codeStart)
 			return Optional.empty();
-		String code = source.substring(codeStart, scan).toUpperCase();
+		String code = source.substring(codeStart, scan).toUpperCase(Locale.ROOT);
 		int attributeStart = scan;
 		while (scan < length && source.charAt(scan) != ']') {
 			if (source.charAt(scan) == '[')

@@ -802,7 +802,7 @@ class RenderingTest {
 			assertFalse(grammar.containsKey("GAME"),
 					"[game] was never a ZFGC concept -- legacy game rows migrate to CMS projects -- so a seed "
 							+ "line reintroducing it would ship markup pointing at an entity that does not exist");
-			assertFalse(sanitizer().sanitize("<a data-game-id=\"1\" href=\"/a\">x</a>", ContentScope.FORUM).contains("data-game-id"),
+			assertFalse(sanitizer().sanitize("<a data-game-id=\"1\" href=\"/a\">x</a>").contains("data-game-id"),
 					"the safelist carried the attribute the dead code emitted, so leaving it there keeps hand "
 							+ "written html able to mint links to an entity the platform does not have");
 			assertTrue(Files.readString(Path.of("src/main/resources/db/migration/tables/forum/"
@@ -1476,7 +1476,7 @@ class RenderingTest {
 		@Test
 		void sentinelSurvivesSanitize() {
 			String sentinel = "\uE000" + "0" + "\uE001";
-			String out = sanitizer().sanitize("before" + sentinel + "after", ContentScope.FORUM);
+			String out = sanitizer().sanitize("before" + sentinel + "after");
 
 			assertTrue(out.contains(sentinel));
 		}
@@ -1837,61 +1837,61 @@ class RenderingTest {
 		@Test
 		void keepsAllowlistedInlineStyle() {
 			String result = sanitizer.sanitize(
-					"<span style=\"--bb-glow-color:red;--bb-glow-radius:2px\">hi</span>", ContentScope.FORUM);
+					"<span style=\"--bb-glow-color:red;--bb-glow-radius:2px\">hi</span>");
 			assertTrue(result.contains("--bb-glow-color:red"), result);
 			assertTrue(result.contains("--bb-glow-radius:2px"), result);
 		}
 
 		@Test
 		void stripsDisallowedStyleProperty() {
-			String result = sanitizer.sanitize("<span style=\"position:fixed;--bb-color:red\">hi</span>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<span style=\"position:fixed;--bb-color:red\">hi</span>");
 			assertFalse(result.contains("position"), result);
 			assertTrue(result.contains("--bb-color:red"), result);
 		}
 
 		@Test
 		void stripsDangerousStyleValue() {
-			String result = sanitizer.sanitize("<span style=\"background-color:url(javascript:alert(1))\">hi</span>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<span style=\"background-color:url(javascript:alert(1))\">hi</span>");
 			assertFalse(result.toLowerCase().contains("javascript"), result);
 			assertFalse(result.contains("url("), result);
 		}
 
 		@Test
 		void stripsStyleOnNonSpanElements() {
-			String result = sanitizer.sanitize("<div style=\"color:red\">hi</div>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<div style=\"color:red\">hi</div>");
 			assertFalse(result.contains("style"), result);
 		}
 
 		@Test
 		void stripsBackslashRelativeUrl() {
-			String result = sanitizer.sanitize("<a href=\"/\\evil.com\">x</a>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<a href=\"/\\evil.com\">x</a>");
 			assertFalse(result.contains("evil.com"), result);
 		}
 
 		@Test
 		void keepsPlainRelativeUrl() {
-			String result = sanitizer.sanitize("<a href=\"/wiki/Foo\">x</a>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<a href=\"/wiki/Foo\">x</a>");
 			assertTrue(result.contains("/wiki/Foo"), result);
 		}
 
 		@Test
 		void stripsJavascriptUrlAndScript() {
-			assertFalse(sanitizer.sanitize("<a href=\"javascript:alert(1)\">x</a>", ContentScope.FORUM).toLowerCase().contains("javascript"));
-			assertFalse(sanitizer.sanitize("<script>alert(1)</script>", ContentScope.FORUM).toLowerCase().contains("<script"));
-			assertFalse(sanitizer.sanitize("<img src=x onerror=alert(1)>", ContentScope.FORUM).toLowerCase().contains("onerror"));
+			assertFalse(sanitizer.sanitize("<a href=\"javascript:alert(1)\">x</a>").toLowerCase().contains("javascript"));
+			assertFalse(sanitizer.sanitize("<script>alert(1)</script>").toLowerCase().contains("<script"));
+			assertFalse(sanitizer.sanitize("<img src=x onerror=alert(1)>").toLowerCase().contains("onerror"));
 		}
 
 		@Test
 		void keepsYoutubeEmbedIframe() {
 			String result = sanitizer.sanitize(
-					"<div class=\"bb-code-youtube\"><iframe width=\"640\" height=\"480\" src=\"https://www.youtube.com/embed/dQw4w9WgXcQ\"></iframe></div>", ContentScope.FORUM);
+					"<div class=\"bb-code-youtube\"><iframe width=\"640\" height=\"480\" src=\"https://www.youtube.com/embed/dQw4w9WgXcQ\"></iframe></div>");
 			assertTrue(result.contains("<iframe"), result);
 			assertTrue(result.contains("youtube.com/embed/dQw4w9WgXcQ"), result);
 		}
 
 		@Test
 		void stripsNonYoutubeIframe() {
-			String result = sanitizer.sanitize("<iframe src=\"https://evil.example.com/frame\"></iframe>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<iframe src=\"https://evil.example.com/frame\"></iframe>");
 			assertFalse(result.contains("<iframe"), result);
 			assertFalse(result.contains("evil.example.com"), result);
 		}
@@ -1899,14 +1899,14 @@ class RenderingTest {
 		@Test
 		void keepsWidgetDivAttribute() {
 			String result = sanitizer.sanitize(
-					"<div class=\"bb-code-widget\" data-widget-title=\"Featured Project\">x</div>", ContentScope.FORUM);
+					"<div class=\"bb-code-widget\" data-widget-title=\"Featured Project\">x</div>");
 			assertTrue(result.contains("data-widget-title=\"Featured Project\""), result);
 		}
 
 		@Test
 		void stripsIslandInjectionAttributes() {
 			String result = sanitizer.sanitize(
-					"<div class=\"bb-code-island\" data-island=\"X\" data-props=\"{}\">x</div>", ContentScope.FORUM);
+					"<div class=\"bb-code-island\" data-island=\"X\" data-props=\"{}\">x</div>");
 			assertFalse(result.contains("data-island"), result);
 			assertFalse(result.contains("data-props"), result);
 		}
@@ -1937,11 +1937,11 @@ class RenderingTest {
 		@Test
 		void skipsAutolinkInsideTheTeletypeWrapperTheTtBBCodeActuallyEmits() {
 			assertFalse(sanitizer.sanitize(
-					"<span class=\"bb-code-tt\">visit http://example.com/page</span>", ContentScope.FORUM).contains("<a "),
+					"<span class=\"bb-code-tt\">visit http://example.com/page</span>").contains("<a "),
 					"AUTOLINK_SKIP_TAGS names the tt element, but R__03_bbcodes.sql attribute mode 66 makes [tt] "
 							+ "emit <span class=\"bb-code-tt\">, so a skip keyed on the element name alone never "
 							+ "fires for the only tag in the engine that is named tt");
-			assertFalse(sanitizer.sanitize("<tt>visit http://example.com/page</tt>", ContentScope.FORUM).contains("<a "),
+			assertFalse(sanitizer.sanitize("<tt>visit http://example.com/page</tt>").contains("<a "),
 					"the tt element is on the safelist and still reachable from author markdown, so removing its "
 							+ "element-name entry would trade one hole for another");
 		}
@@ -1949,13 +1949,13 @@ class RenderingTest {
 		@Test
 		void unextractableYoutubeEmbedIframeIsStripped() {
 			String result = sanitizer.sanitize(
-					"<iframe src=\"https://www.youtube.com/embed/http://evil.example.com/page\"></iframe>", ContentScope.FORUM);
+					"<iframe src=\"https://www.youtube.com/embed/http://evil.example.com/page\"></iframe>");
 			assertFalse(result.contains("<iframe"), result);
 		}
 
 		@Test
 		void stripsAnAuthorSuppliedIdSoPageAssemblyAlwaysOwnsTheHeadingAnchor() {
-			String result = sanitizer.sanitize("<h2 id=\"author-anchor\" class=\"bb-code-h2\">Title</h2>", ContentScope.FORUM);
+			String result = sanitizer.sanitize("<h2 id=\"author-anchor\" class=\"bb-code-h2\">Title</h2>");
 
 			assertFalse(result.contains("id="),
 					"CmsPageRenderer assigns every heading its own deduped anchor unconditionally, which is only "
@@ -1983,7 +1983,7 @@ class RenderingTest {
 		void aTextShadowLongEnoughToOverflowTheStackCannotReachAPatternThatRecurses() {
 			String payload = "<span style=\"text-shadow:" + aTextShadowOf(192) + "\">glow</span>";
 
-			String result = assertDoesNotThrow(() -> sanitizer.sanitize(payload, ContentScope.FORUM),
+			String result = assertDoesNotThrow(() -> sanitizer.sanitize(payload),
 					ONE_POST_MAY_NOT_BE_ABLE_TO_KILL_ITS_THREAD);
 
 			assertFalse(result.contains("style="),
@@ -1995,7 +1995,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("stylePropertiesTheServerNoLongerComposes")
 		void aStylePropertyThatIsNotABbCustomPropertyIsDropped(String caseName, String declaration) {
-			assertFalse(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>", ContentScope.FORUM).contains("style="),
+			assertFalse(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>").contains("style="),
 					"the server emits classes plus --bb-* scalars and the stylesheet composes them, so any other "
 							+ "property in a style attribute came from raw author html: " + declaration);
 		}
@@ -2025,7 +2025,7 @@ class RenderingTest {
 			String result = sanitizer.sanitize(
 					"<div class=\"fixed inset-0 z-50 bg-black/80\">"
 							+ "<form class=\"absolute top-1/2 left-1/2\">Session expired. Sign in again.</form>"
-							+ "</div>", ContentScope.FORUM);
+							+ "</div>");
 
 			for (String painted : List.of("fixed", "inset-0", "z-50", "bg-black/80", "absolute", "top-1/2",
 					"left-1/2"))
@@ -2052,7 +2052,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("classesEveryLaneStillEmits")
 		void aClassTheEngineItselfEmitsIsNotStripped(String caseName, String element) {
-			assertTrue(sanitizer.sanitize(element, ContentScope.FORUM).contains("class="),
+			assertTrue(sanitizer.sanitize(element).contains("class="),
 					"the allowlist is measured against what the seeded grammar, the smiley pass, the date element "
 							+ "and the seeded content templates actually write: " + element);
 		}
@@ -2083,7 +2083,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("utilityClassesTheSeededTemplatesGaveUp")
 		void aTemplateRowReachingForAUtilityClassLosesIt(String caseName, String utility) {
-			assertFalse(sanitizer.sanitize("<div class=\"" + utility + "\">x</div>", ContentScope.FORUM).contains("class="),
+			assertFalse(sanitizer.sanitize("<div class=\"" + utility + "\">x</div>").contains("class="),
 					THE_SEEDED_TEMPLATES_SPEAK_THE_SAME_VOCABULARY + " Kept: " + utility);
 		}
 
@@ -2210,13 +2210,13 @@ class RenderingTest {
 
 		@Test
 		void aHrefCarryingOnlyCharactersTheBrowserStripsSurvivesAsTheValueTheBrowserResolves() {
-			assertTrue(sanitizer.sanitize("<a href=\"/wiki/Foo\n\">x</a>", ContentScope.FORUM).contains("href=\"/wiki/Foo\""),
+			assertTrue(sanitizer.sanitize("<a href=\"/wiki/Foo\n\">x</a>").contains("href=\"/wiki/Foo\""),
 					THE_BROWSER_RESOLVES_WHAT_IS_LEFT_AFTER_ITS_OWN_STRIPS + " Got: "
-							+ sanitizer.sanitize("<a href=\"/wiki/Foo\n\">x</a>", ContentScope.FORUM));
-			assertFalse(sanitizer.sanitize("<a href=\"/\t/evil.example/x\">x</a>", ContentScope.FORUM).contains("evil.example"),
+							+ sanitizer.sanitize("<a href=\"/wiki/Foo\n\">x</a>"));
+			assertFalse(sanitizer.sanitize("<a href=\"/\t/evil.example/x\">x</a>").contains("evil.example"),
 					"and the same normalisation turns a tab-hidden protocol relative url into the //host form "
 							+ "the policy already refuses, rather than admitting it as a site path");
-			assertFalse(sanitizer.sanitize("<a href=\"/wiki/a\u0001b\">x</a>", ContentScope.FORUM).contains("href="),
+			assertFalse(sanitizer.sanitize("<a href=\"/wiki/a\u0001b\">x</a>").contains("href="),
 					"a control character the browser does not strip is still a value nothing may emit");
 			assertEquals("/wiki/a\ufffdb", Jsoup.parseBodyFragment("<a href=\"/wiki/a\u0000b\">x</a>")
 					.body().selectFirst("a").attr("href"),
@@ -2243,10 +2243,10 @@ class RenderingTest {
 			assertFalse(LinkPolicy.isSafeRelativeUrl("/\t/evil.test/a"),
 					"a browser drops U+0009, U+000A and U+000D out of a url attribute before it parses it, so "
 							+ "this is stored as an internal link and resolves protocol relative to evil.test");
-			assertFalse(sanitizer.sanitize("<a href=\"/\t/evil.test/a\">looks internal</a>", ContentScope.FORUM).contains("evil.test"),
+			assertFalse(sanitizer.sanitize("<a href=\"/\t/evil.test/a\">looks internal</a>").contains("evil.test"),
 					"the same value reaches the reader through stripIfNotAllowed, where a phishing destination "
 							+ "that reads as a site path is the whole of the attack");
-			assertFalse(sanitizer.sanitize("<img src=\"/\t/evil.test/pixel.png\">", ContentScope.FORUM).contains("evil.test"),
+			assertFalse(sanitizer.sanitize("<img src=\"/\t/evil.test/pixel.png\">").contains("evil.test"),
 					"and through src, where a remote pixel logs the address and user agent of every reader of "
 							+ "the thread");
 		}
@@ -2255,14 +2255,14 @@ class RenderingTest {
 		void theSchemelessPromotionIsHttpsEverywhereItCanHappen() {
 			assertEquals(LinkPolicy.SCHEME_A_SCHEMELESS_DOMAIN_IS_PROMOTED_TO, "https://",
 					"promoting a schemeless link to plaintext http downgrades every reader who follows it");
-			assertTrue(sanitizer.sanitize("<a href=\"zfgc.com/a\">x</a>", ContentScope.FORUM).contains("href=\"https://zfgc.com/a\""),
+			assertTrue(sanitizer.sanitize("<a href=\"zfgc.com/a\">x</a>").contains("href=\"https://zfgc.com/a\""),
 					"an authored href gets the same promotion the autolinker gives a bare one");
-			assertTrue(sanitizer.sanitize("visit www.zfgc.com/a now", ContentScope.FORUM).contains("href=\"https://www.zfgc.com/a\""));
+			assertTrue(sanitizer.sanitize("visit www.zfgc.com/a now").contains("href=\"https://www.zfgc.com/a\""));
 		}
 
 		@Test
 		void aBareUrlThePolicyRefusesIsLeftAsTextRatherThanLinkedToNowhere() {
-			assertEquals("visit www.q now", sanitizer.sanitize("visit www.q now", ContentScope.FORUM),
+			assertEquals("visit www.q now", sanitizer.sanitize("visit www.q now"),
 					"the autolinker used to prefix a scheme onto anything shaped like www., including shapes the "
 							+ "url policy would never accept as a destination");
 		}
@@ -2276,7 +2276,7 @@ class RenderingTest {
 
 		@Test
 		void aSchemelessImageSourceIsPromotedTheWayAHrefIs() {
-			String sanitized = sanitizer.sanitize("<img src=\"i.imgur.com/a.png\">", ContentScope.FORUM);
+			String sanitized = sanitizer.sanitize("<img src=\"i.imgur.com/a.png\">");
 
 			assertTrue(sanitized.contains("src=\"https://i.imgur.com/a.png\""),
 					ONE_POLICY_NOW_PROMOTES_EVERY_URL_ATTRIBUTE + " Got: " + sanitized);
@@ -2284,7 +2284,7 @@ class RenderingTest {
 
 		@Test
 		void aSchemelessBlockquoteCitationIsPromotedTheWayAHrefIs() {
-			String sanitized = sanitizer.sanitize("<blockquote cite=\"zfgc.com/thread/1\">x</blockquote>", ContentScope.FORUM);
+			String sanitized = sanitizer.sanitize("<blockquote cite=\"zfgc.com/thread/1\">x</blockquote>");
 
 			assertTrue(sanitized.contains("cite=\"https://zfgc.com/thread/1\""),
 					ONE_POLICY_NOW_PROMOTES_EVERY_URL_ATTRIBUTE + " Got: " + sanitized);
@@ -2292,22 +2292,22 @@ class RenderingTest {
 
 		@Test
 		void aScriptUrlStillDiesInEveryAttributeTheOnePolicyReaches() {
-			assertFalse(sanitizer.sanitize("<img src=\"javascript:alert(1)\">", ContentScope.FORUM).contains("javascript"),
+			assertFalse(sanitizer.sanitize("<img src=\"javascript:alert(1)\">").contains("javascript"),
 					"promoting a schemeless source may not be read as accepting any source");
-			assertFalse(sanitizer.sanitize("<blockquote cite=\"javascript:alert(1)\">x</blockquote>", ContentScope.FORUM)
+			assertFalse(sanitizer.sanitize("<blockquote cite=\"javascript:alert(1)\">x</blockquote>")
 					.contains("javascript"));
 		}
 
 		@Test
 		void aJavascriptHrefStillDiesInTheSanitiser() {
-			assertFalse(sanitizer.sanitize("<a href=\"javascript:alert(1)\">x</a>", ContentScope.FORUM).contains("javascript"),
+			assertFalse(sanitizer.sanitize("<a href=\"javascript:alert(1)\">x</a>").contains("javascript"),
 					"the one url policy has to keep refusing script urls or unifying it traded safety for tidiness");
 		}
 
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("styleDeclarationsTheAllowlistKeeps")
 		void aStyleValueMatchingItsPropertysShapeSurvives(String caseName, String declaration) {
-			assertTrue(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>", ContentScope.FORUM).contains("style="),
+			assertTrue(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>").contains("style="),
 					"every value the seeded modes and the corpus actually emit has to pass the allowlist: "
 							+ declaration);
 		}
@@ -2328,7 +2328,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("styleDeclarationsTheAllowlistDrops")
 		void aStyleValueThatIsNotTheShapeItsPropertyAdmitsIsDropped(String caseName, String declaration) {
-			assertFalse(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>", ContentScope.FORUM).contains("style="),
+			assertFalse(sanitizer.sanitize("<span style=\"" + declaration + "\">x</span>").contains("style="),
 					"a substring denylist loses to encodings it did not enumerate; the allowlist has to refuse "
 							+ "anything that is not the shape the property admits: " + declaration);
 		}
@@ -2392,7 +2392,7 @@ class RenderingTest {
 							AttributeDataType.COLOR, AttributeDataType.COLOR)))),
 					"two modes writing one variable is how a code offers the same value in more than one "
 							+ "attribute shape; the binding is only ambiguous when the shapes disagree");
-			assertTrue(bound.sanitize("<span style=\"--bb-lane:red\">x</span>", ContentScope.FORUM).contains("--bb-lane:red"),
+			assertTrue(bound.sanitize("<span style=\"--bb-lane:red\">x</span>").contains("--bb-lane:red"),
 					"and the one binding still decides which values that variable admits");
 		}
 
@@ -2413,7 +2413,7 @@ class RenderingTest {
 
 		@Test
 		void theScalarPatternsAreWhatDropsTheseValuesRatherThanThePropertyNameAlone() {
-			assertTrue(sanitizer.sanitize("<span style=\"--bb-color:red\">x</span>", ContentScope.FORUM).contains("--bb-color:red"),
+			assertTrue(sanitizer.sanitize("<span style=\"--bb-color:red\">x</span>").contains("--bb-color:red"),
 					"--bb-color is a declared custom property, so the url-function and expression cases above are "
 							+ "refused by the scalar shape, not by the property allowlist");
 		}
@@ -2480,7 +2480,7 @@ class RenderingTest {
 		void aBareLegacySpecialPathIsNeverAutolinkedSoTheProseCaseIsReachable() {
 			ContentOutputSanitizer sanitizer = sanitizer();
 
-			String sanitized = sanitizer.sanitize("the legacy path was /wiki/Special:Random and it is gone", ContentScope.FORUM);
+			String sanitized = sanitizer.sanitize("the legacy path was /wiki/Special:Random and it is gone");
 
 			assertFalse(sanitized.contains("<a "),
 					"autolink runs inside sanitize and only fires on http://, ftp:// and www., so a bare "
@@ -2558,7 +2558,7 @@ class RenderingTest {
 		void contentRendererHandsBackTheSanitisersOwnStringWithNothingDoneToIt() {
 			String sanitized = new String("<table class=\"bb-code-table\"><span class=\"bb-smiley\">:huh:</span></table>");
 			ContentOutputSanitizer sanitizer = mock(ContentOutputSanitizer.class);
-			when(sanitizer.sanitize(any(), any())).thenReturn(sanitized);
+			when(sanitizer.sanitize(any())).thenReturn(sanitized);
 			Renderer guarded =
 					buildRenderer(mock(BBCodeDataProvider.class), grammarHolder(), enricher(), sanitizer,
 							messageResolver());
@@ -2579,7 +2579,7 @@ class RenderingTest {
 			String sanitized = sanitizer.sanitize("www.zfgc.com/wiki/Special:Random"
 					+ " http://zfgc.com/wiki/Special:Random"
 					+ " ftp://zfgc.com/wiki/Special:Random"
-					+ " /wiki/Special:Random", ContentScope.FORUM);
+					+ " /wiki/Special:Random");
 
 			assertEquals("<a href=\"https://www.zfgc.com/wiki/Special:Random\">www.zfgc.com/wiki/Special:Random</a>"
 					+ " <a href=\"http://zfgc.com/wiki/Special:Random\">http://zfgc.com/wiki/Special:Random</a>"
@@ -2612,7 +2612,7 @@ class RenderingTest {
 
 		@Test
 		void rendersSmileyAsSpanKeepingCodeAsText() {
-			String result = smileySanitizer().sanitize("hello :D world", ContentScope.FORUM);
+			String result = smileySanitizer().sanitize("hello :D world");
 			assertTrue(result.contains("<span class=\"bb-smiley bb-smiley-cheesy\" title=\"Cheesy\">:D</span>"), result);
 			assertTrue(result.contains("hello "), result);
 			assertTrue(result.contains(" world"), result);
@@ -2620,14 +2620,14 @@ class RenderingTest {
 
 		@Test
 		void matchesLongestSmileyFirst() {
-			String result = smileySanitizer().sanitize("muahaha >:D", ContentScope.FORUM);
+			String result = smileySanitizer().sanitize("muahaha >:D");
 			assertTrue(result.contains("bb-smiley-evil"), result);
 			assertFalse(result.contains("bb-smiley-cheesy"), result);
 		}
 
 		@Test
 		void skipsSmileyAttachedToWord() {
-			String result = smileySanitizer().sanitize("scoreboard:Dx and word:) here", ContentScope.FORUM);
+			String result = smileySanitizer().sanitize("scoreboard:Dx and word:) here");
 			assertFalse(result.contains("bb-smiley-cheesy"), result);
 			assertFalse(result.contains("bb-smiley-smiley"), result);
 		}
@@ -2635,29 +2635,29 @@ class RenderingTest {
 		@Test
 		void requiresBoundaryForAlphanumericCodes() {
 			ContentOutputSanitizer s = smileySanitizer();
-			assertFalse(s.sanitize("fileXD.zip", ContentScope.FORUM).contains("bb-smiley"), "XD inside a word must not match");
-			assertFalse(s.sanitize("call 18) now", ContentScope.FORUM).contains("bb-smiley"), "8) after a digit must not match");
-			assertTrue(s.sanitize("haha XD good", ContentScope.FORUM).contains("bb-smiley-grin"));
+			assertFalse(s.sanitize("fileXD.zip").contains("bb-smiley"), "XD inside a word must not match");
+			assertFalse(s.sanitize("call 18) now").contains("bb-smiley"), "8) after a digit must not match");
+			assertTrue(s.sanitize("haha XD good").contains("bb-smiley-grin"));
 		}
 
 		@Test
 		void skipsSmiliesInsideCodeBlocksAndLinks() {
 			ContentOutputSanitizer s = smileySanitizer();
-			assertFalse(s.sanitize("<pre>keep :D literal</pre>", ContentScope.FORUM).contains("bb-smiley"), "pre must stay literal");
-			String linked = s.sanitize("<a href=\"http://example.com/page\">text :D inside</a>", ContentScope.FORUM);
+			assertFalse(s.sanitize("<pre>keep :D literal</pre>").contains("bb-smiley"), "pre must stay literal");
+			String linked = s.sanitize("<a href=\"http://example.com/page\">text :D inside</a>");
 			assertFalse(linked.contains("bb-smiley"), linked);
 		}
 
 		@Test
 		void smiliesComposeWithAutolink() {
-			String result = smileySanitizer().sanitize("look http://example.com/cool :)", ContentScope.FORUM);
+			String result = smileySanitizer().sanitize("look http://example.com/cool :)");
 			assertTrue(result.contains("<a href=\"http://example.com/cool\""), result);
 			assertTrue(result.contains("bb-smiley-smiley"), result);
 		}
 
 		@Test
 		void skipsSmiliesInsideTheTeletypeWrapperTheTtBBCodeActuallyEmits() {
-			assertFalse(smileySanitizer().sanitize("<span class=\"bb-code-tt\">keep :D literal</span>", ContentScope.FORUM)
+			assertFalse(smileySanitizer().sanitize("<span class=\"bb-code-tt\">keep :D literal</span>")
 					.contains("bb-smiley"),
 					"teletype content is meant to read as typed, and [tt] emits a class, not a tt element");
 		}
@@ -2665,8 +2665,8 @@ class RenderingTest {
 		@Test
 		void doesNotSmilifyItsOwnSmileyWrapperASecondTime() {
 			ContentOutputSanitizer sanitizer = smileySanitizer();
-			String once = sanitizer.sanitize("hello :D", ContentScope.FORUM);
-			String twice = sanitizer.sanitize(once, ContentScope.FORUM);
+			String once = sanitizer.sanitize("hello :D");
+			String twice = sanitizer.sanitize(once);
 
 			assertEquals(once, twice,
 					"the smiley wrapper is not an element name, so a skip set keyed only on tag names lets "
@@ -2693,7 +2693,7 @@ class RenderingTest {
 
 		@Test
 		void aSmileyNameCannotOpenAnAttributeOnTheWrapperTheSanitizerWritesAfterTheCleaner() {
-			String sanitized = sanitizerCarryingHostileSmileyRows().sanitize("hello :evil: world", ContentScope.FORUM);
+			String sanitized = sanitizerCarryingHostileSmileyRows().sanitize("hello :evil: world");
 
 			assertFalse(sanitized.toLowerCase(Locale.ROOT).contains("onmouseover"),
 					"the smiley pass runs after the Cleaner and after the class allowlist, so a name spliced "
@@ -2706,7 +2706,7 @@ class RenderingTest {
 			ContentOutputSanitizer hostile = sanitizerCarryingHostileSmileyRows();
 
 			for (SmileyToken registered : NAMES_AND_LABELS_A_SEED_ROW_COULD_CARRY) {
-				String sanitized = hostile.sanitize("hello " + registered.code() + " world", ContentScope.FORUM);
+				String sanitized = hostile.sanitize("hello " + registered.code() + " world");
 				for (Element wrapper : Jsoup.parseBodyFragment(sanitized).select("span"))
 					for (String className : wrapper.classNames())
 						assertTrue(className.matches("bb-[a-z0-9-]+"),
@@ -2722,9 +2722,9 @@ class RenderingTest {
 		@Test
 		void nothingThePassesAfterTheCleanerInsertCanOutliveASecondClean() {
 			ContentOutputSanitizer hostile = sanitizerCarryingHostileSmileyRows();
-			String once = hostile.sanitize(THE_SOURCE_EVERY_ENRICHMENT_PASS_HAS_TO_FIRE_ON, ContentScope.FORUM);
+			String once = hostile.sanitize(THE_SOURCE_EVERY_ENRICHMENT_PASS_HAS_TO_FIRE_ON);
 
-			assertEquals(once, hostile.sanitize(once, ContentScope.FORUM),
+			assertEquals(once, hostile.sanitize(once),
 					"the smiley and autolink passes run after the Cleaner, so whatever they splice in is the one "
 							+ "markup in the output that no allowlist ever saw. A second clean removing anything is "
 							+ "the general seam rather than one bad field: " + once);
@@ -2745,7 +2745,7 @@ class RenderingTest {
 
 			for (RenderedTextEnricher.Pass pass : RenderedTextEnricher.Pass.values()) {
 				Element body =
-						hostile.theCleanedBodyOf(THE_SOURCE_EVERY_ENRICHMENT_PASS_HAS_TO_FIRE_ON, ContentScope.FORUM);
+						hostile.theCleanedBodyOf(THE_SOURCE_EVERY_ENRICHMENT_PASS_HAS_TO_FIRE_ON);
 				String beforeThePass = body.html();
 				pass.applyTo(enricher, body);
 				String afterThePass = body.html();
@@ -2754,7 +2754,7 @@ class RenderingTest {
 						pass + " changed nothing on THE_SOURCE_EVERY_ENRICHMENT_PASS_HAS_TO_FIRE_ON, so the "
 								+ "assertion below certifies an empty pass. Extend that source until this pass "
 								+ "fires on it. " + THE_SEAM_IS_ENUMERATED_SO_A_NEW_PASS_CANNOT_ARRIVE_UNMEASURED);
-				assertEquals(afterThePass, hostile.theCleanedBodyOf(afterThePass, ContentScope.FORUM).html(),
+				assertEquals(afterThePass, hostile.theCleanedBodyOf(afterThePass).html(),
 						pass + " spliced markup a second clean does not give back word for word, which means it "
 								+ "wrote something the safety gate would have refused had the gate run last: "
 								+ afterThePass + "\n  "
@@ -3649,7 +3649,7 @@ class RenderingTest {
 					"the list style policy is published in the same swap and must not have moved either");
 			assertTrue(renderer.handler().containsSourceReference("[quote msg=5]x[/quote]"),
 					"nor may the source reference service, which answers from the published grammar");
-			assertTrue(sanitizer.sanitize("<span style=\"--bb-lane:red\">x</span>", ContentScope.FORUM).contains("--bb-lane:red"),
+			assertTrue(sanitizer.sanitize("<span style=\"--bb-lane:red\">x</span>").contains("--bb-lane:red"),
 					"and the sanitizer keeps the bindings of the grammar that is actually live");
 		}
 
