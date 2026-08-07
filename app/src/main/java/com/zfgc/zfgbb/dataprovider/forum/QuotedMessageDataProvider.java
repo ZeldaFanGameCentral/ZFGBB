@@ -20,9 +20,9 @@ import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
-import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
-import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
+import com.zfgc.zfgbb.dao.users.UserDao;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,11 +37,11 @@ public class QuotedMessageDataProvider {
 			OffsetDateTime createdTs, Integer threadId, Integer postInThread,
 			NavigableMap<OffsetDateTime, QuotedRevision> revisionsByCreatedTs) {}
 
-	private final MessageDboMapper messageMapper;
+	private final MessageDao messageDao;
 
-	private final MessageHistoryDboMapper messageHistoryMapper;
+	private final MessageHistoryDao messageHistoryDao;
 
-	private final UserDboMapper userMapper;
+	private final UserDao userDao;
 
 	public Map<Integer, QuotedSource> getQuotableSources(Set<Integer> messageIds, Set<Integer> visibleBoardIds) {
 		if (messageIds == null || messageIds.isEmpty() || visibleBoardIds == null || visibleBoardIds.isEmpty()) {
@@ -50,7 +50,7 @@ public class QuotedMessageDataProvider {
 		MessageDboExample readableMessages = new MessageDboExample();
 		readableMessages.createCriteria().andMessageIdIn(List.copyOf(messageIds))
 				.andBoardIdIn(List.copyOf(visibleBoardIds));
-		List<MessageDbo> readable = messageMapper.selectByExample(readableMessages);
+		List<MessageDbo> readable = messageDao.get(readableMessages);
 		if (readable.isEmpty()) {
 			return Map.of();
 		}
@@ -79,7 +79,7 @@ public class QuotedMessageDataProvider {
 		UserDboExample owners = new UserDboExample();
 		owners.createCriteria().andUserIdIn(ownerIds);
 		Map<Integer, String> displayNames = new HashMap<>();
-		for (UserDbo owner : userMapper.selectByExample(owners)) {
+		for (UserDbo owner : userDao.get(owners)) {
 			displayNames.put(owner.getUserId(), owner.getDisplayName());
 		}
 		return displayNames;
@@ -90,7 +90,7 @@ public class QuotedMessageDataProvider {
 		ex.createCriteria().andMessageIdIn(List.copyOf(readableMessageIds));
 		ex.setOrderByClause("message_id, created_ts, message_history_id");
 		Map<Integer, NavigableMap<OffsetDateTime, QuotedRevision>> byMessageId = new HashMap<>();
-		for (MessageHistoryDbo revision : messageHistoryMapper.selectByExample(ex)) {
+		for (MessageHistoryDbo revision : messageHistoryDao.get(ex)) {
 			if (revision.getMessageId() == null || revision.getCreatedTs() == null) {
 				continue;
 			}

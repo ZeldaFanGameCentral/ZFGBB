@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 
 import com.zfgc.zfgbb.config.security.MethodSecurityConfig;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.Permission;
 
 public final class AccessControlFixtures {

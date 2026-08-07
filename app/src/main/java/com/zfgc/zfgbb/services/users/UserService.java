@@ -7,15 +7,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.authorization.access.ProfileAccessRules;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.GenderLkupDboExample;
-import com.zfgc.zfgbb.mappers.GenderLkupDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserProfileMapper;
+import com.zfgc.zfgbb.dao.users.GenderLkupDao;
+import com.zfgc.zfgbb.dao.users.AvatarDao;
+import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
+import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.model.users.Award;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateDataService;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateSource;
 import com.zfgc.zfgbb.model.users.UserSettings;
@@ -34,9 +37,13 @@ public class UserService implements TemplateDataService {
 
 	private final ProfileAccessRules profileAccessRules;
 
-	private final UserProfileMapper userProfileMapper;
+	private final UserDao userDao;
 
-	private final GenderLkupDboMapper genderLkupDboMapper;
+	private final AvatarDao avatarDao;
+
+	private final UserBioInfoDao userBioInfoDao;
+
+	private final GenderLkupDao genderLkupDao;
 
 	@TemplateSource("/user-profile/{userId}")
 	public User loadUser(Integer userId, User requester) {
@@ -81,23 +88,21 @@ public class UserService implements TemplateDataService {
 			throw new ZfgcInvalidRequestException("User profile and userId are required.");
 		}
 		validateProfileUpdate(request);
-		Integer lockedId = userProfileMapper.lockActiveUserId(userId);
-		if (lockedId == null)
-			throw new ZfgcNotFoundException();
+		userDao.lockActiveUserId(userId).orElseThrow(ZfgcNotFoundException::new);
 		if (request.genderIdPresent() && request.genderId() != null) {
 			GenderLkupDboExample genderExample = new GenderLkupDboExample();
 			genderExample.createCriteria().andGenderIdEqualTo(request.genderId());
-			if (genderLkupDboMapper.countByExample(genderExample) == 0)
+			if (!genderLkupDao.exists(genderExample))
 				throw new ZfgcInvalidRequestException("Unknown gender.");
 		}
 		if (request.avatarIdPresent() && request.avatarId() != null
-				&& !userProfileMapper.isAvatarAvailable(request.avatarId(), userId))
+				&& !avatarDao.isAvailableTo(request.avatarId(), userId))
 			throw new ZfgcInvalidRequestException("Avatar is not available.");
 		if (request.displayNamePresent()) {
-			int updated = userProfileMapper.updateDisplayName(request.displayName().trim(), userId);
+			int updated = userDao.updateDisplayName(request.displayName().trim(), userId);
 			if (updated != 1) throw new ZfgcNotFoundException();
 		}
-		userProfileMapper.ensureUserBioInfoRow(userId);
+		userBioInfoDao.ensureRow(userId);
 		applyBioUpdate(userId, request);
 		return loadUser(userId, zfgcUser);
 	}
@@ -131,7 +136,7 @@ public class UserService implements TemplateDataService {
 	}
 
 	private void applyBioUpdate(Integer userId, UpdateUserProfileRequest request) {
-		int updated = userProfileMapper.updateUserBioInfoSelective(userId,
+		int updated = userBioInfoDao.updateSelective(userId,
 				request.personalTextPresent(), request.personalText(),
 				request.signaturePresent(), request.signature(),
 				request.locationPresent(), request.location(),

@@ -28,13 +28,13 @@ import org.springframework.web.server.ResponseStatusException;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
-import com.zfgc.zfgbb.dataprovider.core.IpDataProvider;
+import com.zfgc.zfgbb.dataprovider.meta.IpDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ForumDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ThreadDataProvider;
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
-import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.dao.forum.BoardDao;
+import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
 import com.zfgc.zfgbb.dbo.BoardDboExample;
@@ -48,10 +48,11 @@ import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
 import com.zfgc.zfgbb.authorization.AuthorityTiers;
-import com.zfgc.zfgbb.mappers.custom.ForumLockMapper;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
-import com.zfgc.zfgbb.mappers.RecentActivityViewDboMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.authorization.access.ForumAccessRules;
+import com.zfgc.zfgbb.authorization.access.ForumAccessRules.MessageState;
+import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
+import com.zfgc.zfgbb.dao.forum.RecentActivityViewDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.forum.Board;
 import com.zfgc.zfgbb.model.forum.Category;
 import com.zfgc.zfgbb.model.forum.CreateThreadRequest;
@@ -61,7 +62,7 @@ import com.zfgc.zfgbb.mapstruct.forum.BoardMap;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
 import com.zfgc.zfgbb.services.AbstractService;
-import com.zfgc.zfgbb.services.system.AuthoringContentFormat;
+import com.zfgc.zfgbb.services.contentstore.AuthoringContentFormat;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateDataService;
@@ -81,8 +82,8 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public record MessagePosition(Integer messageId, Integer ownerId, Integer threadId, Integer postInThread) {}
 
 	private final ForumDataProvider forumDataProvider;
-	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
-	private final RecentActivityViewDboMapper recentActivityViewDboMapper;
+	private final BoardPermissionViewDao boardPermissionViewDao;
+	private final RecentActivityViewDao recentActivityViewDao;
 	private final ContentRenderingService contentRenderingService;
 	private final AuthoringContentFormat authoringContentFormat;
 
@@ -96,7 +97,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	private final MessageHistoryDao messageHistoryDao;
 	private final AuthorityTiers authorityTiers;
 	private final ForumAccessRules forumAccessRules;
-	private final ForumLockMapper forumLockMapper;
+	private final ForumAccessStateLoader forumAccessStateLoader;
 	private final BoardMap boardMap;
 
 	private static final long UNFILTERED_FORUM_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(30);
@@ -206,7 +207,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 		ex.setOrderByClause("last_post_ts desc");
 		ex.setLimit(capped);
 		ex.setOffset(0);
-		return recentActivityViewDboMapper.selectByExampleWithLimits(ex);
+		return recentActivityViewDao.get(ex);
 	}
 
 	private static boolean anyBoardHasChildren(Forum cachedForum) {
@@ -238,7 +239,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 		}
 		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
 		ex.createCriteria().andPermissionIdIn(permissionIds);
-		return boardPermissionViewDboMapper.selectByExample(ex).stream()
+		return boardPermissionViewDao.get(ex).stream()
 				.map(BoardPermissionViewDbo::getBoardId)
 				.collect(Collectors.toSet());
 	}
@@ -356,14 +357,15 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public Set<String> threadAllowedActions(Integer threadId, User user) {
 		Thread thread = threadDataProvider.getThread(threadId);
 		requireReadableThreadElseNotFound(thread, user);
-		return forumAccessRules.permittedThreadActions(user, threadId);
+		return forumAccessRules.permittedThreadActions(user, forumAccessStateLoader.toThreadState(thread));
 	}
 
 	public Set<String> messageAllowedActions(Integer messageId, User user) {
 		MessagePosition message = findMessagePosition(messageId).orElseThrow(ZfgcNotFoundException::new);
 		Thread thread = threadDataProvider.getThread(message.threadId());
 		requireReadableThreadElseNotFound(thread, user);
-		return forumAccessRules.permittedMessageActions(user, messageId);
+		return forumAccessRules.permittedMessageActions(user, new MessageState(messageId, message.ownerId(),
+				forumAccessStateLoader.toThreadState(thread)));
 	}
 
 	private void requireReadableThreadElseNotFound(Thread thread, User zfgcUser) {
@@ -416,7 +418,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public Message editMessage(Integer messageId, String body, String requestedContentFormat, User user) {
 		if (StringUtils.isBlank(body))
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message body is required.");
-		Integer editedBoardId = forumAccessRules.editableMessageState(user, messageId)
+		Integer editedBoardId = forumAccessStateLoader.editableMessage(user, messageId)
 				.map(editable -> editable.thread().boardId())
 				.orElseThrow(() -> new ZfgcUnauthorizedException("Message editing is not permitted.", user));
 		List<Permission> editedBoardPermissions = forumDataProvider.getBoardPermissions(editedBoardId);
@@ -437,7 +439,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	private Optional<ContentFormat> currentRevisionContentFormat(Integer messageId) {
 		MessageHistoryDboExample example = new MessageHistoryDboExample();
 		example.createCriteria().andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true);
-		return messageHistoryDao.get(example).stream().findFirst()
+		return messageHistoryDao.getOne(example)
 				.flatMap(revision -> ContentFormat.parse(revision.getContentFormat()));
 	}
 
@@ -468,8 +470,8 @@ public class ForumService extends AbstractService implements TemplateDataService
 	}
 
 	public Integer nextPostInThread(Integer threadId) {
-		forumLockMapper.lockThread(threadId);
-		return forumLockMapper.maxPostInThread(threadId) + 1;
+		threadDao.lockForUpdate(threadId);
+		return messageDao.maxPostInThread(threadId) + 1;
 	}
 
 	public boolean isThreadModerator(User user) {
@@ -511,7 +513,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public void lockThreadRows(List<Integer> threadIds) {
 		List<Integer> orderedThreadIds = orderedDistinctIds(threadIds);
 		if (!orderedThreadIds.isEmpty()) {
-			List<Integer> locked = forumLockMapper.lockThreads(orderedThreadIds);
+			List<Integer> locked = threadDao.lockForUpdate(orderedThreadIds);
 			if (locked.size() != orderedThreadIds.size())
 				throw new ZfgcNotFoundException();
 		}
@@ -524,7 +526,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public void lockBoardRows(List<Integer> boardIds) {
 		List<Integer> orderedBoardIds = orderedDistinctIds(boardIds);
 		if (!orderedBoardIds.isEmpty()) {
-			List<Integer> locked = forumLockMapper.lockBoards(orderedBoardIds);
+			List<Integer> locked = boardDao.lockForUpdate(orderedBoardIds);
 			if (locked.size() != orderedBoardIds.size())
 				throw new ZfgcNotFoundException();
 		}
@@ -538,13 +540,13 @@ public class ForumService extends AbstractService implements TemplateDataService
 	public boolean threadExists(Integer threadId) {
 		ThreadDboExample example = new ThreadDboExample();
 		example.createCriteria().andThreadIdEqualTo(threadId);
-		return threadDao.count(example) > 0;
+		return threadDao.exists(example);
 	}
 
 	public boolean boardExists(Integer boardId) {
 		BoardDboExample example = new BoardDboExample();
 		example.createCriteria().andBoardIdEqualTo(boardId);
-		return boardDao.count(example) > 0;
+		return boardDao.exists(example);
 	}
 
 

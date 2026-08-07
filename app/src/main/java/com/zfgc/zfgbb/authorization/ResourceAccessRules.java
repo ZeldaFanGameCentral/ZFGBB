@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.authorization;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 public interface ResourceAccessRules {
 

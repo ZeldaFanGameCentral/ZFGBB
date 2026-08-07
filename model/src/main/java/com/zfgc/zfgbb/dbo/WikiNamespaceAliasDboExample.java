@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -283,6 +284,16 @@ public class WikiNamespaceAliasDboExample {
 
         public Criteria andNamespaceNameNotBetween(String value1, String value2) {
             addCriterion("namespace_name not between", value1, value2, "namespaceName");
+            return (Criteria) this;
+        }
+
+        public Criteria andAliasContains(String value) {
+            addCriterion("alias ilike", LikePatterns.contains(value), "alias");
+            return (Criteria) this;
+        }
+
+        public Criteria andNamespaceNameContains(String value) {
+            addCriterion("namespace_name ilike", LikePatterns.contains(value), "namespaceName");
             return (Criteria) this;
         }
     }

@@ -17,6 +17,10 @@ public abstract class KeyedDao<Dbo, Example, PrimaryKey> extends ReadDao<Dbo, Ex
 		return Optional.ofNullable(crudMapper.selectByPrimaryKey(primaryKey));
 	}
 
+	public boolean existsWithPrimaryKey(PrimaryKey primaryKey) {
+		return find(primaryKey).isPresent();
+	}
+
 	public void insert(Dbo row) {
 		crudMapper.insert(row);
 	}
@@ -27,6 +31,10 @@ public abstract class KeyedDao<Dbo, Example, PrimaryKey> extends ReadDao<Dbo, Ex
 
 	public int update(Dbo row) {
 		return crudMapper.updateByPrimaryKey(row);
+	}
+
+	public int updateSelective(Dbo row) {
+		return crudMapper.updateByPrimaryKeySelective(row);
 	}
 
 	public int updateWhere(Dbo row, Example example) {

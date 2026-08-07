@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1354,6 +1355,41 @@ public class BBCodeConfigDboExample {
 
         public Criteria andHonouredInSignatureFlagNotBetween(Boolean value1, Boolean value2) {
             addCriterion("honoured_in_signature_flag not between", value1, value2, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andEndTagContains(String value) {
+            addCriterion("end_tag ilike", LikePatterns.contains(value), "endTag");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeContains(String value) {
+            addCriterion("source_reference_attribute ilike", LikePatterns.contains(value), "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverContains(String value) {
+            addCriterion("source_reference_resolver ilike", LikePatterns.contains(value), "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentContains(String value) {
+            addCriterion("markdown_equivalent ilike", LikePatterns.contains(value), "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerContains(String value) {
+            addCriterion("implicit_item_marker ilike", LikePatterns.contains(value), "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeContains(String value) {
+            addCriterion("implicit_item_code ilike", LikePatterns.contains(value), "implicitItemCode");
             return (Criteria) this;
         }
     }

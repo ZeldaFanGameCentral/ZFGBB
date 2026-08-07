@@ -1,14 +1,9 @@
 package com.zfgc.zfgbb.model.search;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import java.util.Optional;
 
-@Data
-@AllArgsConstructor
-public class SearchHit {
-	private String type;
-	private String title;
-	private String snippet;
-	private String context;
-	private String url;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
+public record SearchHit(String type, String title, Optional<String> snippet, Optional<String> context, String url) {
 }

@@ -10,17 +10,17 @@ import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.users.UserDao;
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class CatalogDataProvider {
 
-	protected final UserDboMapper userMapper;
+	protected final UserDao userDao;
 
-	protected final ContentResourceDboMapper contentResourceMapper;
+	protected final ContentResourceDao contentResourceDao;
 
 	Map<Integer, String> displayNames(Stream<Integer> userIds) {
 		Map<Integer, String> names = new HashMap<>();
@@ -30,7 +30,7 @@ public class CatalogDataProvider {
 		}
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdIn(ids);
-		userMapper.selectByExample(ex).forEach(user -> names.put(user.getUserId(), user.getDisplayName()));
+		userDao.get(ex).forEach(user -> names.put(user.getUserId(), user.getDisplayName()));
 		return names;
 	}
 
@@ -38,22 +38,15 @@ public class CatalogDataProvider {
 		if (contentResourceId == null) {
 			return null;
 		}
-		ContentResourceDbo content = contentResourceMapper.selectByPrimaryKey(contentResourceId);
-		return content == null ? null : content.getFilename();
+		return contentResourceDao.find(contentResourceId).map(ContentResourceDbo::getFilename).orElse(null);
 	}
 
 	static boolean containsIgnoreCase(String haystack, String needle) {
 		return haystack != null && haystack.toLowerCase().contains(needle.trim().toLowerCase());
 	}
 
-	static <T> Stream<T> pageSlice(List<T> items, int page, int pageSize) {
+	static <Item> Stream<Item> pageSlice(List<Item> items, int page, int pageSize) {
 		return items.stream().skip((long) (page - 1) * pageSize).limit(pageSize);
 	}
 
-	static String escapeLike(String input) {
-		if (input == null) {
-			return null;
-		}
-		return input.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-	}
 }

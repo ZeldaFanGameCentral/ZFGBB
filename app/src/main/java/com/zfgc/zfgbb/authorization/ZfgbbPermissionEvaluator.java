@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.authorization;
 
+import lombok.RequiredArgsConstructor;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -7,22 +9,17 @@ import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 @Component
+@RequiredArgsConstructor
 public class ZfgbbPermissionEvaluator implements PermissionEvaluator {
 
 	private final List<ResourceAccessRules> resourceAccessRules;
 
-	public ZfgbbPermissionEvaluator(List<ResourceAccessRules> resourceAccessRules) {
-		this.resourceAccessRules = resourceAccessRules;
-	}
-
 	@Override
 	public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
-		throw new UnsupportedOperationException(
-				"hasPermission(target, permission) has no ResourceAccessRules binding and would deny every actor "
-						+ "silently; use hasPermission(id, 'RESOURCE_TYPE', 'action') instead");
+		throw new UnsupportedOperationException("hasPermission(target, permission) is unsupported");
 	}
 
 	@Override

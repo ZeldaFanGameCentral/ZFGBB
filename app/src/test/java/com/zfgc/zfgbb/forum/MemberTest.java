@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.forum;
 
+import com.zfgc.zfgbb.model.Securable;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +33,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.services.contentstore.ContentService;
 import com.zfgc.zfgbb.services.forum.ForumService;
@@ -256,6 +258,56 @@ class MemberTest extends PostgresIntegrationTest {
 		}
 
 		@Test
+		void aWildcardTypedIntoSearchMatchesLiterallyInsteadOfMatchingEverything() throws Exception {
+			TestUser member = createUser("srchpct_" + suffix);
+			String literalWildcardTitle = "SearchPct100%Off" + suffix;
+			String decoyTitle = "SearchPct100ZZOff" + suffix;
+			int boardId = insertBoard("Search wildcard " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_USER"));
+			insertThread(literalWildcardTitle, boardId, member.id());
+			insertThread(decoyTitle, boardId, member.id());
+
+			MvcResult result = mockMvc.perform(get("/search")
+					.param("q", "SearchPct100%Off" + suffix)
+					.header("Authorization", "Bearer " + member.token()))
+					.andExpect(status().isOk())
+					.andReturn();
+			String body = result.getResponse().getContentAsString();
+
+			assertTrue(forumGroupHasThreadTitled(body, literalWildcardTitle),
+					"a % typed into the search box is content, not syntax: it must still find the "
+							+ "thread whose title actually contains a percent sign");
+			assertFalse(forumGroupHasThreadTitled(body, decoyTitle),
+					"if % reached the database as a LIKE wildcard the decoy would match too, which is "
+							+ "how a one-character query would return the entire forum");
+		}
+
+		@Test
+		void anUnderscoreTypedIntoSearchMatchesLiterallyInsteadOfMatchingAnyCharacter()
+				throws Exception {
+			TestUser member = createUser("srchund_" + suffix);
+			String literalUnderscoreTitle = "SearchUnd_Score" + suffix;
+			String decoyTitle = "SearchUndXScore" + suffix;
+			int boardId = insertBoard("Search underscore " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_USER"));
+			insertThread(literalUnderscoreTitle, boardId, member.id());
+			insertThread(decoyTitle, boardId, member.id());
+
+			MvcResult result = mockMvc.perform(get("/search")
+					.param("q", "SearchUnd_Score" + suffix)
+					.header("Authorization", "Bearer " + member.token()))
+					.andExpect(status().isOk())
+					.andReturn();
+			String body = result.getResponse().getContentAsString();
+
+			assertTrue(forumGroupHasThreadTitled(body, literalUnderscoreTitle),
+					"an underscore typed into the search box must match an underscore");
+			assertFalse(forumGroupHasThreadTitled(body, decoyTitle),
+					"an unescaped _ is a single-character LIKE wildcard, so the decoy matching would "
+							+ "mean the escaping was lost");
+		}
+
+		@Test
 		void aTitleTheValidatorAcceptsIsStoredWhole() throws Exception {
 			TestUser member = createUser("title_" + suffix);
 			String longTitle = "T".repeat(100);
@@ -302,6 +354,152 @@ class MemberTest extends PostgresIntegrationTest {
 								+ "published id no lane matches silently returns nothing for '" + type + "': "
 								+ groups);
 			}
+		}
+
+		@Test
+		void theRealmCatalogueLeadsWithTheAllFilterAndPublishesTheRealmsInPaletteOrder() throws Exception {
+			JsonNode realms = json.readTree(mockMvc.perform(get("/search/realms"))
+					.andExpect(status().isOk())
+					.andReturn().getResponse().getContentAsString());
+
+			List<String> published = new ArrayList<>();
+			for (JsonNode realm : realms)
+				published.add(realm.get("type").asString());
+
+			assertEquals(List.of("", "forum", "wiki", "project", "resource"), published,
+					"the search palette renders the filter row in the order this endpoint publishes it, and "
+							+ "each realm bean now declares its own place in that row; a realm the container "
+							+ "sorts somewhere else silently reshuffles the row nobody asserts otherwise");
+		}
+
+		@Test
+		void searchSnippetsCarryTheTextTheRenderedPostShowsItsReader() throws Exception {
+			TestUser member = createUser("snipok_" + suffix);
+
+			String bbcodeTitle = "Snippet bbcode " + suffix;
+			String bbcodeProbe = "SnippetProbeBbcode" + suffix;
+			postThread(member.token(), bbcodeTitle,
+					bbcodeProbe + " [b]bold words[/b] and [url=http://example.com]a link[/url] tail");
+
+			String htmlTitle = "Snippet html " + suffix;
+			String htmlProbe = "SnippetProbeHtml" + suffix;
+			postThread(member.token(), htmlTitle, htmlProbe + " <p>paragraph words</p><br /> tail");
+
+			String templateTitle = "Snippet template " + suffix;
+			String templateProbe = "SnippetProbeTemplate" + suffix;
+			postThread(member.token(), templateTitle, templateProbe + " {{Infobox|name=Link}} tail");
+
+			assertEquals(bbcodeProbe + " bold words and a link tail",
+					forumSnippetOf(member.token(), bbcodeProbe, bbcodeTitle),
+					"the snippet is now the visible text of the rendered post, not a regex pass over the "
+							+ "stored source; the value is what the old chain produced, but it now holds "
+							+ "because the renderer turns [b] and [url] into elements whose text is 'bold "
+							+ "words' and 'a link', not because a tag pattern was deleted");
+			assertEquals(htmlProbe + " paragraph words tail",
+					forumSnippetOf(member.token(), htmlProbe, htmlTitle),
+					"raw html a migrated post carries survives rendering as real markup that the output "
+							+ "sanitizer's safelist admits, so its visible text is the prose inside it; the "
+							+ "old chain reached the same value by deleting anything <shaped like a tag>, "
+							+ "which would have eaten a literal less-than sign the reader is meant to see");
+			assertEquals(templateProbe + " {{Infobox|name=Link}} tail",
+					forumSnippetOf(member.token(), templateProbe, templateTitle),
+					"CHANGED DELIBERATELY, was '" + templateProbe + " tail': the engine invokes a template "
+							+ "as [template=Name], and the migrator rewrites mediawiki's {{Name}} into that "
+							+ "form on import, so a stored {{...}} run is text the reader sees. The old "
+							+ "chain deleted it anyway and hid a line of the post; rendering shows the same "
+							+ "text the page does. A real [template=Name] call now contributes the "
+							+ "template's own rendered text, which the old chain could never show");
+		}
+
+		@Test
+		void searchSnippetsShowUnreadableMarkupExactlyWhereThePostItselfDoes() throws Exception {
+			TestUser member = createUser("snipbug_" + suffix);
+
+			String wikiLinkTitle = "Snippet wikilink " + suffix;
+			String wikiLinkProbe = "SnippetProbeWikiLink" + suffix;
+			postThread(member.token(), wikiLinkTitle, wikiLinkProbe + " [[Master Sword]] tail");
+
+			int quotedThreadId = postThread(member.token(), "Snippet quote source " + suffix, "the original words");
+			int quotedMessageId = messageIdAt(quotedThreadId, 1);
+
+			String quoteInlineTitle = "Snippet quote inline " + suffix;
+			String quoteInlineProbe = "SnippetProbeQuoteInline" + suffix;
+			postThread(member.token(), quoteInlineTitle, "[quote author=someoneelse msg=" + quotedMessageId
+					+ "]quoted stranger words[/quote]" + quoteInlineProbe + " my own reply");
+
+			String quoteShellTitle = "Snippet quote shell " + suffix;
+			String quoteShellProbe = "SnippetProbeQuoteShell" + suffix;
+			postThread(member.token(), quoteShellTitle, "[quote msg=" + quotedMessageId + "][/quote]"
+					+ quoteShellProbe + " my own reply");
+
+			assertEquals(wikiLinkProbe + " [[Master Sword]] tail",
+					forumSnippetOf(member.token(), wikiLinkProbe, wikiLinkTitle),
+					"THE PINNED BUG IS GONE, but not to the '" + wikiLinkProbe + " tail' the old pin "
+							+ "predicted: the old bracket pass \\[[^\\]]*\\] was not nesting-aware and left a "
+							+ "stranded ]. No bracket pass runs now, and the forum grammar has no code for a "
+							+ "mediawiki link, so the reader sees [[Master Sword]] on the post itself and the "
+							+ "snippet shows exactly that");
+			assertEquals("[quote author=someoneelse msg=" + quotedMessageId + "]quoted stranger words[/quote]"
+							+ quoteInlineProbe + " my own reply",
+					forumSnippetOf(member.token(), quoteInlineProbe, quoteInlineTitle),
+					"THE PINNED MISATTRIBUTION IS GONE: the old chain erased [quote ...] and [/quote] as two "
+							+ "bare tags, leaving 'quoted stranger words' reading as this poster's own. The "
+							+ "grammar declares no quote mode taking author plus msg and nothing else, so "
+							+ "this markup is unrecognised, the post renders it literally, and the snippet "
+							+ "shows the same literal text the reader sees. It is ugly because the post is "
+							+ "ugly, and it no longer puts another member's words in this member's mouth");
+			assertEquals("Quote from (unavailable) on (jump to message)" + quoteShellProbe + " my own reply",
+					forumSnippetOf(member.token(), quoteShellProbe, quoteShellTitle),
+					"CHANGED DELIBERATELY, was '" + quoteShellProbe + " my own reply': search renders inside "
+							+ "an empty quote scope and never resolves a quoted message, because doing so "
+							+ "would put a source lookup per hit on an anonymous endpoint to show another "
+							+ "member's words. The empty scope is what keeps the body placeholder "
+							+ "'(quoted message unavailable)' out of the snippet; the attribution header "
+							+ "still renders, and with no source resolved it names the author "
+							+ "'(unavailable)', which is the honest cost of that choice");
+		}
+
+		@Test
+		void aHitCarryingNoSnippetOmitsTheKeyRatherThanSendingNull() throws Exception {
+			TestUser member = createUser("wire_" + suffix);
+			String titleOnlyProbe = "SearchWireProbe" + suffix;
+			int boardId = insertBoard("Search wire " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_USER"));
+			insertThread(titleOnlyProbe, boardId, member.id());
+
+			JsonNode hit = forumHitTitled(member.token(), titleOnlyProbe, titleOnlyProbe);
+
+			assertFalse(hit.has("snippet"),
+					"snippet is an Optional<String> and the frontend reads it with valibot's v.optional, "
+							+ "which accepts a missing key but REJECTS an explicit null; a thread matched by "
+							+ "its name alone has no message body to snippet, so the key must not be on the "
+							+ "wire at all: " + hit);
+			assertTrue(hit.hasNonNull("context"),
+					"the same hit's context is a present Optional and must serialize as its plain string, "
+							+ "not as an Optional wrapper object: " + hit);
+		}
+
+		@Test
+		void everyGroupTotalCountsEveryMatchNotJustTheHitsOnePageReturns() throws Exception {
+			TestUser member = createUser("total_" + suffix);
+			String totalProbe = "SearchTotalProbe" + suffix;
+			int boardId = insertBoard("Search total " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_USER"));
+			int matchingThreads = 9;
+			for (int thread = 1; thread <= matchingThreads; thread++)
+				insertThread(totalProbe + " thread " + thread, boardId, member.id());
+
+			JsonNode results = searchResultsFor(member.token(), totalProbe);
+			JsonNode forum = searchGroupTyped(results, "forum");
+
+			assertEquals(matchingThreads, forum.get("total").asInt(),
+					"the group total is what the UI prints as the match count, so it must be a real count "
+							+ "of matching threads rather than the size of the capped page of hits");
+			assertTrue(forum.get("hits").size() < matchingThreads,
+					"the page of hits stays capped even though the total is honest: " + forum);
+			assertEquals(matchingThreads, results.get("total").asInt(),
+					"the response total is the sum of the group totals, so a probe only the forum lane "
+							+ "matches must report every matching thread");
 		}
 
 		@Test
@@ -539,6 +737,35 @@ class MemberTest extends PostgresIntegrationTest {
 						return true;
 			}
 			return false;
+		}
+
+		private JsonNode searchResultsFor(String token, String query) throws Exception {
+			return json.readTree(mockMvc.perform(get("/search")
+					.param("q", query)
+					.header("Authorization", "Bearer " + token))
+					.andExpect(status().isOk())
+					.andReturn().getResponse().getContentAsString());
+		}
+
+		private JsonNode searchGroupTyped(JsonNode results, String type) {
+			JsonNode groups = results.get("groups");
+			assertNotNull(groups, "search response must carry a groups array");
+			for (JsonNode group : groups)
+				if (group.get("type").asString().equals(type))
+					return group;
+			throw new AssertionError("no " + type + " group in " + results);
+		}
+
+		private JsonNode forumHitTitled(String token, String query, String threadTitle) throws Exception {
+			for (JsonNode hit : searchGroupTyped(searchResultsFor(token, query), "forum").get("hits"))
+				if (hit.hasNonNull("title") && hit.get("title").asString().equals(threadTitle))
+					return hit;
+			throw new AssertionError("no forum hit titled " + threadTitle + " for query " + query);
+		}
+
+		private String forumSnippetOf(String token, String query, String threadTitle) throws Exception {
+			JsonNode hit = forumHitTitled(token, query, threadTitle);
+			return hit.hasNonNull("snippet") ? hit.get("snippet").asString() : null;
 		}
 
 		private JsonNode newsEntryFor(JsonNode news, int threadId) {

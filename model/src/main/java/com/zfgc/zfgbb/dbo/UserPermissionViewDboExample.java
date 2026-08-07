@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -333,6 +334,11 @@ public class UserPermissionViewDboExample {
 
         public Criteria andPermissionCodeNotBetween(String value1, String value2) {
             addCriterion("permission_code not between", value1, value2, "permissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeContains(String value) {
+            addCriterion("permission_code ilike", LikePatterns.contains(value), "permissionCode");
             return (Criteria) this;
         }
     }

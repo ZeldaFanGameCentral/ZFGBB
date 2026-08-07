@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -884,6 +885,16 @@ public class UserRefreshTokenDboExample {
 
         public Criteria andRevokedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("revoked_ts not between", value1, value2, "revokedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andTokenHashContains(String value) {
+            addCriterion("token_hash ilike", LikePatterns.contains(value), "tokenHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andFamilyIdContains(String value) {
+            addCriterion("family_id ilike", LikePatterns.contains(value), "familyId");
             return (Criteria) this;
         }
     }

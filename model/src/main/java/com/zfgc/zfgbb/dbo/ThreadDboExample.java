@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -884,6 +885,16 @@ public class ThreadDboExample {
 
         public Criteria andRecycledFromThreadIdNotBetween(Integer value1, Integer value2) {
             addCriterion("recycled_from_thread_id not between", value1, value2, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andThreadNameContains(String value) {
+            addCriterion("thread_name ilike", LikePatterns.contains(value), "threadName");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

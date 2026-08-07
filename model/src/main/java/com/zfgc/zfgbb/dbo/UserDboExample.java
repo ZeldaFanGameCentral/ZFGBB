@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1114,6 +1115,41 @@ public class UserDboExample {
 
         public Criteria andTokensValidAfterTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("tokens_valid_after_ts not between", value1, value2, "tokensValidAfterTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andSsoKeyContains(String value) {
+            addCriterion("sso_key ilike", LikePatterns.contains(value), "ssoKey");
+            return (Criteria) this;
+        }
+
+        public Criteria andDisplayNameContains(String value) {
+            addCriterion("display_name ilike", LikePatterns.contains(value), "displayName");
+            return (Criteria) this;
+        }
+
+        public Criteria andUserNameContains(String value) {
+            addCriterion("user_name ilike", LikePatterns.contains(value), "userName");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andPasswordHashContains(String value) {
+            addCriterion("password_hash ilike", LikePatterns.contains(value), "passwordHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andPasswordAlgoContains(String value) {
+            addCriterion("password_algo ilike", LikePatterns.contains(value), "passwordAlgo");
+            return (Criteria) this;
+        }
+
+        public Criteria andPasswordSaltContains(String value) {
+            addCriterion("password_salt ilike", LikePatterns.contains(value), "passwordSalt");
             return (Criteria) this;
         }
     }

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -924,6 +925,36 @@ public class ContentResourceDboExample {
 
         public Criteria andStorageDirNotBetween(String value1, String value2) {
             addCriterion("storage_dir not between", value1, value2, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andFilenameContains(String value) {
+            addCriterion("filename ilike", LikePatterns.contains(value), "filename");
+            return (Criteria) this;
+        }
+
+        public Criteria andChecksumContains(String value) {
+            addCriterion("checksum ilike", LikePatterns.contains(value), "checksum");
+            return (Criteria) this;
+        }
+
+        public Criteria andFileExtContains(String value) {
+            addCriterion("file_ext ilike", LikePatterns.contains(value), "fileExt");
+            return (Criteria) this;
+        }
+
+        public Criteria andMimeTypeContains(String value) {
+            addCriterion("mime_type ilike", LikePatterns.contains(value), "mimeType");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirContains(String value) {
+            addCriterion("storage_dir ilike", LikePatterns.contains(value), "storageDir");
             return (Criteria) this;
         }
     }

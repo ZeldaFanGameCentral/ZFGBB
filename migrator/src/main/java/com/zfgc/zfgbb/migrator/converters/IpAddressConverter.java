@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,25 +18,16 @@ import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageDistinctIpsMapper;
 
 @Component
+@RequiredArgsConstructor
 public class IpAddressConverter extends AbstractConverter<Void> {
 
 	private final SmfMessageDistinctIpsMapper smfDistinctIpsMapper;
 	private final IpAddressDboMapper ipAddressMapper;
 	private final TransactionTemplate transactionTemplate;
+	@Value("${zfgbb.migrator.batch-size:5000}")
 	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(IpAddressConverter.class);
-
-	public IpAddressConverter(
-			SmfMessageDistinctIpsMapper smfDistinctIpsMapper,
-			IpAddressDboMapper ipAddressMapper,
-			TransactionTemplate transactionTemplate,
-			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
-		this.smfDistinctIpsMapper = smfDistinctIpsMapper;
-		this.ipAddressMapper = ipAddressMapper;
-		this.transactionTemplate = transactionTemplate;
-		this.batchSize = batchSize;
-	}
 
 	@Override
 	public JobType getType() {

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -403,6 +404,16 @@ public class ListStyleTypeDboExample {
 
         public Criteria andNumbersItemsNotBetween(Boolean value1, Boolean value2) {
             addCriterion("numbers_items not between", value1, value2, "numbersItems");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andLabelContains(String value) {
+            addCriterion("label ilike", LikePatterns.contains(value), "label");
             return (Criteria) this;
         }
     }

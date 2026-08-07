@@ -5,7 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.dataprovider.cms.WikiNamespaceDataProvider;
-import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper;
+import com.zfgc.zfgbb.dao.cms.WikiNamespaceDao;
+import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper.ImportNamespaceRecord;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 
 import lombok.RequiredArgsConstructor;
@@ -14,14 +15,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WikiNamespaceRegistry {
 
-	private final WikiNamespaceCustomMapper wikiNamespaceCustomMapper;
+	private final WikiNamespaceDao wikiNamespaceDao;
 
 	private final WikiNamespaceDataProvider namespaceData;
 
-	public List<WikiNamespaceCustomMapper.ImportNamespaceRecord> listImportNamespaces() {
-		List<WikiNamespaceCustomMapper.ImportNamespaceRecord> configured =
-				wikiNamespaceCustomMapper.listImportNamespaces();
-		for (WikiNamespaceCustomMapper.ImportNamespaceRecord row : configured) {
+	public List<ImportNamespaceRecord> listImportNamespaces() {
+		List<ImportNamespaceRecord> configured =
+				wikiNamespaceDao.listImportNamespaces();
+		for (ImportNamespaceRecord row : configured) {
 			String holder = namespaceData.nameForRole(WikiNamespaceRole.ofMediaWikiNamespaceId(row.getSourceNamespaceId()));
 			if (holder != null)
 				row.setNamespaceName(holder);
@@ -29,7 +30,7 @@ public class WikiNamespaceRegistry {
 		return configured;
 	}
 
-	public List<WikiNamespaceCustomMapper.ImportNamespaceRecord> saveImportNamespace(Integer sourceNamespaceId,
+	public List<ImportNamespaceRecord> saveImportNamespace(Integer sourceNamespaceId,
 			String namespaceName) {
 		if (sourceNamespaceId == null || sourceNamespaceId < 0)
 			throw new IllegalArgumentException("sourceNamespaceId must be zero or greater");
@@ -41,31 +42,28 @@ public class WikiNamespaceRegistry {
 		if (role != null) {
 			String roleHolder = namespaceData.nameForRole(role);
 			if (roleHolder != null && !roleHolder.equalsIgnoreCase(name))
-				throw new IllegalArgumentException("MediaWiki namespace " + sourceNamespaceId + " is the "
-						+ role.name() + " namespace, which this wiki already calls '" + roleHolder
-						+ "'. Rename that namespace instead of remapping the import, or the engine would "
-						+ "stop recognising it.");
+				throw new IllegalArgumentException("MediaWiki namespace " + sourceNamespaceId
+						+ " is the " + role.name() + " namespace, already named '" + roleHolder + "'");
 			WikiNamespaceRole heldByName = namespaceData.roleOf(name);
 			if (heldByName != null && heldByName != role)
 				throw new IllegalArgumentException("Namespace '" + name + "' already serves as this wiki's "
 						+ heldByName.name() + " namespace, so it cannot also be MediaWiki namespace "
 						+ sourceNamespaceId + " (" + role.name() + ").");
 			if (roleHolder == null && namespaceData.assignEngineRole(name, role) == 0)
-				throw new IllegalArgumentException("Namespace '" + name + "' does not exist yet, so it cannot be "
-						+ "bound to MediaWiki namespace " + sourceNamespaceId + " (" + role.name()
-						+ "). Create the namespace first.");
+				throw new IllegalArgumentException("namespace '" + name
+						+ "' does not exist, cannot bind MediaWiki namespace " + sourceNamespaceId
+						+ " (" + role.name() + ")");
 		}
-		wikiNamespaceCustomMapper.upsertImportNamespace(sourceNamespaceId, name);
+		wikiNamespaceDao.upsertImportNamespace(sourceNamespaceId, name);
 		return listImportNamespaces();
 	}
 
-	public List<WikiNamespaceCustomMapper.ImportNamespaceRecord> removeImportNamespace(Integer sourceNamespaceId) {
+	public List<ImportNamespaceRecord> removeImportNamespace(Integer sourceNamespaceId) {
 		WikiNamespaceRole role = WikiNamespaceRole.ofMediaWikiNamespaceId(sourceNamespaceId);
 		if (role != null)
-			throw new IllegalArgumentException("MediaWiki namespace " + sourceNamespaceId + " is the " + role.name()
-					+ " namespace and cannot be unmapped; without it an import would file those pages under "
-					+ "'NS" + sourceNamespaceId + "'. Rename the target namespace instead.");
-		wikiNamespaceCustomMapper.deleteImportNamespace(sourceNamespaceId);
+			throw new IllegalArgumentException("MediaWiki namespace " + sourceNamespaceId + " is the "
+					+ role.name() + " namespace and cannot be unmapped");
+		wikiNamespaceDao.deleteImportNamespace(sourceNamespaceId);
 		return listImportNamespaces();
 	}
 }

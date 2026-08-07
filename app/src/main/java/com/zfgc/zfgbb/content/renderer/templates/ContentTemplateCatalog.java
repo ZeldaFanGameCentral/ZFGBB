@@ -8,7 +8,7 @@ import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dbo.ContentTemplateDbo;
 import com.zfgc.zfgbb.dbo.ContentTemplateDboExample;
-import com.zfgc.zfgbb.mappers.ContentTemplateDboMapper;
+import com.zfgc.zfgbb.dao.cms.ContentTemplateDao;
 import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 import com.zfgc.zfgbb.dataprovider.cms.WikiNamespaceDataProvider;
@@ -24,7 +24,7 @@ public class ContentTemplateCatalog {
 	public record Lookup(Template template, boolean defined) {
 	}
 
-	private final ContentTemplateDboMapper templateMapper;
+	private final ContentTemplateDao contentTemplateDao;
 
 	private final WikiDataProvider wikiDataProvider;
 
@@ -71,14 +71,14 @@ public class ContentTemplateCatalog {
 		String normalized = normalizeCode(code);
 		ContentTemplateDboExample ex = new ContentTemplateDboExample();
 		ex.createCriteria().andCodeEqualTo(normalized).andWikiPageIdIsNull();
-		List<ContentTemplateDbo> exact = templateMapper.selectByExample(ex);
+		List<ContentTemplateDbo> exact = contentTemplateDao.get(ex);
 		if (!exact.isEmpty()) {
 			return exact;
 		}
 
 		ContentTemplateDboExample compatibility = new ContentTemplateDboExample();
 		compatibility.createCriteria().andWikiPageIdIsNull();
-		List<ContentTemplateDbo> legacyCaseMatches = templateMapper.selectByExample(compatibility).stream()
+		List<ContentTemplateDbo> legacyCaseMatches = contentTemplateDao.get(compatibility).stream()
 				.filter(row -> row.getCode().equalsIgnoreCase(normalized))
 				.toList();
 		long identities = legacyCaseMatches.stream().map(ContentTemplateDbo::getCode).distinct().count();
@@ -88,7 +88,7 @@ public class ContentTemplateCatalog {
 	private List<ContentTemplateDbo> wikiRows(Integer wikiPageId) {
 		ContentTemplateDboExample ex = new ContentTemplateDboExample();
 		ex.createCriteria().andWikiPageIdEqualTo(wikiPageId);
-		return templateMapper.selectByExample(ex);
+		return contentTemplateDao.get(ex);
 	}
 
 	private String normalizeCode(String code) {

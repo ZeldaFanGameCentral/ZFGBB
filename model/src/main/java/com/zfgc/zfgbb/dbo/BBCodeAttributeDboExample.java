@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -654,6 +655,21 @@ public class BBCodeAttributeDboExample {
 
         public Criteria andSemanticRoleNotBetween(String value1, String value2) {
             addCriterion("semantic_role not between", value1, value2, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andNameContains(String value) {
+            addCriterion("name ilike", LikePatterns.contains(value), "name");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeContains(String value) {
+            addCriterion("attribute_data_type ilike", LikePatterns.contains(value), "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleContains(String value) {
+            addCriterion("semantic_role ilike", LikePatterns.contains(value), "semanticRole");
             return (Criteria) this;
         }
     }

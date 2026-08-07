@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.content.renderer.bbcode;
 
+import lombok.RequiredArgsConstructor;
+
 import static org.jsoup.nodes.Entities.escape;
 
 import java.time.OffsetDateTime;
@@ -18,6 +20,7 @@ import com.zfgc.zfgbb.content.renderer.templates.TemplateExpansion;
 import com.zfgc.zfgbb.model.forum.BBCodeConfig;
 
 @Component
+@RequiredArgsConstructor
 public class BBCodeRenderer {
 
 	private final BBCodeGrammarHolder grammarHolder;
@@ -25,13 +28,6 @@ public class BBCodeRenderer {
 	private final SourceReferenceService sourceReferenceService;
 
 	private final TemplateExpansion templateExpansion;
-
-	public BBCodeRenderer(BBCodeGrammarHolder grammarHolder, SourceReferenceService sourceReferenceService,
-			TemplateExpansion templateExpansion) {
-		this.grammarHolder = grammarHolder;
-		this.sourceReferenceService = sourceReferenceService;
-		this.templateExpansion = templateExpansion;
-	}
 
 	public String render(String source, OffsetDateTime quotingCreatedTs, ContentScope scope,
 			Map<String, String> context) {

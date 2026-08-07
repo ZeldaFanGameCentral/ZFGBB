@@ -165,7 +165,7 @@ public final class BackupArchiveValidator {
 		if (raw.startsWith("/") || raw.endsWith("/") || raw.contains("//"))
 			throw invalid("non-canonical archive path: " + raw);
 		for (String part : raw.split("/", -1))
-			if (part.isEmpty() || ".".equals(part) || "..".equals(part))
+			if (part.isEmpty() || part.equals(".") || part.equals(".."))
 				throw invalid("archive path traversal: " + raw);
 		return raw;
 	}

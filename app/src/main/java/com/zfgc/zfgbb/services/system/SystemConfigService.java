@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.services.system;
 
+import lombok.RequiredArgsConstructor;
+
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -10,10 +12,11 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.SystemConfigDbo;
-import com.zfgc.zfgbb.mappers.SystemConfigDboMapper;
+import com.zfgc.zfgbb.dao.meta.SystemConfigDao;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class SystemConfigService {
 
 	public static final class Keys {
@@ -33,14 +36,10 @@ public class SystemConfigService {
 	private record CachedSiteName(long invalidations, Optional<String> siteName) {
 	}
 
-	private final SystemConfigDboMapper systemConfigDboMapper;
+	private final SystemConfigDao systemConfigDao;
 
 	private final AtomicReference<CachedSiteName> cachedSiteName =
 			new AtomicReference<>(new CachedSiteName(0, Optional.empty()));
-
-	public SystemConfigService(SystemConfigDboMapper systemConfigDboMapper) {
-		this.systemConfigDboMapper = systemConfigDboMapper;
-	}
 
 	@Transactional(readOnly = true)
 	public boolean isInstalled() {
@@ -78,21 +77,21 @@ public class SystemConfigService {
 	}
 
 	private String readConfigValue(String key) {
-		return Optional.ofNullable(systemConfigDboMapper.selectByPrimaryKey(key))
+		return systemConfigDao.find(key)
 				.map(SystemConfigDbo::getConfigValue)
 				.orElse(null);
 	}
 
 	public void set(String key, String value) {
-		SystemConfigDbo existing = systemConfigDboMapper.selectByPrimaryKey(key);
+		SystemConfigDbo existing = systemConfigDao.find(key).orElse(null);
 		if (existing != null) {
 			existing.setConfigValue(value);
-			systemConfigDboMapper.updateByPrimaryKey(existing);
+			systemConfigDao.update(existing);
 		} else {
 			SystemConfigDbo inserted = new SystemConfigDbo();
 			inserted.setConfigKey(key);
 			inserted.setConfigValue(value);
-			systemConfigDboMapper.insert(inserted);
+			systemConfigDao.insert(inserted);
 		}
 
 		if (Keys.SITE_NAME.equals(key))
@@ -100,7 +99,7 @@ public class SystemConfigService {
 	}
 
 	public void unset(String key) {
-		systemConfigDboMapper.deleteByPrimaryKey(key);
+		systemConfigDao.delete(key);
 
 		if (Keys.SITE_NAME.equals(key))
 			invalidateSiteNameOnceCommitted();

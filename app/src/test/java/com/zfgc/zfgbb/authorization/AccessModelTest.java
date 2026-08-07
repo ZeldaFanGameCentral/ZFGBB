@@ -27,7 +27,10 @@ import static org.mockito.Mockito.when;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
@@ -40,13 +43,19 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.zfgc.zfgbb.authorization.access.ProfileAccessRules;
+import com.zfgc.zfgbb.authorization.access.WikiAccessRules;
+import com.zfgc.zfgbb.authorization.access.WikiAccessRules.NamespaceEditDenial;
+import com.zfgc.zfgbb.authorization.access.WikiAccessRules.NamespaceEditDenialReason;
+import com.zfgc.zfgbb.authorization.access.WikiAccessRules.NamespaceEditPolicy;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
-import com.zfgc.zfgbb.mappers.GenderLkupDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserProfileMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.users.GenderLkupDao;
+import com.zfgc.zfgbb.dao.users.AvatarDao;
+import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
+import com.zfgc.zfgbb.dao.users.UserDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.UpdateUserProfileRequest;
-import com.zfgc.zfgbb.services.users.ProfileAccessRules;
 import com.zfgc.zfgbb.services.users.UserService;
 
 class AccessModelTest {
@@ -146,8 +155,11 @@ class AccessModelTest {
 			UnsupportedOperationException refusal = assertThrows(UnsupportedOperationException.class,
 					() -> evaluator.hasPermission(authenticatedAs(actor()), new Object(), "READ"));
 
-			assertTrue(refusal.getMessage().contains("hasPermission(id, 'RESOURCE_TYPE', 'action')"),
-					"the refusal must name the id-form overload that callers should use instead");
+			assertTrue(refusal.getMessage().contains("hasPermission(target, permission)"),
+					"the refusal names the unsupported signature and nothing more; the id-form overload "
+							+ "hasPermission(id, 'RESOURCE_TYPE', 'action') is the one with a "
+							+ "ResourceAccessRules binding, and that guidance lives here, not in a "
+							+ "production error string");
 			verifyNoInteractions(rule);
 		}
 	}
@@ -259,6 +271,87 @@ class AccessModelTest {
 	}
 
 	@Nested
+	class WikiAccessRulesTests {
+
+		private final WikiAccessRules rules = new WikiAccessRules(new AuthorityTiers(roleHierarchy()));
+
+		private final User member = member();
+		private final User admin = siteAdmin();
+		private final User readOnlyMember = readOnlyMember();
+		private final User guest = guest();
+
+		private Optional<NamespaceEditPolicy> policy(boolean systemManaged, String editPermissionCode) {
+			return Optional.of(new NamespaceEditPolicy(systemManaged, Optional.ofNullable(editPermissionCode)));
+		}
+
+		@Test
+		void openNamespaceProducesNoDenial() {
+			assertTrue(rules.namespaceEditDenial("Help", member, policy(false, null)).isEmpty());
+			assertTrue(rules.namespaceEditDenial("Help", member, policy(false, "   ")).isEmpty());
+			assertTrue(rules.namespaceEditDenial("Site", admin, policy(false, "ZFGC_WIKI_MODERATOR")).isEmpty());
+			assertTrue(rules.namespaceEditDenial("Site", admin, policy(false, " ZFGC_WIKI_MODERATOR ")).isEmpty());
+		}
+
+		@Test
+		void systemManagedNamespaceDeniesForThatReasonWhateverTheActorTier() {
+			NamespaceEditDenial denial = rules.namespaceEditDenial("Project", admin, policy(true, null)).orElseThrow();
+			assertEquals(NamespaceEditDenialReason.SYSTEM_MANAGED, denial.reason());
+			assertEquals(Optional.empty(), denial.requiredPermissionCode());
+			assertEquals("Namespace 'Project' is system managed and cannot be edited through the wiki",
+					denial.message());
+		}
+
+		@Test
+		void systemManagedOutranksAPermissionCodeTheActorAlreadyHolds() {
+			NamespaceEditDenial denial = rules
+					.namespaceEditDenial("Project", admin, policy(true, "ZFGC_WIKI_MODERATOR")).orElseThrow();
+			assertEquals(NamespaceEditDenialReason.SYSTEM_MANAGED, denial.reason(),
+					"a system managed namespace is closed even to an actor holding its edit permission code");
+		}
+
+		@Test
+		void gatedNamespaceDeniesWithTheRequiredPermissionCodeAsPayload() {
+			NamespaceEditDenial denial = rules
+					.namespaceEditDenial("Site", member, policy(false, " ZFGC_WIKI_MODERATOR ")).orElseThrow();
+			assertEquals(NamespaceEditDenialReason.MISSING_PERMISSION, denial.reason());
+			assertEquals(Optional.of("ZFGC_WIKI_MODERATOR"), denial.requiredPermissionCode(),
+					"the denial carries the permission code so no caller has to re-derive it to explain itself");
+			assertEquals("Namespace 'Site' requires the ZFGC_WIKI_MODERATOR permission", denial.message());
+		}
+
+		@Test
+		void namespaceWithoutAnEditPolicyDeniesWithoutNamingAPermission() {
+			NamespaceEditDenial denial = rules.namespaceEditDenial("MediaWiki_talk", admin, Optional.empty())
+					.orElseThrow();
+			assertEquals(NamespaceEditDenialReason.NO_EDIT_POLICY, denial.reason());
+			assertEquals(Optional.empty(), denial.requiredPermissionCode());
+			assertEquals("You do not have permission to edit the 'MediaWiki_talk' namespace", denial.message());
+		}
+
+		@Test
+		void viewerEditFlagTracksTierAndPolicy() {
+			assertTrue(rules.canViewerEdit(member, () -> policy(false, null)));
+			assertFalse(rules.canViewerEdit(member, () -> policy(false, "ZFGC_WIKI_MODERATOR")));
+			assertTrue(rules.canViewerEdit(admin, () -> policy(false, "ZFGC_WIKI_MODERATOR")));
+			assertFalse(rules.canViewerEdit(admin, () -> policy(true, null)));
+			assertFalse(rules.canViewerEdit(null, () -> policy(false, null)));
+		}
+
+		@Test
+		void viewerEditFlagRejectsGuestAndReadOnlyBeforeTheEditPolicyIsEverRead() {
+			AtomicInteger policyReads = new AtomicInteger();
+			Supplier<Optional<NamespaceEditPolicy>> countedPolicy = () -> {
+				policyReads.incrementAndGet();
+				return policy(false, null);
+			};
+			assertFalse(rules.canViewerEdit(guest, countedPolicy));
+			assertFalse(rules.canViewerEdit(readOnlyMember, countedPolicy));
+			assertEquals(0, policyReads.get(),
+					"the tier guards run first, so an unauthenticated or read-only viewer costs no policy read");
+		}
+	}
+
+	@Nested
 	class ProfileUpdateContract {
 		@Test
 		void omittedFieldsRemainAbsentAndExplicitNullIsPresent() {
@@ -292,8 +385,10 @@ class AccessModelTest {
 					() -> ReflectionTestUtils.invokeMethod(new UserService(
 							mock(UserDataProvider.class),
 							mock(ProfileAccessRules.class),
-							mock(UserProfileMapper.class),
-							mock(GenderLkupDboMapper.class)), "validateProfileUpdate", request));
+							mock(UserDao.class),
+							mock(AvatarDao.class),
+							mock(UserBioInfoDao.class),
+							mock(GenderLkupDao.class)), "validateProfileUpdate", request));
 		}
 	}
 }

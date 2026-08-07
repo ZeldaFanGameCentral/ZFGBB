@@ -48,7 +48,7 @@ import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeDocument;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeNode;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeTag;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
-import com.zfgc.zfgbb.dao.CategoryDao;
+import com.zfgc.zfgbb.dao.forum.CategoryDao;
 import com.zfgc.zfgbb.dataprovider.forum.BBCodeDataProvider;
 import com.zfgc.zfgbb.dbo.AttributeDataTypeDbo;
 import com.zfgc.zfgbb.dbo.AttributeDataTypeDboExample;

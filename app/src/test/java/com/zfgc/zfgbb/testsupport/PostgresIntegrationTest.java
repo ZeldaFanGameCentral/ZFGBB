@@ -23,8 +23,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.containers.ComposeContainer;
 
-import com.zfgc.zfgbb.config.MailDispatcherConfig;
-import com.zfgc.zfgbb.services.users.MailDispatcher;
+import com.zfgc.zfgbb.services.mail.MailDispatcherConfig;
+import com.zfgc.zfgbb.services.mail.MailDispatcher;
 import com.zfgc.zfgbb.testsupport.mappers.TestFixtureSetupMapper;
 
 import tools.jackson.databind.JsonNode;

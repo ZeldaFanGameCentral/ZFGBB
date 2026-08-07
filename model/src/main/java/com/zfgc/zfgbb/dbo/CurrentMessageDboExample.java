@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -764,6 +765,16 @@ public class CurrentMessageDboExample {
 
         public Criteria andContentFormatNotBetween(String value1, String value2) {
             addCriterion("content_format not between", value1, value2, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andMessageTextContains(String value) {
+            addCriterion("message_text ilike", LikePatterns.contains(value), "messageText");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatContains(String value) {
+            addCriterion("content_format ilike", LikePatterns.contains(value), "contentFormat");
             return (Criteria) this;
         }
     }

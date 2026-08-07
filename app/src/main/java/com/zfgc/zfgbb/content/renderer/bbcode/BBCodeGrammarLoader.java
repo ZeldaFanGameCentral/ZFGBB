@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.content.renderer.bbcode;
 
+import lombok.RequiredArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Locale;
@@ -34,6 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 @Component
+@RequiredArgsConstructor
 public class BBCodeGrammarLoader {
 
 	private Logger LOGGER = LogManager.getLogger(BBCodeGrammarLoader.class);
@@ -47,16 +50,6 @@ public class BBCodeGrammarLoader {
 	private final BBCodeGrammarHolder grammarHolder;
 
 	private final RenderedTextEnricher enricher;
-
-	public BBCodeGrammarLoader(BBCodeDataProvider bbCodeDataProvider, SourceReferenceService sourceReferenceService,
-			ContentOutputSanitizer outputSanitizer, BBCodeGrammarHolder grammarHolder,
-			RenderedTextEnricher enricher) {
-		this.bbCodeDataProvider = bbCodeDataProvider;
-		this.sourceReferenceService = sourceReferenceService;
-		this.outputSanitizer = outputSanitizer;
-		this.grammarHolder = grammarHolder;
-		this.enricher = enricher;
-	}
 
 	@PostConstruct
 	public void loadBBCodeConfig() {

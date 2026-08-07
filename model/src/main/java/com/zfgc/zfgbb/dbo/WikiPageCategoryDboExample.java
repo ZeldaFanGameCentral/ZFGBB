@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -333,6 +334,11 @@ public class WikiPageCategoryDboExample {
 
         public Criteria andCategoryNameNotBetween(String value1, String value2) {
             addCriterion("category_name not between", value1, value2, "categoryName");
+            return (Criteria) this;
+        }
+
+        public Criteria andCategoryNameContains(String value) {
+            addCriterion("category_name ilike", LikePatterns.contains(value), "categoryName");
             return (Criteria) this;
         }
     }

@@ -263,13 +263,13 @@ class CmsMigrationTest extends MigrationE2E {
 				.selectByExample(new BrBoardPermissionDboExample()).stream()
 				.map(BrBoardPermissionDbo::getPermissionId).distinct().toList();
 		var privileged = searchService.search("Machines", List.of("forum"), allBoardPerms);
-		assertTrue(privileged.getGroups().get(0).getTotal() > 0,
+		assertTrue(privileged.groups().get(0).total() > 0,
 				"a user holding every board permission should get forum hits");
 		var unprivileged = searchService.search("Machines", List.of("forum"), List.of(-999));
-		assertEquals(0, unprivileged.getGroups().get(0).getTotal(),
+		assertEquals(0, unprivileged.groups().get(0).total(),
 				"forum search must return nothing for a permission set no board grants");
 		var wikiSearch = searchService.search("Master Sword", List.of("wiki"), List.of(-999));
-		assertTrue(wikiSearch.getTotal() > 0,
+		assertTrue(wikiSearch.total() > 0,
 				"public wiki search does not depend on board permissions: " + wikiSearch);
 	}
 

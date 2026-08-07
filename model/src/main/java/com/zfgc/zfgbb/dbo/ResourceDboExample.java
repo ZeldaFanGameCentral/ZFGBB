@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -463,6 +464,16 @@ public class ResourceDboExample {
 
         public Criteria andFileSizeNotBetween(Long value1, Long value2) {
             addCriterion("file_size not between", value1, value2, "fileSize");
+            return (Criteria) this;
+        }
+
+        public Criteria andResourceTypeContains(String value) {
+            addCriterion("resource_type ilike", LikePatterns.contains(value), "resourceType");
+            return (Criteria) this;
+        }
+
+        public Criteria andDownloadUrlContains(String value) {
+            addCriterion("download_url ilike", LikePatterns.contains(value), "downloadUrl");
             return (Criteria) this;
         }
     }

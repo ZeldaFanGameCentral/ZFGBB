@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1044,6 +1045,36 @@ public class WikiPageRevisionDboExample {
 
         public Criteria andStatusNotBetween(String value1, String value2) {
             addCriterion("status not between", value1, value2, "status");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentContains(String value) {
+            addCriterion("content ilike", LikePatterns.contains(value), "content");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatContains(String value) {
+            addCriterion("content_format ilike", LikePatterns.contains(value), "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andSummaryContains(String value) {
+            addCriterion("summary ilike", LikePatterns.contains(value), "summary");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andAuthorNameContains(String value) {
+            addCriterion("author_name ilike", LikePatterns.contains(value), "authorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
             return (Criteria) this;
         }
     }

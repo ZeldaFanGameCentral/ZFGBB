@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.dataprovider.cms;
 
-import static com.zfgc.zfgbb.dataprovider.cms.CatalogDataProvider.escapeLike;
 
 import java.util.List;
 import java.util.Map;
@@ -13,9 +12,8 @@ import com.zfgc.zfgbb.dbo.ContentEntityDbo;
 import com.zfgc.zfgbb.dbo.ResourceViewDbo;
 import com.zfgc.zfgbb.dbo.ResourceViewDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
-import com.zfgc.zfgbb.mappers.ResourceViewDboMapper;
-import com.zfgc.zfgbb.mappers.custom.CmsFacetMapper;
+import com.zfgc.zfgbb.dao.cms.ContentEntityDao;
+import com.zfgc.zfgbb.dao.cms.ResourceViewDao;
 import com.zfgc.zfgbb.mapstruct.cms.ResourceMap;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Resource;
@@ -27,15 +25,13 @@ public class ResourceDataProvider {
 
 	private final CatalogDataProvider catalogDataProvider;
 
-	private final ResourceViewDboMapper resourceViewMapper;
+	private final ResourceViewDao resourceViewDao;
 
-	private final ContentEntityDboMapper contentEntityMapper;
+	private final ContentEntityDao contentEntityDao;
 
 	private final WikiDataProvider wikiDataProvider;
 
 	private final ResourceMap resourceMap;
-
-	private final CmsFacetMapper cmsFacetMapper;
 
 	public PagedResult<Resource> getResources(String search, String type, String author,
 			Boolean hasDownload, String sort, int page, int pageSize) {
@@ -43,10 +39,10 @@ public class ResourceDataProvider {
 		ResourceViewDboExample.Criteria criteria = resourceExample.createCriteria();
 
 		if (search != null && !search.isBlank()) {
-			criteria.andTitleLike("%" + escapeLike(search.trim()) + "%");
+			criteria.andTitleContains(search.trim());
 		}
 		if (author != null && !author.isBlank()) {
-			criteria.andAuthorNameLike("%" + escapeLike(author.trim()) + "%");
+			criteria.andAuthorNameContains(author.trim());
 		}
 		if (type != null && !type.isBlank()) {
 			criteria.andResourceTypeEqualTo(type.trim());
@@ -57,23 +53,17 @@ public class ResourceDataProvider {
 			criteria.andDownloadContentResourceIdIsNull();
 		}
 
-		if ("newest".equals(sort)) {
-			resourceExample.setOrderByClause("published_ts desc, title asc");
-		} else if ("updated".equals(sort)) {
-			resourceExample.setOrderByClause("last_updated_ts desc, title asc");
-		} else if ("views".equals(sort)) {
-			resourceExample.setOrderByClause("view_count desc, title asc");
-		} else if ("downloads".equals(sort)) {
-			resourceExample.setOrderByClause("download_count desc, title asc");
-		} else if ("rating".equals(sort)) {
-			resourceExample.setOrderByClause("rating desc, vote_count desc, title asc");
-		} else if ("random".equals(sort)) {
-			resourceExample.setOrderByClause("random()");
-		} else {
-			resourceExample.setOrderByClause("title asc");
-		}
+		resourceExample.setOrderByClause(switch (sort == null ? "" : sort) {
+			case "newest" -> "published_ts desc, title asc";
+			case "updated" -> "last_updated_ts desc, title asc";
+			case "views" -> "view_count desc, title asc";
+			case "downloads" -> "download_count desc, title asc";
+			case "rating" -> "rating desc, vote_count desc, title asc";
+			case "random" -> "random()";
+			default -> "title asc";
+		});
 
-		long totalCount = resourceViewMapper.countByExample(resourceExample);
+		long totalCount = resourceViewDao.count(resourceExample);
 
 		int safePageSize = Math.max(pageSize, 1);
 		int safePage = Math.max(page, 1);
@@ -84,7 +74,7 @@ public class ResourceDataProvider {
 		resourceExample.setLimit(safePageSize);
 		resourceExample.setOffset((int) zeroBasedOffset);
 
-		List<ResourceViewDbo> dbos = resourceViewMapper.selectByExampleWithLimits(resourceExample);
+		List<ResourceViewDbo> dbos = resourceViewDao.get(resourceExample);
 		Map<Integer, String> liveNames = catalogDataProvider.displayNames(
 				dbos.stream().map(ResourceViewDbo::getCreatedUserId));
 
@@ -99,7 +89,7 @@ public class ResourceDataProvider {
 	}
 
 	public List<Map.Entry<String, Long>> getResourceTypes() {
-		return cmsFacetMapper.countResourceTypes().stream()
+		return resourceViewDao.countResourceTypes().stream()
 				.map(fc -> Map.entry(fc.getValue(), fc.getCount()))
 				.collect(Collectors.toList());
 	}
@@ -107,7 +97,7 @@ public class ResourceDataProvider {
 	public Resource getResource(String slug) {
 		ResourceViewDboExample ex = new ResourceViewDboExample();
 		ex.createCriteria().andSlugEqualTo(slug);
-		ResourceViewDbo dbo = resourceViewMapper.selectByExample(ex).stream().findFirst()
+		ResourceViewDbo dbo = resourceViewDao.getOne(ex)
 				.orElseThrow(ZfgcNotFoundException::new);
 		Resource resource = resourceMap.toModel(dbo);
 		String resourceAuthor = catalogDataProvider.displayNames(
@@ -121,9 +111,9 @@ public class ResourceDataProvider {
 	}
 
 	public void linkResourceThread(Integer resourceId, Integer threadId) {
-		ContentEntityDbo dbo = contentEntityMapper.selectByPrimaryKey(resourceId);
+		ContentEntityDbo dbo = contentEntityDao.find(resourceId).orElse(null);
 		dbo.setThreadId(threadId);
-		contentEntityMapper.updateByPrimaryKey(dbo);
+		contentEntityDao.save(dbo);
 	}
 
 }

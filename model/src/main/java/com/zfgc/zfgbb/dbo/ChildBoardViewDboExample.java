@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -333,6 +334,11 @@ public class ChildBoardViewDboExample {
 
         public Criteria andParentBoardIdNotBetween(Integer value1, Integer value2) {
             addCriterion("parent_board_id not between", value1, value2, "parentBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardNameContains(String value) {
+            addCriterion("board_name ilike", LikePatterns.contains(value), "boardName");
             return (Criteria) this;
         }
     }

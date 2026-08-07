@@ -179,8 +179,7 @@ public class SourceReferenceService {
 				break;
 			withinBudget.add(id);
 		}
-		LOGGER.warn("source references on this page exceed the per-scope budget: resolving {} of {}; the rest "
-				+ "render as unresolved", budget, ids.size());
+		LOGGER.warn("source references exceed the per-scope budget: resolving {} of {}", budget, ids.size());
 		return withinBudget;
 	}
 

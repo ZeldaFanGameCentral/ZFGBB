@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -964,6 +965,26 @@ public class ModerationLogDboExample {
 
         public Criteria andMigrationHashNotBetween(String value1, String value2) {
             addCriterion("migration_hash not between", value1, value2, "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andActionContains(String value) {
+            addCriterion("action ilike", LikePatterns.contains(value), "action");
+            return (Criteria) this;
+        }
+
+        public Criteria andTargetNameContains(String value) {
+            addCriterion("target_name ilike", LikePatterns.contains(value), "targetName");
+            return (Criteria) this;
+        }
+
+        public Criteria andDetailContains(String value) {
+            addCriterion("detail ilike", LikePatterns.contains(value), "detail");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

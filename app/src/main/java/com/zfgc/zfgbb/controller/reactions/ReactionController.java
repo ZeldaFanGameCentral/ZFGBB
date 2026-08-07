@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.model.reactions.ContentReactionSummary;
 import com.zfgc.zfgbb.model.reactions.ReactionRequest;

@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.controller.users;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;

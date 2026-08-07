@@ -21,12 +21,12 @@ import com.zfgc.zfgbb.dbo.ContentTemplateDbo;
 import com.zfgc.zfgbb.dbo.ContentTemplateDboExample;
 import com.zfgc.zfgbb.dbo.WikiPageDbo;
 import com.zfgc.zfgbb.dbo.WikiPageRevisionDbo;
-import com.zfgc.zfgbb.mappers.ContentTemplateDboMapper;
+import com.zfgc.zfgbb.dao.cms.ContentTemplateDao;
 import com.zfgc.zfgbb.mapstruct.cms.WikiRevisionRefMap;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.model.cms.WikiRevisionRef;
-import com.zfgc.zfgbb.services.system.AuthoringContentFormat;
+import com.zfgc.zfgbb.services.contentstore.AuthoringContentFormat;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ public class WikiModerationService {
 
 	private final WikiDataProvider wikiDataProvider;
 
-	private final ContentTemplateDboMapper contentTemplateMapper;
+	private final ContentTemplateDao contentTemplateDao;
 
 	private final CmsPageRenderer cmsPageRenderer;
 
@@ -50,7 +50,7 @@ public class WikiModerationService {
 
 	private final WikiNamespaceDataProvider namespaceData;
 
-	private final WikiAccessRules wikiAccessRules;
+	private final WikiNamespaceEditGate wikiNamespaceEditGate;
 
 	private final AuthoringContentFormat authoringContentFormat;
 
@@ -79,7 +79,7 @@ public class WikiModerationService {
 		WikiTitle canonical = namespaceData.resolve(slug);
 		if (canonical.title() == null || canonical.title().isBlank())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "slug must name a page, not just a namespace");
-		wikiAccessRules.requireNamespaceEditable(canonical.namespace(), user);
+		wikiNamespaceEditGate.requireNamespaceEditable(canonical.namespace(), user);
 		WikiPageDbo page = wikiDataProvider.findPage(canonical.path());
 		if (page == null) {
 			page = createPage(canonical);
@@ -156,12 +156,12 @@ public class WikiModerationService {
 		ContentTemplateDboExample ex = new ContentTemplateDboExample();
 		ex.createCriteria().andWikiPageIdEqualTo(page.getWikiPageId())
 				.andContentFormatEqualTo(contentFormat.name());
-		ContentTemplateDbo existing = contentTemplateMapper.selectByExample(ex).stream().findFirst().orElse(null);
+		ContentTemplateDbo existing = contentTemplateDao.getOne(ex).orElse(null);
 		if (existing == null) {
 			ContentTemplateDboExample seeded = new ContentTemplateDboExample();
 			seeded.createCriteria().andCodeEqualTo(code).andContentFormatEqualTo(contentFormat.name())
 					.andWikiPageIdIsNull();
-			existing = contentTemplateMapper.selectByExample(seeded).stream().findFirst().orElse(null);
+			existing = contentTemplateDao.getOne(seeded).orElse(null);
 		}
 		if (existing == null) {
 			ContentTemplateDbo row = new ContentTemplateDbo();
@@ -171,19 +171,19 @@ public class WikiModerationService {
 			row.setBody(directive.body());
 			row.setSource(directive.source());
 			row.setWikiPageId(page.getWikiPageId());
-			contentTemplateMapper.insert(row);
+			contentTemplateDao.insert(row);
 			return;
 		}
 		existing.setBody(directive.body());
 		if (directive.directivePresent())
 			existing.setSource(directive.source());
 		existing.setWikiPageId(page.getWikiPageId());
-		contentTemplateMapper.updateByPrimaryKey(existing);
+		contentTemplateDao.save(existing);
 		ContentTemplateDboExample otherFormats = new ContentTemplateDboExample();
 		otherFormats.createCriteria().andCodeEqualTo(code).andWikiPageIdIsNull();
-		for (ContentTemplateDbo sibling : contentTemplateMapper.selectByExample(otherFormats)) {
+		for (ContentTemplateDbo sibling : contentTemplateDao.get(otherFormats)) {
 			sibling.setWikiPageId(page.getWikiPageId());
-			contentTemplateMapper.updateByPrimaryKey(sibling);
+			contentTemplateDao.save(sibling);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.operations.postgres;
 
+import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,6 +13,7 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@RawSqlAccess("session-pinned advisory lock")
 public final class PostgresAdvisoryLock implements AutoCloseable {
 
 	private static final Logger LOG = LoggerFactory.getLogger(PostgresAdvisoryLock.class);
@@ -53,9 +55,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 			throw unreleasable;
 		}
 		if (!unlocked) {
-			LOG.warn("PostgreSQL reported that advisory lock {} was not held by the session releasing it; "
-					+ "the lock is not outstanding, but the session is being discarded because its state "
-					+ "no longer matches what this lock believed it held.", key);
+			LOG.warn("advisory lock {} was not held at release; discarding the session", key);
 			discard(session, key);
 			return;
 		}
@@ -75,8 +75,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 		try {
 			advisoryLock(session, "pg_advisory_unlock", key);
 		} catch (SQLException | RuntimeException unreleasable) {
-			LOG.warn("Unable to release advisory lock {} on a discarded session; terminating it so "
-					+ "PostgreSQL releases the lock rather than pooling a session that still holds it.",
+			LOG.warn("unable to release advisory lock {}; terminating the session",
 					key, unreleasable);
 			abortQuietly(session);
 		}

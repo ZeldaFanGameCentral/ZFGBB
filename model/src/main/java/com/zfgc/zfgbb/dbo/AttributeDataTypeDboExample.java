@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -743,6 +744,36 @@ public class AttributeDataTypeDboExample {
 
         public Criteria andAllowedValuesNotBetween(String value1, String value2) {
             addCriterion("allowed_values not between", value1, value2, "allowedValues");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andLabelContains(String value) {
+            addCriterion("label ilike", LikePatterns.contains(value), "label");
+            return (Criteria) this;
+        }
+
+        public Criteria andValidationPatternContains(String value) {
+            addCriterion("validation_pattern ilike", LikePatterns.contains(value), "validationPattern");
+            return (Criteria) this;
+        }
+
+        public Criteria andFallbackValueContains(String value) {
+            addCriterion("fallback_value ilike", LikePatterns.contains(value), "fallbackValue");
+            return (Criteria) this;
+        }
+
+        public Criteria andBareIntegerUnitContains(String value) {
+            addCriterion("bare_integer_unit ilike", LikePatterns.contains(value), "bareIntegerUnit");
+            return (Criteria) this;
+        }
+
+        public Criteria andAllowedValuesContains(String value) {
+            addCriterion("allowed_values ilike", LikePatterns.contains(value), "allowedValues");
             return (Criteria) this;
         }
     }

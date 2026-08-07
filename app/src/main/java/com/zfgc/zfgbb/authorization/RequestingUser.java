@@ -6,7 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 public final class RequestingUser {
 

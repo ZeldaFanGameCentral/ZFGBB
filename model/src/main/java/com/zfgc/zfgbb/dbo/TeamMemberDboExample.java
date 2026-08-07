@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -393,6 +394,11 @@ public class TeamMemberDboExample {
 
         public Criteria andMemberRoleNotBetween(String value1, String value2) {
             addCriterion("member_role not between", value1, value2, "memberRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andMemberRoleContains(String value) {
+            addCriterion("member_role ilike", LikePatterns.contains(value), "memberRole");
             return (Criteria) this;
         }
     }

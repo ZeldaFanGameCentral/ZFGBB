@@ -1,0 +1,11 @@
+{
+  "INLINE_CODE_SPAN_CARRYING_BB_CODE": "an inline code span whose text carries bb code markup stays a markdown code span, because bb code has no inline element that holds its own markup literally; it will render as literal backticks",
+  "CODE_BLOCK_CARRYING_THE_BB_CODE_CODE_CLOSER": "a code block whose text contains [/code] stays a markdown fence, because that text would close the bb code block early; it will render as literal backticks",
+  "ORDERED_LIST_NOT_STARTING_AT_ONE": "an ordered list that does not start at 1 becomes a bb code decimal list, which always restarts at 1",
+  "NO_ENABLED_BB_CODE_CARRIES_THIS_CONSTRUCT": "a markdown construct whose bb code equivalent is not enabled is written as its plain text, because no enabled code carries it",
+  "LINK_TITLE_TEXT": "the title text of a link or image is dropped, because bb code carries no title attribute",
+  "THE_CODES_THE_FLIP_COULD_NOT_CARRY": "{codes} stayed as bb code: written as {target} the post did not read the same, and the {target} lane renders bb code as it is, so leaving it costs the post nothing",
+  "THE_SEARCH_STOPPED_BEFORE_IT_TRIED_EVERY_CODE": "this post is long enough that only {codesTried} of its {codesFound} codes were measured; the rest stayed as bb code untried, which the {target} lane renders as it is, so the post reads right but converts less than a shorter one would",
+  "A_CODE_THE_OTHER_FORMAT_DOES_NOT_CARRY": "[{code}] does not survive the switch to {target}: its markup shows in the post as plain text instead of formatting it",
+  "CONTENT_THE_OTHER_FORMAT_DOES_NOT_CARRY": "this post does not read the same in {target}: some of it shows as plain text instead of formatting the post"
+}

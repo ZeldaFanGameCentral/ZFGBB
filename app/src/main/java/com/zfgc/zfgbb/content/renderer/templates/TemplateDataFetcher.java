@@ -26,7 +26,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zfgc.zfgbb.authorization.RequestingUser;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 import tools.jackson.databind.ObjectMapper;
 
@@ -141,7 +141,7 @@ public class TemplateDataFetcher {
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void initializeSources() {
-		logger.info("template data sources: {}", describeSources());
+		logger.debug("template data sources: {}", describeSources());
 	}
 
 	public Map<String, List<String>> describeSources() {

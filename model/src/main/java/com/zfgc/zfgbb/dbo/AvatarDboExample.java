@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -584,6 +585,16 @@ public class AvatarDboExample {
 
         public Criteria andContentResourceIdNotBetween(Integer value1, Integer value2) {
             addCriterion("content_resource_id not between", value1, value2, "contentResourceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andUrlContains(String value) {
+            addCriterion("url ilike", LikePatterns.contains(value), "url");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

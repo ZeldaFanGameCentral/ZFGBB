@@ -3,6 +3,8 @@ package com.zfgc.zfgbb.services.auth;
 import java.time.Duration;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -16,25 +18,24 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
+@RequiredArgsConstructor
 public class AuthCookieService {
 
 	public static final String ACCESS_COOKIE_NAME = "zfgbb_access_token";
 	public static final String REFRESH_COOKIE_NAME = "zfgbb_refresh_token";
 
+	@Value("${zfgbb.auth.cookie.secure:true}")
 	private final boolean secure;
+	@Value("${zfgbb.auth.jwt.access-ttl-minutes}")
 	private final long accessTtlMinutes;
+	@Value("${zfgbb.auth.refresh.ttl-days}")
 	private final long refreshTtlDays;
-	private final String refreshPath;
 
-	public AuthCookieService(
-			@Value("${zfgbb.auth.cookie.secure:true}") boolean secure,
-			@Value("${zfgbb.auth.jwt.access-ttl-minutes}") long accessTtlMinutes,
-			@Value("${zfgbb.auth.refresh.ttl-days}") long refreshTtlDays,
-			@Value("${server.servlet.context-path:}") String contextPath) {
-		this.secure = secure;
-		this.accessTtlMinutes = accessTtlMinutes;
-		this.refreshTtlDays = refreshTtlDays;
-		this.refreshPath = contextPath + "/users/auth/refresh";
+	@Value("${server.servlet.context-path:}")
+	private final String contextPath;
+
+	private String refreshPath() {
+		return contextPath + "/users/auth/refresh";
 	}
 
 	public ResponseEntity.BodyBuilder setTokenCookies(ResponseEntity.BodyBuilder response, TokenPair tokens) {
@@ -67,7 +68,7 @@ public class AuthCookieService {
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Strict")
-				.path(refreshPath);
+				.path(refreshPath());
 		if (persistBeyondBrowserSession)
 			expiringWithTheBrowserSession.maxAge(Duration.ofDays(refreshTtlDays));
 		return expiringWithTheBrowserSession.build();
@@ -88,7 +89,7 @@ public class AuthCookieService {
 				.httpOnly(true)
 				.secure(secure)
 				.sameSite("Strict")
-				.path(refreshPath)
+				.path(refreshPath())
 				.maxAge(0)
 				.build();
 	}

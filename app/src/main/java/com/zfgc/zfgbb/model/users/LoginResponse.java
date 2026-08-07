@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.model.users;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 public record LoginResponse(String accessToken, String refreshToken, boolean stayLoggedIn, long accessTokenTtlSeconds,
 		User user) {

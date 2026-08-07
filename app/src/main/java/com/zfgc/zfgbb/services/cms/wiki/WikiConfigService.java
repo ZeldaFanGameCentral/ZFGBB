@@ -21,7 +21,7 @@ import com.zfgc.zfgbb.model.cms.WikiConfig.NavItem;
 import com.zfgc.zfgbb.model.cms.WikiConfig.NavSection;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
-import com.zfgc.zfgbb.security.LinkPolicy;
+import com.zfgc.zfgbb.content.renderer.LinkPolicy;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 
 @Service
@@ -169,8 +169,7 @@ public class WikiConfigService {
 		if (rewritten != null)
 			return Optional.of(rewritten);
 		if (unmappedLegacyPaths.add(path))
-			log.warn("Dropping wiki nav entry '{}': the legacy host is dead and no LEGACY_PATH_ROUTES entry maps "
-					+ "'{}' to an app route. Add a route or edit MediaWiki:Sidebar to keep this entry.", url, path);
+			log.warn("dropping wiki nav entry '{}': no app route maps '{}'", url, path);
 		return Optional.empty();
 	}
 

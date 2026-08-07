@@ -31,10 +31,10 @@ import org.testcontainers.junit.jupiter.Container;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.operations.archive.BackupArchiveWriter;
-import com.zfgc.zfgbb.services.system.InstallerCompatibilityService;
-import com.zfgc.zfgbb.services.system.OperationStorageService;
+import com.zfgc.zfgbb.services.backup.BackupRestoreService;
+import com.zfgc.zfgbb.services.backup.OperationStorageService;
 import com.zfgc.zfgbb.operations.postgres.PostgresBackupTool;
-import com.zfgc.zfgbb.services.system.RestoreService;
+import com.zfgc.zfgbb.services.backup.RestoreService;
 import com.zfgc.zfgbb.testsupport.AbstractSystemInstallTest;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -44,9 +44,13 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	static ComposeContainer pg = devPostgres();
 
 	private static final Path CONTENT_ROOT = contentRoot("archive-restore-content");
-	private static final Path CONTENT_PACK_ROOT = contentRoot("archive-restore-packs");
+	private static final Path SAMPLE_ARCHIVE = contentRoot("archive-restore-sample-data")
+			.resolve("backup.tar.gz");
 	private static final String GENERATION_ADMIN = "generation_admin";
 	private static final String GENERATION_PASSWORD = "generation-password";
+	private static final String REQUESTED_ADMINISTRATOR = "site_owner";
+	private static final String REQUESTED_ADMINISTRATOR_PASSWORD = "owner-password-456";
+	private static final String RESTORED_SITE_NAME = "Restored Site";
 	private static final String CORPUS_CATEGORY = "Restored Corpus Category";
 	private static final String RECYCLED_THREAD = "Restored Recycled Thread";
 	private static final short INSTALL_ID = 1;
@@ -61,7 +65,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	private OperationStorageService operationStorage;
 
 	@Autowired
-	private InstallerCompatibilityService installerCompatibility;
+	private BackupRestoreService installabilityClassifier;
 
 	@Autowired private AccountDeletionAuditDboMapper accountDeletionAuditDboMapper;
 	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
@@ -78,7 +82,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	@DynamicPropertySource
 	static void props(DynamicPropertyRegistry registry) {
 		installDatasource(registry, pg, CONTENT_ROOT);
-		registry.add("zfgbb.install.content-pack-root", () -> "file:" + CONTENT_PACK_ROOT + "/");
+		registry.add("zfgbb.install.sample-archive", () -> "file:" + SAMPLE_ARCHIVE);
 	}
 
 	@Test
@@ -87,15 +91,15 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody(GENERATION_ADMIN, GENERATION_PASSWORD, "Generation Site", null)))
+				.content(installBody(GENERATION_ADMIN, GENERATION_PASSWORD, "Generation Site", false)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.adminUserId").value(1));
 
 		insertCategory(CORPUS_CATEGORY);
 		Files.createDirectories(CONTENT_ROOT);
 
-		InstallerCompatibilityService.Classification classification =
-				installerCompatibility.classify(CONTENT_ROOT);
+		BackupRestoreService.ArchiveInstallability classification =
+				installabilityClassifier.classifyInstallability(CONTENT_ROOT);
 		assertTrue(classification.compatible(),
 				() -> "a generation install must be usable as installation content: "
 						+ classification.reason());
@@ -117,12 +121,12 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.adminUserId").value(1))
 				.andExpect(jsonPath("$.siteName").value("Restored Site"))
-				.andExpect(jsonPath("$.contentPack").value("zfgc"));
+				.andExpect(jsonPath("$.installSampleData").value(true));
 
 		assertEquals(0, categories(category -> category.andCategoryNameEqualTo(probe)),
 				"installing from the archive must restore over whatever the database held");
@@ -138,7 +142,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 				"the requested administrator must hold ZFGC_SITE_ADMIN");
 
 		assertEquals(1, installRuns(run -> run.andStateEqualTo("INSTALLED")
-				.andLastCompletedStateEqualTo("INSTALLED").andContentPackEqualTo("zfgc")
+				.andLastCompletedStateEqualTo("INSTALLED")
 				.andSiteNameEqualTo("Restored Site").andProvisionRecycleBinEqualTo(true)
 				.andAdminUserIdEqualTo(1).andRequestFingerprintIsNotNull().andLastErrorIsNull()),
 				"the restored install_run row must describe this installation");
@@ -182,7 +186,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.detail").value(containsString("19700101.1")));
 
@@ -200,7 +204,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -244,7 +248,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -275,8 +279,8 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc",
-						false)))
+				.content(installBody(REQUESTED_ADMINISTRATOR, REQUESTED_ADMINISTRATOR_PASSWORD,
+						RESTORED_SITE_NAME, true, false)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.detail").value(containsString("recycle bin")));
 
@@ -291,7 +295,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -311,10 +315,10 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.detail")
-						.value(containsString("does not ship an installation archive")));
+						.value(containsString("ships no sample data archive")));
 
 		assertEquals(1, installRuns(run -> run.andStateEqualTo("FAILED")
 				.andLastCompletedStateEqualTo("CORE_READY").andInstallStrategyEqualTo("ARCHIVE")),
@@ -326,7 +330,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.detail").value(containsString("cannot be resumed from")));
 
@@ -335,7 +339,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -355,9 +359,9 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.detail").value(containsString("Reset the zfgbb.install_run row")));
+				.andExpect(jsonPath("$.detail").value(containsString("cannot be resumed")));
 
 		assertEquals(1, installRuns(run -> run.andStateEqualTo("FAILED")
 				.andLastCompletedStateEqualTo("CORE_READY").andInstallStrategyIsNull()),
@@ -370,9 +374,9 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.detail").value(containsString("Reset the zfgbb.install_run row")));
+				.andExpect(jsonPath("$.detail").value(containsString("cannot be resumed")));
 
 		assertEquals(0, systemConfigs(config -> config.andConfigKeyEqualTo("installed")),
 				"a phase this build never records must never complete an installation");
@@ -382,7 +386,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -406,7 +410,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -429,7 +433,8 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("sentinel_zero", "sentinel-password-789", "Restored Site", "zfgc")))
+				.content(installBody("sentinel_zero", "sentinel-password-789", RESTORED_SITE_NAME,
+						true)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.detail").value(containsString("Username already taken")));
 
@@ -451,7 +456,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.adminUserId").value(1));
@@ -468,7 +473,8 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", null)))
+				.content(installBody(REQUESTED_ADMINISTRATOR, REQUESTED_ADMINISTRATOR_PASSWORD,
+						RESTORED_SITE_NAME, false)))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.detail").value(containsString("cannot be resumed from")));
 
@@ -481,7 +487,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(installBody("site_owner", "owner-password-456", "Restored Site", "zfgc")))
+				.content(requestedAdministratorInstallBody()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true));
 
@@ -568,7 +574,8 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	}
 
 	private void assertRequestedAdministratorAuthenticates() throws Exception {
-		String accessToken = login("site_owner", "owner-password-456").get("accessToken").asString();
+		String accessToken = login(REQUESTED_ADMINISTRATOR, REQUESTED_ADMINISTRATOR_PASSWORD)
+				.get("accessToken").asString();
 		mockMvc.perform(get("/users/loggedInUser")
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
 				.andExpect(status().isOk())
@@ -580,7 +587,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 			run.setState("READY");
 			run.setLastCompletedState("READY");
 			run.setRequestFingerprint(null);
-			run.setContentPack(null);
 			run.setProvisionRecycleBin(null);
 			run.setSiteName(null);
 			run.setAdminUserId(null);
@@ -610,16 +616,21 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	}
 
 	private static Path packArchive() {
-		return CONTENT_PACK_ROOT.resolve("zfgc").resolve("v1").resolve("backup.tar.gz");
+		return SAMPLE_ARCHIVE;
+	}
+
+	private static String requestedAdministratorInstallBody() {
+		return installBody(REQUESTED_ADMINISTRATOR, REQUESTED_ADMINISTRATOR_PASSWORD,
+				RESTORED_SITE_NAME, true);
 	}
 
 	private static String installBody(String userName, String password, String siteName,
-			String contentPack) {
-		return installBody(userName, password, siteName, contentPack, true);
+			boolean installSampleData) {
+		return installBody(userName, password, siteName, installSampleData, true);
 	}
 
 	private static String installBody(String userName, String password, String siteName,
-			String contentPack, boolean provisionRecycleBin) {
+			boolean installSampleData, boolean provisionRecycleBin) {
 		return """
 				{
 				  "adminUserName": "%s",
@@ -627,11 +638,10 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 				  "adminEmail": "%s@example.invalid",
 				  "adminPassword": "%s",
 				  "siteName": "%s",
-				  %s
+				  "installSampleData": %s,
 				  "provisionRecycleBin": %s
 				}
-				""".formatted(userName, userName, userName, password, siteName,
-				contentPack == null ? "" : "\"contentPack\": \"" + contentPack + "\",",
+				""".formatted(userName, userName, userName, password, siteName, installSampleData,
 				provisionRecycleBin);
 	}
 }

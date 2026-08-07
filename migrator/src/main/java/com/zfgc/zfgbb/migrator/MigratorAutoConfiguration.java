@@ -71,10 +71,7 @@ public class MigratorAutoConfiguration {
 		System.arraycopy(modelMappers, 0, combined, 0, modelMappers.length);
 		System.arraycopy(migratorMappers, 0, combined, modelMappers.length, migratorMappers.length);
 		factory.setMapperLocations(combined);
-		LOG.warn("The migrator SqlSessionFactory is primary while zfgbb.migrator.enabled=true, so "
-				+ "zfgbb.mybatis.statement-timeout-seconds applies to no statement, including ordinary "
-				+ "request-path queries. Migration jobs write through the same mappers and legitimately "
-				+ "run longer than that timeout. Disable the migrator once migration is complete.");
+		LOG.warn("migrator is primary: zfgbb.mybatis.statement-timeout-seconds is not applied; disable the migrator after migration");
 		return factory.getObject();
 	}
 

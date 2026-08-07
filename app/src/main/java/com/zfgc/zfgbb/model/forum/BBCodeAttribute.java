@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.jsoup.nodes.Entities;
 
 import com.zfgc.zfgbb.model.BaseModel;
-import com.zfgc.zfgbb.security.LinkPolicy;
+import com.zfgc.zfgbb.content.renderer.LinkPolicy;
 
 import lombok.Getter;
 import lombok.Setter;

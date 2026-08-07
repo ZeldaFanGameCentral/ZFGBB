@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -964,6 +965,26 @@ public class BoardSummaryViewDboExample {
 
         public Criteria andThreadNameNotBetween(String value1, String value2) {
             addCriterion("thread_name not between", value1, value2, "threadName");
+            return (Criteria) this;
+        }
+
+        public Criteria andDescriptionContains(String value) {
+            addCriterion("description ilike", LikePatterns.contains(value), "description");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardNameContains(String value) {
+            addCriterion("board_name ilike", LikePatterns.contains(value), "boardName");
+            return (Criteria) this;
+        }
+
+        public Criteria andLatestMessageUserNameContains(String value) {
+            addCriterion("latest_message_user_name ilike", LikePatterns.contains(value), "latestMessageUserName");
+            return (Criteria) this;
+        }
+
+        public Criteria andThreadNameContains(String value) {
+            addCriterion("thread_name ilike", LikePatterns.contains(value), "threadName");
             return (Criteria) this;
         }
     }

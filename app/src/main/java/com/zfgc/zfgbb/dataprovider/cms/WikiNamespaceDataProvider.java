@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.dataprovider.cms;
 
+import lombok.RequiredArgsConstructor;
+
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.zfgc.zfgbb.dbo.WikiNamespaceDbo;
 import com.zfgc.zfgbb.dbo.WikiNamespaceDboExample;
-import com.zfgc.zfgbb.mappers.WikiNamespaceDboMapper;
+import com.zfgc.zfgbb.dao.cms.WikiNamespaceDao;
 import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper;
 import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
@@ -23,6 +25,7 @@ import com.zfgc.zfgbb.wiki.WikiTitle;
 
 @Repository
 @Slf4j
+@RequiredArgsConstructor
 public class WikiNamespaceDataProvider {
 
 	private static final long ROLE_CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(10);
@@ -32,15 +35,7 @@ public class WikiNamespaceDataProvider {
 	private final AtomicBoolean warnedMissingTemplateRole =
 			new AtomicBoolean();
 
-	private final WikiNamespaceCustomMapper wikiNamespaceCustomMapper;
-
-	private final WikiNamespaceDboMapper wikiNamespaceMapper;
-
-	public WikiNamespaceDataProvider(WikiNamespaceCustomMapper wikiNamespaceCustomMapper,
-			WikiNamespaceDboMapper wikiNamespaceMapper) {
-		this.wikiNamespaceCustomMapper = wikiNamespaceCustomMapper;
-		this.wikiNamespaceMapper = wikiNamespaceMapper;
-	}
+	private final WikiNamespaceDao wikiNamespaceDao;
 
 	public WikiNamespaceRole roleOf(String namespace) {
 		if (namespace == null || namespace.isBlank())
@@ -78,7 +73,7 @@ public class WikiNamespaceDataProvider {
 		Map<WikiNamespaceRole, String> byRole = new EnumMap<>(WikiNamespaceRole.class);
 		WikiNamespaceDboExample withRole = new WikiNamespaceDboExample();
 		withRole.createCriteria().andEngineRoleIsNotNull();
-		for (WikiNamespaceDbo row : wikiNamespaceMapper.selectByExample(withRole)) {
+		for (WikiNamespaceDbo row : wikiNamespaceDao.get(withRole)) {
 			WikiNamespaceRole role = WikiNamespaceRole.parse(row.getEngineRole());
 			if (role == null || row.getName() == null)
 				continue;
@@ -95,7 +90,7 @@ public class WikiNamespaceDataProvider {
 	}
 
 	public int assignEngineRole(String name, WikiNamespaceRole role) {
-		int updated = wikiNamespaceCustomMapper.assignEngineRole(name, role.name());
+		int updated = wikiNamespaceDao.assignEngineRole(name, role.name());
 		invalidateRoleCache();
 		return updated;
 	}
@@ -105,9 +100,7 @@ public class WikiNamespaceDataProvider {
 		if (name != null)
 			return name;
 		if (warnedMissingTemplateRole.compareAndSet(false, true))
-			log.warn("No wiki namespace holds the TEMPLATE engine role; falling back to the name 'Template'. "
-					+ "Template publishing will not follow a renamed template namespace until a row in "
-					+ "zfgbb.wiki_namespace has engine_role = 'TEMPLATE'.");
+			log.warn("no namespace holds the TEMPLATE engine role; using 'Template'");
 		return "Template";
 	}
 
@@ -119,7 +112,7 @@ public class WikiNamespaceDataProvider {
 		int colon = path == null ? -1 : path.indexOf(':');
 		if (colon > 0 && colon < path.length() - 1) {
 			String prefix = path.substring(0, colon).trim();
-			List<WikiNamespaceCustomMapper.NamespaceRecord> namespaces = wikiNamespaceCustomMapper.resolveNamespace(prefix);
+			List<WikiNamespaceCustomMapper.NamespaceRecord> namespaces = wikiNamespaceDao.resolveNamespace(prefix);
 			if (namespaces.size() > 1)
 				throw new IllegalStateException("Ambiguous registered wiki namespace '" + prefix + "'");
 			if (namespaces.size() == 1) {
@@ -128,7 +121,7 @@ public class WikiNamespaceDataProvider {
 			}
 		}
 		if (colon < 0) {
-			List<String> modes = wikiNamespaceCustomMapper.findMainCaseMode();
+			List<String> modes = wikiNamespaceDao.findMainCaseMode();
 			if (modes.size() == 1)
 				return WikiTitle.of("MAIN", path, WikiTitle.CaseMode.valueOf(modes.get(0)));
 		}
@@ -136,13 +129,13 @@ public class WikiNamespaceDataProvider {
 	}
 
 	public WikiTitle.CaseMode caseMode(String namespace) {
-		List<String> modes = wikiNamespaceCustomMapper.findCaseModeByName(namespace);
+		List<String> modes = wikiNamespaceDao.findCaseModeByName(namespace);
 		return modes.size() == 1 ? WikiTitle.CaseMode.valueOf(modes.get(0)) : WikiTitle.CaseMode.FIRST_LETTER;
 	}
 
 	public Optional<WikiNamespaceCustomMapper.EditPolicyRecord> editPolicy(String namespace) {
 		if (namespace == null || namespace.isBlank())
 			return Optional.empty();
-		return wikiNamespaceCustomMapper.findEditPolicyByName(namespace).stream().findFirst();
+		return wikiNamespaceDao.findEditPolicyByName(namespace).stream().findFirst();
 	}
 }

@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.authorization;
 
+import lombok.RequiredArgsConstructor;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -8,18 +10,15 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 @Component
+@RequiredArgsConstructor
 public class AuthorityTiers {
 
 	private static final String ROLE_READ_ONLY = "ROLE_ZFGC_READ_ONLY";
 
 	private final RoleHierarchy roleHierarchy;
-
-	public AuthorityTiers(RoleHierarchy roleHierarchy) {
-		this.roleHierarchy = roleHierarchy;
-	}
 
 	public boolean authenticated(User actor) {
 		return actor != null && actor.getUserId() != null && actor.getUserId() > 0;

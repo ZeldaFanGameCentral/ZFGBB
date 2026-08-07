@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -343,6 +344,16 @@ public class WikiSystemTemplatePageDboExample {
 
         public Criteria andSourceCodeNotBetween(String value1, String value2) {
             addCriterion("source_code not between", value1, value2, "sourceCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceCodeContains(String value) {
+            addCriterion("source_code ilike", LikePatterns.contains(value), "sourceCode");
             return (Criteria) this;
         }
     }

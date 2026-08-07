@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -894,6 +895,21 @@ public class AccountDeletionAuditDboExample {
 
         public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andSubjectPseudonymContains(String value) {
+            addCriterion("subject_pseudonym ilike", LikePatterns.contains(value), "subjectPseudonym");
+            return (Criteria) this;
+        }
+
+        public Criteria andModeContains(String value) {
+            addCriterion("mode ilike", LikePatterns.contains(value), "mode");
+            return (Criteria) this;
+        }
+
+        public Criteria andInitiatedByContains(String value) {
+            addCriterion("initiated_by ilike", LikePatterns.contains(value), "initiatedBy");
             return (Criteria) this;
         }
     }

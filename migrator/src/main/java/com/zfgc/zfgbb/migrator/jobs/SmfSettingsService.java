@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
+import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,15 +13,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class SmfSettingsService {
 
 	private static final Logger log = LoggerFactory.getLogger(SmfSettingsService.class);
 
+	@Qualifier("smfDataSource")
 	private final DataSource smfDataSource;
-
-	public SmfSettingsService(@Qualifier("smfDataSource") DataSource smfDataSource) {
-		this.smfDataSource = smfDataSource;
-	}
 
 	public Optional<String> getDefaultTimezone() {
 		try {

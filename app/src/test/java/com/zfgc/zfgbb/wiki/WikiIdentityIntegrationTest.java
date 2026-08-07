@@ -14,7 +14,7 @@ import com.zfgc.zfgbb.dbo.WikiPageDbo;
 import com.zfgc.zfgbb.dbo.WikiPageDboExample;
 import com.zfgc.zfgbb.mappers.ContentTemplateDboMapper;
 import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
-import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper;
+import com.zfgc.zfgbb.dao.cms.WikiNamespaceDao;
 import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
 
 class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
@@ -26,14 +26,14 @@ class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
 	private WikiPageDboMapper wikiPageDboMapper;
 
 	@Autowired
-	private WikiNamespaceCustomMapper wikiNamespaceCustomMapper;
+	private WikiNamespaceDao wikiNamespaceDao;
 
 	@Autowired
 	private TestSystemInfoMapper testSystemInfoMapper;
 
 	@Test
 	void templateCaseModeTransitionRecanonicalizesFromPreservedLiteralCode() {
-		wikiNamespaceCustomMapper.updateCaseMode("Template", "CASE_SENSITIVE");
+		wikiNamespaceDao.updateCaseMode("Template", "CASE_SENSITIVE");
 		try {
 			ContentTemplateDboExample ex1 = new ContentTemplateDboExample();
 			ex1.createCriteria().andWikiPageIdIsNull().andCodeEqualTo("featuredproject");
@@ -43,7 +43,7 @@ class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
 			ex2.createCriteria().andWikiPageIdIsNull().andCodeEqualTo("Featuredproject");
 			assertEquals(0, contentTemplateDboMapper.countByExample(ex2));
 		} finally {
-			wikiNamespaceCustomMapper.updateCaseMode("Template", "FIRST_LETTER");
+			wikiNamespaceDao.updateCaseMode("Template", "FIRST_LETTER");
 		}
 	}
 
@@ -52,11 +52,11 @@ class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
 		String namespace = "CaseTest" + suffix;
 		String aliasOne = "AliasOne" + suffix;
 		String aliasTwo = "AliasTwo" + suffix;
-		wikiNamespaceCustomMapper.insertNamespace(namespace, "CASE_SENSITIVE");
-		wikiNamespaceCustomMapper.insertAlias(aliasOne, namespace);
-		wikiNamespaceCustomMapper.insertAlias(aliasTwo, namespace);
+		wikiNamespaceDao.insertNamespace(namespace, "CASE_SENSITIVE");
+		wikiNamespaceDao.insertAlias(aliasOne, namespace);
+		wikiNamespaceDao.insertAlias(aliasTwo, namespace);
 		try {
-			assertEquals(2, wikiNamespaceCustomMapper.countAliasesByNamespace(namespace));
+			assertEquals(2, wikiNamespaceDao.countAliasesByNamespace(namespace));
 			String lower = testSystemInfoMapper.wikiTitleKey(namespace, "Onlinegame", "CASE_SENSITIVE");
 			String upper = testSystemInfoMapper.wikiTitleKey(namespace, "OnlineGame", "CASE_SENSITIVE");
 			assertNotEquals(lower, upper);
@@ -80,7 +80,7 @@ class WikiIdentityIntegrationTest extends PostgresIntegrationTest {
 			WikiPageDboExample pageEx = new WikiPageDboExample();
 			pageEx.createCriteria().andNamespaceEqualTo(namespace);
 			wikiPageDboMapper.deleteByExample(pageEx);
-			wikiNamespaceCustomMapper.deleteNamespaceByName(namespace);
+			wikiNamespaceDao.deleteNamespaceByName(namespace);
 		}
 	}
 }

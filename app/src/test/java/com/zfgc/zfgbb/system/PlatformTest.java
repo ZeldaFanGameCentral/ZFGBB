@@ -26,7 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import java.sql.Connection;
 import java.time.Duration;
-import com.zfgc.zfgbb.services.system.InstallTokenGate;
+import com.zfgc.zfgbb.services.install.InstallTokenGate;
 import java.time.ZoneOffset;
 import java.time.ZoneId;
 import java.time.Instant;
@@ -69,15 +69,15 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.zfgc.zfgbb.config.MailDispatcherConfig;
+import com.zfgc.zfgbb.services.mail.MailDispatcherConfig;
 import com.zfgc.zfgbb.content.ContentFormat;
-import com.zfgc.zfgbb.config.security.PartialInstallGateFilter;
+import com.zfgc.zfgbb.web.filter.PartialInstallGateFilter;
 import com.zfgc.zfgbb.dbo.SystemConfigDbo;
-import com.zfgc.zfgbb.mappers.SystemConfigDboMapper;
-import com.zfgc.zfgbb.services.users.MailDispatcher;
-import com.zfgc.zfgbb.services.system.AuthoringContentFormat;
-import com.zfgc.zfgbb.services.system.InstallPhaseTransactions;
-import com.zfgc.zfgbb.services.system.InstallRunRepository;
+import com.zfgc.zfgbb.dao.meta.SystemConfigDao;
+import com.zfgc.zfgbb.services.mail.MailDispatcher;
+import com.zfgc.zfgbb.services.contentstore.AuthoringContentFormat;
+import com.zfgc.zfgbb.services.install.InstallPhaseTransactions;
+import com.zfgc.zfgbb.services.install.InstallRunRepository;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
 class PlatformTest {
@@ -289,12 +289,12 @@ class PlatformTest {
 	@Nested
 	class SiteNameCache {
 
-		private SystemConfigDboMapper rows;
+		private SystemConfigDao rows;
 		private SystemConfigService config;
 
 		@BeforeEach
 		void setup() {
-			rows = mock(SystemConfigDboMapper.class);
+			rows = mock(SystemConfigDao.class);
 			config = new SystemConfigService(rows);
 		}
 
@@ -309,12 +309,12 @@ class PlatformTest {
 				SystemConfigDbo row = new SystemConfigDbo();
 				row.setConfigKey(SystemConfigService.Keys.SITE_NAME);
 				row.setConfigValue(value);
-				return row;
-			}).when(rows).selectByPrimaryKey(SystemConfigService.Keys.SITE_NAME);
+				return Optional.of(row);
+			}).when(rows).find(SystemConfigService.Keys.SITE_NAME);
 		}
 
 		private void siteNameIsUnset() {
-			doReturn(null).when(rows).selectByPrimaryKey(SystemConfigService.Keys.SITE_NAME);
+			doReturn(Optional.empty()).when(rows).find(SystemConfigService.Keys.SITE_NAME);
 		}
 
 		private String siteName() {
@@ -356,7 +356,7 @@ class PlatformTest {
 			assertEquals("Cached Name", siteName());
 			assertEquals("Cached Name", siteName());
 
-			verify(rows, times(1)).selectByPrimaryKey(SystemConfigService.Keys.SITE_NAME);
+			verify(rows, times(1)).find(SystemConfigService.Keys.SITE_NAME);
 		}
 
 		@Test
@@ -413,12 +413,12 @@ class PlatformTest {
 	@Nested
 	class AuthoringFormatResolution {
 
-		private SystemConfigDboMapper rows;
+		private SystemConfigDao rows;
 		private AuthoringContentFormat authoringContentFormat;
 
 		@BeforeEach
 		void setup() {
-			rows = mock(SystemConfigDboMapper.class);
+			rows = mock(SystemConfigDao.class);
 			authoringContentFormat = new AuthoringContentFormat(new SystemConfigService(rows));
 		}
 
@@ -426,14 +426,14 @@ class PlatformTest {
 			SystemConfigDbo row = new SystemConfigDbo();
 			row.setConfigKey(SystemConfigService.Keys.AUTHORING_DEFAULT_CONTENT_FORMAT);
 			row.setConfigValue(configValue);
-			doReturn(row).when(rows)
-					.selectByPrimaryKey(SystemConfigService.Keys.AUTHORING_DEFAULT_CONTENT_FORMAT);
+			doReturn(Optional.of(row)).when(rows)
+					.find(SystemConfigService.Keys.AUTHORING_DEFAULT_CONTENT_FORMAT);
 		}
 
 		@Test
 		void anUnsetSettingBehavesExactlyAsBBCode() {
-			doReturn(null).when(rows)
-					.selectByPrimaryKey(SystemConfigService.Keys.AUTHORING_DEFAULT_CONTENT_FORMAT);
+			doReturn(Optional.empty()).when(rows)
+					.find(SystemConfigService.Keys.AUTHORING_DEFAULT_CONTENT_FORMAT);
 
 			assertEquals(ContentFormat.BBCODE, authoringContentFormat.forNewContent(null),
 					"a site installed before this setting existed must keep authoring bbcode");

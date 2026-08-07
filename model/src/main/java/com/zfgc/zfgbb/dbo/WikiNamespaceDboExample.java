@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -483,6 +484,26 @@ public class WikiNamespaceDboExample {
 
         public Criteria andEngineRoleNotBetween(String value1, String value2) {
             addCriterion("engine_role not between", value1, value2, "engineRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andNameContains(String value) {
+            addCriterion("name ilike", LikePatterns.contains(value), "name");
+            return (Criteria) this;
+        }
+
+        public Criteria andCaseModeContains(String value) {
+            addCriterion("case_mode ilike", LikePatterns.contains(value), "caseMode");
+            return (Criteria) this;
+        }
+
+        public Criteria andEditPermissionCodeContains(String value) {
+            addCriterion("edit_permission_code ilike", LikePatterns.contains(value), "editPermissionCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andEngineRoleContains(String value) {
+            addCriterion("engine_role ilike", LikePatterns.contains(value), "engineRole");
             return (Criteria) this;
         }
     }

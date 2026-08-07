@@ -1,8 +1,8 @@
 package com.zfgc.zfgbb.services;
 
 import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
-import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.security.Securable;
+import com.zfgc.zfgbb.model.users.User;
+import com.zfgc.zfgbb.model.Securable;
 
 public abstract class AbstractService {
 

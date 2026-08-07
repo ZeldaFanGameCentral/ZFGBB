@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -854,6 +855,31 @@ public class WikiPageDboExample {
 
         public Criteria andThreadIdNotBetween(Integer value1, Integer value2) {
             addCriterion("thread_id not between", value1, value2, "threadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andNamespaceContains(String value) {
+            addCriterion("namespace ilike", LikePatterns.contains(value), "namespace");
+            return (Criteria) this;
+        }
+
+        public Criteria andTitleContains(String value) {
+            addCriterion("title ilike", LikePatterns.contains(value), "title");
+            return (Criteria) this;
+        }
+
+        public Criteria andSlugContains(String value) {
+            addCriterion("slug ilike", LikePatterns.contains(value), "slug");
+            return (Criteria) this;
+        }
+
+        public Criteria andRedirectToContains(String value) {
+            addCriterion("redirect_to ilike", LikePatterns.contains(value), "redirectTo");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

@@ -16,11 +16,11 @@ import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.EmailAddressDbo;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.EncodedPassword;
 import com.zfgc.zfgbb.model.users.RegistrationRequest;
-import com.zfgc.zfgbb.config.security.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.ZfgcPasswordEncoder;
 import lombok.RequiredArgsConstructor;
 
 @Service

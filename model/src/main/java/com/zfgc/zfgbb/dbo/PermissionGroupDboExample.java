@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -784,6 +785,26 @@ public class PermissionGroupDboExample {
 
         public Criteria andMigrationHashNotBetween(String value1, String value2) {
             addCriterion("migration_hash not between", value1, value2, "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andGroupNameContains(String value) {
+            addCriterion("group_name ilike", LikePatterns.contains(value), "groupName");
+            return (Criteria) this;
+        }
+
+        public Criteria andDescriptionContains(String value) {
+            addCriterion("description ilike", LikePatterns.contains(value), "description");
+            return (Criteria) this;
+        }
+
+        public Criteria andColorContains(String value) {
+            addCriterion("color ilike", LikePatterns.contains(value), "color");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

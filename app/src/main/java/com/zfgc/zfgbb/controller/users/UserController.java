@@ -2,7 +2,7 @@ package com.zfgc.zfgbb.controller.users;
 
 import com.zfgc.zfgbb.controller.BaseController;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 import lombok.extern.slf4j.Slf4j;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.AccountDeletionConfirmation;
 import com.zfgc.zfgbb.model.users.AccountDeletionPreview;
 import com.zfgc.zfgbb.model.users.AccountDeletionRequest;

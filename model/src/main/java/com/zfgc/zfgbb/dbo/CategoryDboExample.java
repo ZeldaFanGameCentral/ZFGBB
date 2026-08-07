@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -654,6 +655,21 @@ public class CategoryDboExample {
 
         public Criteria andCategoryOrderNotBetween(Short value1, Short value2) {
             addCriterion("category_order not between", value1, value2, "categoryOrder");
+            return (Criteria) this;
+        }
+
+        public Criteria andCategoryNameContains(String value) {
+            addCriterion("category_name ilike", LikePatterns.contains(value), "categoryName");
+            return (Criteria) this;
+        }
+
+        public Criteria andDescriptionContains(String value) {
+            addCriterion("description ilike", LikePatterns.contains(value), "description");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

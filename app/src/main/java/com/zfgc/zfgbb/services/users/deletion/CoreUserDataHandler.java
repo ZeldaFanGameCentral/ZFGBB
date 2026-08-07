@@ -32,22 +32,22 @@ import com.zfgc.zfgbb.dbo.UserPermissionGroupAssocDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDboExample;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.AccountDeletionRequestDboMapper;
-import com.zfgc.zfgbb.mappers.AvatarDboMapper;
-import com.zfgc.zfgbb.mappers.BrUserPermissionDboMapper;
-import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.mappers.EmailAddressDboMapper;
-import com.zfgc.zfgbb.mappers.MigratorIdMapDboMapper;
-import com.zfgc.zfgbb.mappers.NotificationSubscriptionDboMapper;
-import com.zfgc.zfgbb.mappers.ReactionDboMapper;
-import com.zfgc.zfgbb.mappers.TeamMemberDboMapper;
-import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
-import com.zfgc.zfgbb.mappers.UserBioInfoDboMapper;
-import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
-import com.zfgc.zfgbb.mappers.UserPermissionGroupAssocDboMapper;
-import com.zfgc.zfgbb.mappers.UserSettingsDboMapper;
+import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
+import com.zfgc.zfgbb.dao.users.AvatarDao;
+import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
+import com.zfgc.zfgbb.dao.cms.ContentEntityDao;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.users.EmailAddressDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.forum.NotificationSubscriptionDao;
+import com.zfgc.zfgbb.dao.reactions.ReactionDao;
+import com.zfgc.zfgbb.dao.users.TeamMemberDao;
+import com.zfgc.zfgbb.dao.users.UserAwardDao;
+import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
+import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dao.users.UserPermissionGroupAssocDao;
+import com.zfgc.zfgbb.dao.users.UserSettingsDao;
 import com.zfgc.zfgbb.model.users.UserSummary;
 import com.zfgc.zfgbb.services.contentstore.ContentService;
 import com.zfgc.zfgbb.services.auth.AuthService;
@@ -72,29 +72,29 @@ public class CoreUserDataHandler implements UserDataHandler {
     static final String SENTINEL_SSO_KEY = "__deleted__";
     static final String SENTINEL_DISPLAY_NAME = "[deleted]";
 
-    private final UserDeletionMapper deletionMapper;
+    private final UserErasureDao userErasureDao;
     private final UserDao userDao;
     private final AuthService authService;
     private final ContentService contentService;
-    private final AccountDeletionRequestDboMapper deletionRequestMapper;
+    private final AccountDeletionRequestDao accountDeletionRequestDao;
     private final DeletionAuditLedger deletionAuditLedger;
-    private final BrUserPermissionDboMapper brUserPermissionMapper;
-    private final UserPermissionGroupAssocDboMapper userPermissionGroupAssocMapper;
-    private final UserSettingsDboMapper userSettingsMapper;
-    private final UserContactInfoDboMapper userContactInfoMapper;
-    private final EmailAddressDboMapper emailAddressMapper;
-    private final TeamMemberDboMapper teamMemberMapper;
-    private final UserAwardDboMapper userAwardMapper;
-    private final NotificationSubscriptionDboMapper notificationSubscriptionMapper;
-    private final UserBioInfoDboMapper userBioInfoMapper;
-    private final AvatarDboMapper avatarMapper;
-    private final ReactionDboMapper reactionMapper;
-    private final ContentEntityDboMapper contentEntityMapper;
-    private final ContentResourceDboMapper contentResourceMapper;
-    private final MigratorIdMapDboMapper migratorIdMapDboMapper;
+    private final BrUserPermissionDao brUserPermissionDao;
+    private final UserPermissionGroupAssocDao userPermissionGroupAssocDao;
+    private final UserSettingsDao userSettingsDao;
+    private final UserContactInfoDao userContactInfoDao;
+    private final EmailAddressDao emailAddressDao;
+    private final TeamMemberDao teamMemberDao;
+    private final UserAwardDao userAwardDao;
+    private final NotificationSubscriptionDao notificationSubscriptionDao;
+    private final UserBioInfoDao userBioInfoDao;
+    private final AvatarDao avatarDao;
+    private final ReactionDao reactionDao;
+    private final ContentEntityDao contentEntityDao;
+    private final ContentResourceDao contentResourceDao;
+    private final MigratorIdMapDao migratorIdMapDao;
 
     public Integer ensureSentinelUser() {
-        Optional<Integer> existing = deletionMapper.findUserIdBySsoKey(SENTINEL_SSO_KEY);
+        Optional<Integer> existing = userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY);
         if (existing.isPresent())
             return existing.get();
         UserDbo sentinel = new UserDbo();
@@ -108,23 +108,23 @@ public class CoreUserDataHandler implements UserDataHandler {
     }
 
     public List<UserSummary> listUsers() {
-        return deletionMapper.listUsers();
+        return userErasureDao.listUsers();
     }
 
     public Optional<AccountDeletionRequestDbo> findDeletionRequest(Integer accountDeletionRequestId) {
-        return Optional.ofNullable(deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId));
+        return accountDeletionRequestDao.find(accountDeletionRequestId);
     }
 
     public void assertSelfDeletionAllowed(Integer userId) {
-        if (deletionMapper.findUserIdBySsoKey(SENTINEL_SSO_KEY).filter(userId::equals).isPresent())
+        if (userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY).filter(userId::equals).isPresent())
             throw new ZfgcInvalidRequestException("The deleted-user account cannot be deleted.");
-        deletionMapper.acquireAdminRosterLock();
-        if (deletionMapper.isSiteAdmin(userId) && deletionMapper.countSiteAdmins() <= 1)
+        userErasureDao.acquireAdminRosterLock();
+        if (userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1)
             throw new ZfgcInvalidRequestException("The last site administrator cannot delete their own account.");
     }
 
     public boolean adminReplacementRequired(Integer userId) {
-        return deletionMapper.isSiteAdmin(userId) && deletionMapper.countSiteAdmins() <= 1;
+        return userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1;
     }
 
     public void neutralizeAccount(Integer accountDeletionRequestId) {
@@ -132,9 +132,9 @@ public class CoreUserDataHandler implements UserDataHandler {
                 .orElseThrow(ZfgcNotFoundException::new);
         Integer userId = request.getUserId();
         assertSelfDeletionAllowed(userId);
-        String subjectUserName = deletionMapper.findUserName(userId).orElse(null);
+        String subjectUserName = userErasureDao.findUserName(userId).orElse(null);
         if (request.getAvatarIdSnapshot() == null)
-            deletionMapper.findBioAvatarId(userId).ifPresent(request::setAvatarIdSnapshot);
+            userErasureDao.findBioAvatarId(userId).ifPresent(request::setAvatarIdSnapshot);
         neutralizeUserIdentity(userId);
         scrubMigratedModerationTargetsByName(subjectUserName);
         OffsetDateTime now = utcNow();
@@ -143,39 +143,38 @@ public class CoreUserDataHandler implements UserDataHandler {
         executingTransition.setStatus(REQUEST_STATUS_EXECUTING);
         executingTransition.setConfirmedTs(request.getConfirmedTs() != null ? request.getConfirmedTs() : now);
         executingTransition.setAvatarIdSnapshot(request.getAvatarIdSnapshot());
-        executingTransition.setUpdatedTs(now);
         AccountDeletionRequestDboExample stillConfirmed = new AccountDeletionRequestDboExample();
         stillConfirmed.createCriteria()
                 .andAccountDeletionRequestIdEqualTo(accountDeletionRequestId)
                 .andStatusEqualTo(REQUEST_STATUS_CONFIRMED);
-        deletionRequestMapper.updateByExampleSelective(executingTransition, stillConfirmed);
+        accountDeletionRequestDao.updateWhere(executingTransition, stillConfirmed);
     }
 
     public void neutralizeUserIdentity(Integer userId) {
-        deletionMapper.neutralizeUserRow(userId, SENTINEL_SSO_KEY + userId);
-        deletionMapper.scrubUserBioInfo(userId);
+        userErasureDao.neutralizeUserRow(userId, SENTINEL_SSO_KEY + userId);
+        userErasureDao.scrubUserBioInfo(userId);
         authService.revokeAllForUser(userId);
         BrUserPermissionDboExample brUserPermissionExample = new BrUserPermissionDboExample();
         brUserPermissionExample.createCriteria().andUserIdEqualTo(userId);
-        brUserPermissionMapper.deleteByExample(brUserPermissionExample);
+        brUserPermissionDao.deleteWhere(brUserPermissionExample);
         UserPermissionGroupAssocDboExample userPermissionGroupAssocExample = new UserPermissionGroupAssocDboExample();
         userPermissionGroupAssocExample.createCriteria().andUserIdEqualTo(userId);
-        userPermissionGroupAssocMapper.deleteByExample(userPermissionGroupAssocExample);
-        deletionMapper.deleteUserContactTypes(userId);
+        userPermissionGroupAssocDao.deleteWhere(userPermissionGroupAssocExample);
+        userErasureDao.deleteUserContactTypes(userId);
         UserSettingsDboExample userSettingsExample = new UserSettingsDboExample();
         userSettingsExample.createCriteria().andUserIdEqualTo(userId);
-        userSettingsMapper.deleteByExample(userSettingsExample);
-        List<Integer> emailAddressIds = deletionMapper.findEmailAddressIds(userId);
+        userSettingsDao.deleteWhere(userSettingsExample);
+        List<Integer> emailAddressIds = userErasureDao.findEmailAddressIds(userId);
         UserContactInfoDboExample userContactInfoExample = new UserContactInfoDboExample();
         userContactInfoExample.createCriteria().andUserIdEqualTo(userId);
-        userContactInfoMapper.deleteByExample(userContactInfoExample);
+        userContactInfoDao.deleteWhere(userContactInfoExample);
         releaseEmailAddresses(emailAddressIds);
     }
 
     public void releaseEmailAddresses(List<Integer> emailAddressIds) {
         for (Integer emailAddressId : emailAddressIds.stream().distinct().toList()) {
-            deletionMapper.deleteEmailAddressIfUnreferenced(emailAddressId);
-            if (emailAddressMapper.selectByPrimaryKey(emailAddressId) != null)
+            userErasureDao.deleteEmailAddressIfUnreferenced(emailAddressId);
+            if (emailAddressDao.existsWithPrimaryKey(emailAddressId))
                 deletionAuditLedger.recordOperatorRemediation(REMEDIATION_SHARED_EMAIL,
                         "email_address_id=" + emailAddressId
                                 + " is shared with other accounts and was retained; operator remediation required");
@@ -185,8 +184,7 @@ public class CoreUserDataHandler implements UserDataHandler {
     public void cancelDeletionRequest(Integer accountDeletionRequestId) {
         findDeletionRequest(accountDeletionRequestId).ifPresent(request -> {
             request.setStatus(REQUEST_STATUS_CANCELLED);
-            request.setUpdatedTs(utcNow());
-            deletionRequestMapper.updateByPrimaryKey(request);
+            accountDeletionRequestDao.save(request);
         });
     }
 
@@ -195,40 +193,39 @@ public class CoreUserDataHandler implements UserDataHandler {
             OffsetDateTime now = utcNow();
             request.setStatus(REQUEST_STATUS_COMPLETED);
             request.setPurgeCursor(REQUEST_STATUS_COMPLETED);
-            request.setUpdatedTs(now);
-            deletionRequestMapper.updateByPrimaryKey(request);
+            accountDeletionRequestDao.save(request);
             deletionAuditLedger.stampAuditExecuted(request.getUserId(), now);
         });
     }
 
     public Optional<String> findPrimaryEmailAddress(Integer userId) {
-        return deletionMapper.findPrimaryEmailAddress(userId);
+        return userErasureDao.findPrimaryEmailAddress(userId);
     }
 
     public void orphanUserAssociations(Integer userId) {
         TeamMemberDboExample teamMemberExample = new TeamMemberDboExample();
         teamMemberExample.createCriteria().andUserIdEqualTo(userId);
-        teamMemberMapper.deleteByExample(teamMemberExample);
+        teamMemberDao.deleteWhere(teamMemberExample);
         UserAwardDboExample userAwardExample = new UserAwardDboExample();
         userAwardExample.createCriteria().andUserIdEqualTo(userId);
-        userAwardMapper.deleteByExample(userAwardExample);
+        userAwardDao.deleteWhere(userAwardExample);
         NotificationSubscriptionDboExample notificationSubscriptionExample = new NotificationSubscriptionDboExample();
         notificationSubscriptionExample.createCriteria().andUserIdEqualTo(userId);
-        notificationSubscriptionMapper.deleteByExample(notificationSubscriptionExample);
+        notificationSubscriptionDao.deleteWhere(notificationSubscriptionExample);
     }
 
     public List<String> purgeBioInfoAndAvatar(Integer userId, Optional<Integer> accountDeletionRequestId) {
         Optional<Integer> avatarId = accountDeletionRequestId
                 .flatMap(this::findDeletionRequest)
                 .map(AccountDeletionRequestDbo::getAvatarIdSnapshot)
-                .or(() -> deletionMapper.findBioAvatarId(userId));
+                .or(() -> userErasureDao.findBioAvatarId(userId));
         UserBioInfoDboExample bioInfoExample = new UserBioInfoDboExample();
         bioInfoExample.createCriteria().andUserIdEqualTo(userId);
-        userBioInfoMapper.deleteByExample(bioInfoExample);
+        userBioInfoDao.deleteWhere(bioInfoExample);
         if (avatarId.isEmpty())
             return List.of();
-        Optional<Integer> avatarResourceId = deletionMapper.findAvatarContentResourceId(avatarId.get());
-        avatarMapper.deleteByPrimaryKey(avatarId.get());
+        Optional<Integer> avatarResourceId = userErasureDao.findAvatarContentResourceId(avatarId.get());
+        avatarDao.delete(avatarId.get());
         return avatarResourceId
                 .map(resourceId -> deleteContentResourcesIfUnreferenced(blobPathSink(accountDeletionRequestId),
                         List.of(resourceId)))
@@ -237,7 +234,7 @@ public class CoreUserDataHandler implements UserDataHandler {
 
     public PurgeBatchOutcome deleteUnreferencedOwnedContentResourcesBatch(Optional<Integer> accountDeletionRequestId,
             Integer userId, int chunkSize) {
-        List<Integer> deletableResourceIds = deletionMapper.findOwnedUnreferencedContentResourceIds(userId, chunkSize);
+        List<Integer> deletableResourceIds = userErasureDao.findOwnedUnreferencedContentResourceIds(userId, chunkSize);
         if (deletableResourceIds.isEmpty())
             return new PurgeBatchOutcome(0, List.of());
         List<String> blobPaths = deleteContentResourceRows(blobPathSink(accountDeletionRequestId),
@@ -246,7 +243,7 @@ public class CoreUserDataHandler implements UserDataHandler {
     }
 
     public void reassignRemainingContentResources(Integer userId, Integer sentinelId) {
-        deletionMapper.reassignContentResources(userId, sentinelId);
+        userErasureDao.reassignContentResources(userId, sentinelId);
     }
 
     public void deleteMigratorUserMapEntry(Integer userId) {
@@ -276,7 +273,7 @@ public class CoreUserDataHandler implements UserDataHandler {
             List<Integer> candidateResourceIds) {
         if (candidateResourceIds.isEmpty())
             return List.of();
-        List<Integer> deletableResourceIds = deletionMapper.findUnreferencedContentResourceIds(candidateResourceIds);
+        List<Integer> deletableResourceIds = userErasureDao.findUnreferencedContentResourceIds(candidateResourceIds);
         if (deletableResourceIds.isEmpty())
             return List.of();
         return deleteContentResourceRows(releasedBlobPathSink, deletableResourceIds);
@@ -287,7 +284,7 @@ public class CoreUserDataHandler implements UserDataHandler {
         ContentResourceDboExample ex = new ContentResourceDboExample();
         ex.createCriteria().andContentResourceIdIn(resourceIds);
         List<String> blobPaths = new ArrayList<>();
-        for (ContentResourceDbo resource : contentResourceMapper.selectByExample(ex)) {
+        for (ContentResourceDbo resource : contentResourceDao.get(ex)) {
             try {
                 blobPaths.add(contentService.storedFile(resource).toString());
             } catch (RuntimeException pathUnresolvable) {
@@ -296,26 +293,26 @@ public class CoreUserDataHandler implements UserDataHandler {
         releasedBlobPathSink.accept(blobPaths);
         ContentResourceDboExample deletableResourcesExample = new ContentResourceDboExample();
         deletableResourcesExample.createCriteria().andContentResourceIdIn(resourceIds);
-        contentResourceMapper.deleteByExample(deletableResourcesExample);
+        contentResourceDao.deleteWhere(deletableResourcesExample);
         return blobPaths;
     }
 
     public void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
         MigratorIdMapDboExample example = new MigratorIdMapDboExample();
         example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
-        migratorIdMapDboMapper.deleteByExample(example);
+        migratorIdMapDao.deleteWhere(example);
     }
 
     public void deleteReactions(String reactableType, List<Integer> reactableIds) {
         ReactionDboExample reactionExample = new ReactionDboExample();
         reactionExample.createCriteria().andReactableTypeEqualTo(reactableType).andReactableIdIn(reactableIds);
-        reactionMapper.deleteByExample(reactionExample);
+        reactionDao.deleteWhere(reactionExample);
     }
 
     private void scrubMigratedModerationTargetsByName(String subjectUserName) {
         if (subjectUserName == null || subjectUserName.isBlank())
             return;
-        deletionMapper.scrubModerationLogTargetsByName(subjectUserName);
+        userErasureDao.scrubModerationLogTargetsByName(subjectUserName);
     }
 
     public void recordOperatorRemediation(String action, String detail) {
@@ -329,7 +326,7 @@ public class CoreUserDataHandler implements UserDataHandler {
     public int countOwnedContentEntities(Integer userId, String entityType) {
         ContentEntityDboExample ownedEntitiesExample = new ContentEntityDboExample();
         ownedEntitiesExample.createCriteria().andCreatedUserIdEqualTo(userId).andEntityTypeEqualTo(entityType);
-        return (int) contentEntityMapper.countByExample(ownedEntitiesExample);
+        return (int) contentEntityDao.count(ownedEntitiesExample);
     }
 
     @Override

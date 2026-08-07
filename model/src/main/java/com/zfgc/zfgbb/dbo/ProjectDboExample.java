@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -533,6 +534,21 @@ public class ProjectDboExample {
 
         public Criteria andTeamIdNotBetween(Integer value1, Integer value2) {
             addCriterion("team_id not between", value1, value2, "teamId");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
+            return (Criteria) this;
+        }
+
+        public Criteria andLanguageContains(String value) {
+            addCriterion("language ilike", LikePatterns.contains(value), "language");
+            return (Criteria) this;
+        }
+
+        public Criteria andRequirementsContains(String value) {
+            addCriterion("requirements ilike", LikePatterns.contains(value), "requirements");
             return (Criteria) this;
         }
     }

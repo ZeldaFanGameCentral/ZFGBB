@@ -8,7 +8,6 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-local-pgadmin-password}
       PGADMIN_CONFIG_PASSWORD_STORE: "True"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-      # Whitelist allowed IP addresses
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_ALLOWED_HOSTS: "${PGADMIN_ALLOWED_HOSTS:-['localhost', '127.0.0.1', 'host.docker.internal']}"

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import lombok.RequiredArgsConstructor;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import com.zfgc.zfgbb.migrator.smf.mappers.SMFMessageDbMapper;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
 
 @Component
+@RequiredArgsConstructor
 public class MessageConverter extends AbstractConverter<Void> {
 
 	private final MessageDboMapper messageMapper;
@@ -35,28 +37,12 @@ public class MessageConverter extends AbstractConverter<Void> {
 	private final MigratorIdMapService idMap;
 	private final MigratorTimestampMapper migratorTimestampMapper;
 	private final TransactionTemplate transactionTemplate;
+	@Value("${zfgbb.migrator.batch-size:5000}")
 	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageConverter.class);
 
 	private Map<Integer, Integer> messageIdMap;
-
-	public MessageConverter(
-			MessageDboMapper messageMapper,
-			SMFMessageDbMapper smfMessageMapper,
-			SmfMessageStreamMapper smfMessageStreamMapper,
-			MigratorIdMapService idMap,
-			MigratorTimestampMapper migratorTimestampMapper,
-			TransactionTemplate transactionTemplate,
-			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
-		this.messageMapper = messageMapper;
-		this.smfMessageMapper = smfMessageMapper;
-		this.smfMessageStreamMapper = smfMessageStreamMapper;
-		this.idMap = idMap;
-		this.migratorTimestampMapper = migratorTimestampMapper;
-		this.transactionTemplate = transactionTemplate;
-		this.batchSize = batchSize;
-	}
 
 	@Override
 	public JobType getType() {

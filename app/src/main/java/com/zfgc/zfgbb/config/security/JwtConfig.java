@@ -39,8 +39,7 @@ public class JwtConfig {
 				|| secret.length() < 32;
 		if (!devProfile && weakSecret) {
 			throw new IllegalStateException(
-					"zfgbb.auth.jwt.secret must be set to a strong (>= 32 char) value outside the local profile. "
-							+ "Set the ZFGBB_AUTH_JWT_SECRET environment variable.");
+					"zfgbb.auth.jwt.secret must be a >= 32 char value outside the local profile");
 		}
 		return new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
 	}

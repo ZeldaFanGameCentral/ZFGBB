@@ -218,6 +218,30 @@ class WikiModeratorTest extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void everyNamespaceEditRejectionSaysWhichRuleRejectedIt() throws Exception {
+		String memberName = "wikiwhy_" + suffix;
+		register(memberName, "password123");
+		String memberToken = login(memberName, "password123").get("accessToken").asString();
+
+		assertEquals("Namespace 'Project' is system managed and cannot be edited through the wiki",
+				rejectionReason(accessToken, "Project:Whyprobe" + suffix));
+		assertEquals("Namespace 'Site' requires the ZFGC_WIKI_MODERATOR permission",
+				rejectionReason(memberToken, "Site:Whyprobe" + suffix));
+		assertEquals("Namespace 'MediaWiki' requires the ZFGC_SITE_ADMIN permission",
+				rejectionReason(memberToken, "MediaWiki:Whyprobe" + suffix));
+		assertEquals("You do not have permission to edit the 'MediaWiki_talk' namespace",
+				rejectionReason(accessToken, "MediaWiki_talk:Whyprobe" + suffix));
+	}
+
+	private String rejectionReason(String token, String slug) throws Exception {
+		return submitAs(token, slug)
+				.andExpect(status().isForbidden())
+				.andReturn()
+				.getResponse()
+				.getErrorMessage();
+	}
+
+	@Test
 	void namespaceOnlySlugCannotSquatASystemManagedNamespace() throws Exception {
 		for (String namespace : List.of("Project", "Resource", "Special", "MediaWiki", "Template", "Help")) {
 			submitAs(accessToken, namespace + ":").andExpect(status().isBadRequest());

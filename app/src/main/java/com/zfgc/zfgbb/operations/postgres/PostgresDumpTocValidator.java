@@ -6,21 +6,10 @@ import java.util.regex.Pattern;
 
 import com.zfgc.zfgbb.operations.archive.InvalidBackupException;
 
-/**
- * Parses pg_restore's stable list format and confines every accepted object to
- * the zfgbb schema. Searching for the word "zfgbb" is insufficient because an
- * attacker can put it in an object name or owner field.
- */
 public final class PostgresDumpTocValidator {
 	private static final Pattern ENTRY = Pattern.compile(
 			"^\\d+; \\d+ \\d+ ([A-Z][A-Z ]*[A-Z]|[A-Z]+) (\\S+) (.+) (\\S+)$");
 
-	/**
-	 * Object kinds that can reach outside the zfgbb schema even when pg_dump reports them
-	 * inside it, or that grant privileges. Everything else is permitted on the strength of
-	 * the namespace confinement below: pg_dump's vocabulary is open ended, so an allowlist
-	 * silently breaks the day an ordinary migration adds a COMMENT, matview or procedure.
-	 */
 	private static final Set<String> DENIED = Set.of(
 			"ACL", "DATABASE", "EVENT TRIGGER", "EXTENSION", "FOREIGN DATA WRAPPER",
 			"FOREIGN TABLE", "LARGE OBJECT", "POLICY", "PUBLICATION", "ROLE", "SERVER",

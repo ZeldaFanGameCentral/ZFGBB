@@ -62,6 +62,12 @@ import java.util.stream.Stream;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import org.jsoup.nodes.Entities;
 import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeAll;
@@ -93,7 +99,7 @@ import com.zfgc.zfgbb.services.cms.CmsPageRenderer;
 import com.zfgc.zfgbb.testsupport.BBCodeFuzzGenerator;
 import com.zfgc.zfgbb.testsupport.RenderedOutputComparison;
 import com.zfgc.zfgbb.testsupport.RenderedOutputComparison.DivergenceFamily;
-import com.zfgc.zfgbb.dao.bbcode.BBCodeConfigDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeConfigDao;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateExpander;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateExpansion;
 import com.zfgc.zfgbb.dataprovider.forum.BBCodeDataProvider;
@@ -114,15 +120,12 @@ import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
-import com.zfgc.zfgbb.mappers.AttributeDataTypeDboMapper;
-import com.zfgc.zfgbb.mappers.AttributeValueMappingDboMapper;
-import com.zfgc.zfgbb.mappers.ListStyleTypeDboMapper;
-import com.zfgc.zfgbb.mappers.BBCodeAttributeDboMapper;
-import com.zfgc.zfgbb.mappers.BBCodeAttributeModeDboMapper;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
-import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
-import com.zfgc.zfgbb.mappers.SmileyDboMapper;
-import com.zfgc.zfgbb.mappers.UserDboMapper;
+import com.zfgc.zfgbb.dao.forum.AttributeDataTypeDao;
+import com.zfgc.zfgbb.dao.forum.AttributeValueMappingDao;
+import com.zfgc.zfgbb.dao.forum.ListStyleTypeDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeAttributeDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeAttributeModeDao;
+import com.zfgc.zfgbb.dao.forum.SmileyDao;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeAttributeMap;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeAttributeModeMap;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeConfigMap;
@@ -135,7 +138,7 @@ import com.zfgc.zfgbb.model.forum.BBCodeConfig;
 import com.zfgc.zfgbb.exception.InvalidBBCodeGrammarException;
 import com.zfgc.zfgbb.model.forum.BBCodeDateElement;
 import com.zfgc.zfgbb.model.forum.MarkdownEquivalent;
-import com.zfgc.zfgbb.security.LinkPolicy;
+import com.zfgc.zfgbb.content.renderer.LinkPolicy;
 
 class RenderingTest {
 
@@ -3523,20 +3526,20 @@ class RenderingTest {
 		@BeforeEach
 		void setup() {
 			BBCodeConfigDao configDao = mock(BBCodeConfigDao.class);
-			BBCodeAttributeModeDboMapper modeMapper = mock(BBCodeAttributeModeDboMapper.class);
-			BBCodeAttributeDboMapper attributeMapper = mock(BBCodeAttributeDboMapper.class);
+			BBCodeAttributeModeDao modeDao = mock(BBCodeAttributeModeDao.class);
+			BBCodeAttributeDao attributeDao = mock(BBCodeAttributeDao.class);
 			configMap = mock(BBCodeConfigMap.class);
 			BBCodeAttributeModeMap modeMap = mock(BBCodeAttributeModeMap.class);
 			BBCodeAttributeMap attributeMap = mock(BBCodeAttributeMap.class);
-			AttributeDataTypeDboMapper dataTypeMapper = mock(AttributeDataTypeDboMapper.class);
-			when(dataTypeMapper.selectByExample(any(AttributeDataTypeDboExample.class))).thenReturn(List.of());
-			AttributeValueMappingDboMapper valueMappingMapper = mock(AttributeValueMappingDboMapper.class);
-			when(valueMappingMapper.selectByExample(any(AttributeValueMappingDboExample.class)))
+			AttributeDataTypeDao dataTypeDao = mock(AttributeDataTypeDao.class);
+			when(dataTypeDao.get(any(AttributeDataTypeDboExample.class))).thenReturn(List.of());
+			AttributeValueMappingDao valueMappingDao = mock(AttributeValueMappingDao.class);
+			when(valueMappingDao.get(any(AttributeValueMappingDboExample.class)))
 					.thenReturn(List.of());
-			ListStyleTypeDboMapper listStyleTypeMapper = mock(ListStyleTypeDboMapper.class);
-			when(listStyleTypeMapper.selectByExample(any(ListStyleTypeDboExample.class))).thenReturn(List.of());
-			dataProvider = new BBCodeDataProvider(configDao, modeMapper, attributeMapper, dataTypeMapper,
-					valueMappingMapper, listStyleTypeMapper, configMap, modeMap, attributeMap);
+			ListStyleTypeDao listStyleTypeDao = mock(ListStyleTypeDao.class);
+			when(listStyleTypeDao.get(any(ListStyleTypeDboExample.class))).thenReturn(List.of());
+			dataProvider = new BBCodeDataProvider(configDao, modeDao, attributeDao, dataTypeDao,
+					valueMappingDao, listStyleTypeDao, configMap, modeMap, attributeMap);
 
 			when(configDao.get(any(BBCodeConfigDboExample.class)))
 					.thenReturn(List.of(new BBCodeConfigDbo()));
@@ -3547,7 +3550,7 @@ class RenderingTest {
 				return quote;
 			});
 
-			when(modeMapper.selectByExample(any(BBCodeAttributeModeDboExample.class)))
+			when(modeDao.get(any(BBCodeAttributeModeDboExample.class)))
 					.thenReturn(List.of(new BBCodeAttributeModeDbo()));
 			when(modeMap.toModel(any(BBCodeAttributeModeDbo.class))).thenAnswer(invocation -> {
 				BBCodeAttributeMode mode = new BBCodeAttributeMode();
@@ -3555,7 +3558,7 @@ class RenderingTest {
 				return mode;
 			});
 
-			when(attributeMapper.selectByExample(any(BBCodeAttributeDboExample.class)))
+			when(attributeDao.get(any(BBCodeAttributeDboExample.class)))
 					.thenReturn(List.of(new BBCodeAttributeDbo()));
 			when(attributeMap.toModel(any(BBCodeAttributeDbo.class))).thenAnswer(invocation -> {
 				BBCodeAttribute attribute = new BBCodeAttribute();
@@ -5461,6 +5464,8 @@ class RenderingTest {
 		static Map<String, BBCodeConfig> grammar;
 		static Renderer renderer;
 		static ContentFormatConverter converter;
+		static final ConversionNotes conversionNotes =
+				new ConversionNotes(new DefaultResourceLoader(), new ObjectMapper());
 
 		@BeforeAll
 		static void loadTheRealSeededEngine() {
@@ -5473,7 +5478,7 @@ class RenderingTest {
 					messageResolver());
 			renderer.useGrammar(grammar);
 			converter = new ContentFormatConverter(renderer.grammarHolder(), renderer.contentRenderingService(),
-					renderer.markdownRenderer());
+					renderer.markdownRenderer(), conversionNotes);
 		}
 
 		static final String A_MIGRATED_POST_THE_MARKDOWN_LANE_READS_DIFFERENTLY =
@@ -5484,7 +5489,7 @@ class RenderingTest {
 			return converter.convert(bbCode, ContentFormat.BBCODE, ContentFormat.MARKDOWN, ContentScope.FORUM).content();
 		}
 
-		static ContentFormatConverter.ConvertedContent toBBCode(String markdown) {
+		static ConvertedContent toBBCode(String markdown) {
 			return converter.convert(markdown, ContentFormat.MARKDOWN, ContentFormat.BBCODE, ContentScope.FORUM);
 		}
 
@@ -5776,14 +5781,14 @@ class RenderingTest {
 
 		@Test
 		void aConversionThatChangesNothingIsStillReportedWhenTheOtherLaneReadsItDifferently() {
-			ContentFormatConverter.ConvertedContent converted = converter.convert(
+			ConvertedContent converted = converter.convert(
 					A_MIGRATED_POST_THE_MARKDOWN_LANE_READS_DIFFERENTLY, ContentFormat.BBCODE, ContentFormat.MARKDOWN,
 					ContentScope.FORUM);
 
 			assertEquals(A_MIGRATED_POST_THE_MARKDOWN_LANE_READS_DIFFERENTLY, converted.content(),
 					"this post is one the converter deliberately leaves alone: its quote carries attributes markdown "
 							+ "cannot express, and a paragraph still holding block-level bbcode converts nothing");
-			assertEquals(List.of(ContentFormatConverter.aCodeTheOtherFormatDoesNotCarry("quote",
+			assertEquals(List.of(conversionNotes.aCodeTheOtherFormatDoesNotCarry("quote",
 					ContentFormat.MARKDOWN)), converted.notes(),
 					"leaving the source alone is not the same as the post surviving: the markdown lane prints this "
 							+ "quote's opening tag as text, and an author who is told nothing finds out by "
@@ -5797,7 +5802,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("blocksWhoseAuthorWroteTheCloserMidLine")
 		void aBlockClosedMidLineReadsTheSameInBothLanesSoTheFlipReportsNothing(String caseName, String bbCode) {
-			ContentFormatConverter.ConvertedContent converted =
+			ConvertedContent converted =
 					converter.convert(bbCode, ContentFormat.BBCODE, ContentFormat.MARKDOWN, ContentScope.FORUM);
 
 			assertEquals(visibleTextWithoutWhitespace(renderer.render(bbCode)),
@@ -5843,7 +5848,7 @@ class RenderingTest {
 
 		@Test
 		void aConstructTheFlipWouldCorruptIsPutBackAsBBCodeInsteadOfOnlyBeingReportedOn() {
-			ContentFormatConverter.ConvertedContent converted =
+			ConvertedContent converted =
 					converter.convert(A_HEADING_MARKDOWN_WOULD_READ_AS_A_CLOSING_SEQUENCE, ContentFormat.BBCODE,
 							ContentFormat.MARKDOWN, ContentScope.FORUM);
 
@@ -5855,7 +5860,7 @@ class RenderingTest {
 					renderer.render(A_HEADING_MARKDOWN_WOULD_READ_AS_A_CLOSING_SEQUENCE)),
 					visibleTextWithoutWhitespace(renderer.renderMarkdown(converted.content())),
 					"the whole point of putting it back is that the two lanes now agree");
-			assertEquals(List.of(ContentFormatConverter.theCodesTheFlipCouldNotCarry(
+			assertEquals(List.of(conversionNotes.theCodesTheFlipCouldNotCarry(
 					Set.of(onlyTagOf("[h2]Title #[/h2]")), ContentFormat.MARKDOWN)), converted.notes(),
 					"the note has to name what was put back and why, or the author cannot tell a lossless "
 							+ "fallback from a converter that did nothing");
@@ -5895,11 +5900,11 @@ class RenderingTest {
 
 		@Test
 		void aPostNoReversionCanRescueKeepsTheNoteItAlwaysHad() {
-			ContentFormatConverter.ConvertedContent converted = converter.convert(
+			ConvertedContent converted = converter.convert(
 					A_MIGRATED_POST_THE_MARKDOWN_LANE_READS_DIFFERENTLY, ContentFormat.BBCODE, ContentFormat.MARKDOWN,
 					ContentScope.FORUM);
 
-			assertEquals(List.of(ContentFormatConverter.aCodeTheOtherFormatDoesNotCarry("quote",
+			assertEquals(List.of(conversionNotes.aCodeTheOtherFormatDoesNotCarry("quote",
 					ContentFormat.MARKDOWN)), converted.notes(),
 					"this post converts nothing, so there is nothing to put back and the author still has to be "
 							+ "told the markdown lane prints the quote's opening tag as text");
@@ -5923,7 +5928,7 @@ class RenderingTest {
 		void aTagInsideAListItemIsPutBackOnItsOwnRatherThanCostingThePostItsWholeList() {
 			renderer.useGrammar(theGrammarWithListItemsAnAdministratorMadeInline());
 			try {
-				ContentFormatConverter.ConvertedContent converted =
+				ConvertedContent converted =
 						converter.convert(A_LIST_ITEM_HOLDING_TWO_EMPHASES_MARKDOWN_CANNOT_READ_SIDE_BY_SIDE,
 								ContentFormat.BBCODE, ContentFormat.MARKDOWN, ContentScope.FORUM);
 
@@ -5931,7 +5936,7 @@ class RenderingTest {
 						"the list writer used to be handed its own empty set of tags written as markdown, so the "
 								+ "[i] inside the item never became a candidate; the search then had only the list "
 								+ "itself to put back and threw away a conversion the item mostly survived");
-				assertEquals(List.of(ContentFormatConverter.theCodesTheFlipCouldNotCarry(
+				assertEquals(List.of(conversionNotes.theCodesTheFlipCouldNotCarry(
 						Set.of(onlyTagOf(TWO_EMPHASES_MARKDOWN_CANNOT_READ_SIDE_BY_SIDE)), ContentFormat.MARKDOWN)),
 						converted.notes(),
 						"and the note named [list], which tells the author nothing about the emphasis that is "
@@ -5953,13 +5958,13 @@ class RenderingTest {
 
 		@Test
 		void aMarkdownSourceIsNeverPutBackBecauseTheBBCodeLaneCannotRenderMarkdown() {
-			ContentFormatConverter.ConvertedContent converted = toBBCode("an `[b]example[/b]` span");
+			ConvertedContent converted = toBBCode("an `[b]example[/b]` span");
 
 			assertEquals("an `[b]example[/b]` span", converted.content(),
 					"the markdown lane renders bbcode, so bbcode is a lossless fallback there; the bbcode lane "
 							+ "renders no markdown, so this direction has no fallback to reach for and keeps the note");
 			assertTrue(converted.notes().contains(
-					ContentFormatConverter.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)));
+					conversionNotes.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)));
 		}
 
 		@Test
@@ -5967,7 +5972,7 @@ class RenderingTest {
 			ContentRenderingService countingRenderer = spy(renderer.contentRenderingService());
 			ContentFormatConverter countingConverter =
 					new ContentFormatConverter(renderer.grammarHolder(), countingRenderer,
-							renderer.markdownRenderer());
+							renderer.markdownRenderer(), conversionNotes);
 			String threeCandidatesOneOfWhichBreaks = "[b]x[/b] [i]a[/i][i]b[/i]";
 
 			countingConverter.convert(threeCandidatesOneOfWhichBreaks, ContentFormat.BBCODE, ContentFormat.MARKDOWN,
@@ -5990,11 +5995,11 @@ class RenderingTest {
 			ContentRenderingService countingRenderer = spy(renderer.contentRenderingService());
 			ContentFormatConverter countingConverter =
 					new ContentFormatConverter(renderer.grammarHolder(), countingRenderer,
-							renderer.markdownRenderer());
+							renderer.markdownRenderer(), conversionNotes);
 			String post = aPostLongerThanTheSearchCanMeasure();
 			int codesTheSearchCanAfford = ContentFormatConverter.candidatesTheSearchCanAfford(post);
 
-			ContentFormatConverter.ConvertedContent converted = countingConverter.convert(post,
+			ConvertedContent converted = countingConverter.convert(post,
 					ContentFormat.BBCODE, ContentFormat.MARKDOWN, ContentScope.FORUM);
 
 			assertTrue(codesTheSearchCanAfford < CODES_IN_A_POST_LONGER_THAN_THE_SEARCH_CAN_MEASURE,
@@ -6002,7 +6007,7 @@ class RenderingTest {
 							+ "can afford: " + codesTheSearchCanAfford);
 			verify(countingRenderer, times(codesTheSearchCanAfford + 2))
 					.renderWithTemplates(any(), eq(ContentFormat.MARKDOWN), any(), any());
-			assertEquals(ContentFormatConverter.theSearchStoppedBeforeItTriedEveryCode(codesTheSearchCanAfford,
+			assertEquals(conversionNotes.theSearchStoppedBeforeItTriedEveryCode(codesTheSearchCanAfford,
 					CODES_IN_A_POST_LONGER_THAN_THE_SEARCH_CAN_MEASURE, ContentFormat.MARKDOWN),
 					converted.notes().get(1),
 					"a search that stopped early leaves codes as bb code nobody measured, and a note that only "
@@ -6050,7 +6055,7 @@ class RenderingTest {
 		@ParameterizedTest(name = "{0}")
 		@MethodSource("constructsWhoseLineBreakBookkeepingChangesInTheOtherLane")
 		void lineBreakBookkeepingIsNotWorthANote(String caseName, String bbCode) {
-			ContentFormatConverter.ConvertedContent converted =
+			ConvertedContent converted =
 					converter.convert(bbCode, ContentFormat.BBCODE, ContentFormat.MARKDOWN, ContentScope.FORUM);
 
 			assertNotEquals(RenderedOutputComparison.wholeVisibleText(renderer.render(bbCode)),
@@ -6075,7 +6080,7 @@ class RenderingTest {
 		@MethodSource("markdownConstructsBBCodeCannotExpress")
 		void aMarkdownConstructBBCodeCannotExpressIsReported(String caseName, String markdown,
 				List<String> expectedNotes, String expectedBBCode) {
-			ContentFormatConverter.ConvertedContent converted = toBBCode(markdown);
+			ConvertedContent converted = toBBCode(markdown);
 
 			assertEquals(expectedNotes, converted.notes());
 			assertEquals(expectedBBCode, converted.content());
@@ -6084,18 +6089,18 @@ class RenderingTest {
 		static Stream<Arguments> markdownConstructsBBCodeCannotExpress() {
 			return Stream.of(
 					arguments("a code span carrying bbcode", "an `[b]example[/b]` span",
-							List.of(ContentFormatConverter.INLINE_CODE_SPAN_CARRYING_BB_CODE,
-									ContentFormatConverter.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)),
+							List.of(conversionNotes.inlineCodeSpanCarryingBBCode(),
+									conversionNotes.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)),
 							"an `[b]example[/b]` span"),
 					arguments("a code block carrying the code closer", "```\n[/code]\n```",
-							List.of(ContentFormatConverter.CODE_BLOCK_CARRYING_THE_BB_CODE_CODE_CLOSER,
-									ContentFormatConverter.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)),
+							List.of(conversionNotes.codeBlockCarryingTheBBCodeCodeCloser(),
+									conversionNotes.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE)),
 							"```\n[/code]\n```"),
 					arguments("an ordered list that does not start at one", "5. five\n6. six",
-							List.of(ContentFormatConverter.ORDERED_LIST_NOT_STARTING_AT_ONE),
+							List.of(conversionNotes.orderedListNotStartingAtOne()),
 							"[list type=decimal]\n[li]five[/li]\n[li]six[/li]\n[/list]"),
 					arguments("a link title", "[the docs](/wiki/Docs \"Docs\")",
-							List.of(ContentFormatConverter.LINK_TITLE_TEXT),
+							List.of(conversionNotes.linkTitleText()),
 							"[url=/wiki/Docs]the docs[/url]"));
 		}
 
@@ -6108,6 +6113,113 @@ class RenderingTest {
 							+ "converter rendering its own output and finding the post really did change. Dropping "
 							+ "the measured one whenever a predicted one fired would hide an unrelated divergence "
 							+ "behind an unrelated prediction: " + notes);
+		}
+
+		static String theShippedMessageFile() throws IOException {
+			return new String(new DefaultResourceLoader().getResource(ConversionNotes.MESSAGE_FILE)
+					.getContentAsByteArray(), StandardCharsets.UTF_8);
+		}
+
+		static void theNotesDeclaredBy(String messageFile) {
+			ConversionNotes.theMessagesDeclaredIn(
+					new ByteArrayResource(messageFile.getBytes(StandardCharsets.UTF_8)), new ObjectMapper());
+		}
+
+		@Test
+		void everyNoteTheConverterCanWriteIsDeclaredInTheShippedMessageFile() throws IOException {
+			Set<String> declared = new ObjectMapper()
+					.readValue(theShippedMessageFile(), new TypeReference<Map<String, Object>>() {}).keySet();
+
+			assertEquals(Arrays.stream(ConversionNotes.Note.values()).map(Enum::name).collect(Collectors.toSet()),
+					new LinkedHashSet<>(declared),
+					"a note whose key is not in the file, or a message no note reaches, cannot be seen from the "
+							+ "endpoint: convert() returns its notes with no throw and no log, so a key that "
+							+ "drifted from the file would ship as a note nobody ever writes");
+		}
+
+		@Test
+		void everyNoteFormatsWithNoPlaceholderLeftInWhatTheAuthorReads() {
+			List<String> written = List.of(
+					conversionNotes.inlineCodeSpanCarryingBBCode(),
+					conversionNotes.codeBlockCarryingTheBBCodeCodeCloser(),
+					conversionNotes.orderedListNotStartingAtOne(),
+					conversionNotes.noEnabledBBCodeCarriesThisConstruct(),
+					conversionNotes.linkTitleText(),
+					conversionNotes.theCodesTheFlipCouldNotCarry(Set.of(onlyTagOf("[b]bold[/b]")),
+							ContentFormat.MARKDOWN),
+					conversionNotes.theSearchStoppedBeforeItTriedEveryCode(3, 9, ContentFormat.MARKDOWN),
+					conversionNotes.aCodeTheOtherFormatDoesNotCarry("quote", ContentFormat.MARKDOWN),
+					conversionNotes.contentTheOtherFormatDoesNotCarry(ContentFormat.BBCODE));
+
+			assertEquals(ConversionNotes.Note.values().length, written.size(),
+					"a note with no call site here is a note this row never measures");
+			for (String note : written) {
+				assertFalse(note.isBlank(), "a blank note tells the author nothing");
+				assertFalse(note.contains("{") || note.contains("}"),
+						"an unfilled placeholder reaches the author as braces in the text: " + note);
+			}
+		}
+
+		@Test
+		void aMessageFileMissingAKeyFailsInsteadOfWritingANoteWithoutIt() throws IOException {
+			String withoutOneKey = theShippedMessageFile().lines()
+					.filter(line -> !line.contains(ConversionNotes.Note.LINK_TITLE_TEXT.name()))
+					.collect(Collectors.joining("\n"));
+
+			IllegalStateException failed =
+					assertThrows(IllegalStateException.class, () -> theNotesDeclaredBy(withoutOneKey));
+
+			assertTrue(failed.getMessage().contains(ConversionNotes.Note.LINK_TITLE_TEXT.name()),
+					"a missing key has to name itself and stop the context: falling back to the key, or to an "
+							+ "empty note, publishes a conversion that silently tells the author nothing about "
+							+ "what it dropped: " + failed.getMessage());
+		}
+
+		@Test
+		void aMessageFileDeclaringAKeyNoNoteReachesFails() throws IOException {
+			String withAKeyNothingWrites = theShippedMessageFile()
+					.replaceFirst("\\{", "{\n  \"A_NOTE_NOTHING_WRITES\": \"unreachable\",");
+
+			IllegalStateException failed =
+					assertThrows(IllegalStateException.class, () -> theNotesDeclaredBy(withAKeyNothingWrites));
+
+			assertTrue(failed.getMessage().contains("A_NOTE_NOTHING_WRITES"),
+					"a key nothing reaches is a message someone wrote and nobody reads, which is how a renamed "
+							+ "note leaves its old text behind looking maintained: " + failed.getMessage());
+		}
+
+		@Test
+		void aMessageWhosePlaceholderDriftsFromItsCallSiteFails() throws IOException {
+			String withAMisspeltPlaceholder = theShippedMessageFile().replace("[{code}]", "[{codr}]");
+
+			IllegalStateException failed =
+					assertThrows(IllegalStateException.class, () -> theNotesDeclaredBy(withAMisspeltPlaceholder));
+
+			assertTrue(failed.getMessage()
+					.contains(ConversionNotes.Note.A_CODE_THE_OTHER_FORMAT_DOES_NOT_CARRY.name()),
+					"a placeholder nothing fills is the quietest failure of all: the note still ships, still "
+							+ "reads like prose, and carries a literal brace where the code should be: "
+							+ failed.getMessage());
+		}
+
+		@Test
+		void aMalformedMessageFileFails() {
+			assertThrows(IllegalStateException.class, () -> theNotesDeclaredBy("{ this is not json"),
+					"a file that does not parse must stop the context rather than leave the converter with no "
+							+ "messages to write");
+		}
+
+		@Test
+		void aMissingMessageFileFails() {
+			Resource notOnTheClasspath = new DefaultResourceLoader()
+					.getResource("classpath:content/renderer/no-such-conversion-notes.json");
+
+			IllegalStateException failed = assertThrows(IllegalStateException.class,
+					() -> ConversionNotes.theMessagesDeclaredIn(notOnTheClasspath, new ObjectMapper()));
+
+			assertTrue(failed.getMessage().contains("no-such-conversion-notes.json"),
+					"a message file that is not on the classpath must name itself at startup rather than let "
+							+ "every conversion answer with notes it cannot write: " + failed.getMessage());
 		}
 
 		@Test
@@ -6675,7 +6787,7 @@ class RenderingTest {
 	}
 
 	static RenderedTextEnricher enricher() {
-		return new RenderedTextEnricher(mock(SmileyDboMapper.class));
+		return new RenderedTextEnricher(mock(SmileyDao.class));
 	}
 
 	static ContentOutputSanitizer sanitizer(BBCodeGrammarHolder grammarHolder, RenderedTextEnricher enricher) {

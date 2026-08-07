@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.system;
 
+import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.config.BackupRestoreProperties;
@@ -20,20 +23,17 @@ import com.zfgc.zfgbb.operations.maintenance.MutationLeaseProvider;
 import com.zfgc.zfgbb.operations.postgres.PostgresAdvisoryLock;
 
 @Service
+@RawSqlAccess("transaction-scoped advisory lock")
+@RequiredArgsConstructor
 public class MaintenanceCoordinator implements MutationLeaseProvider {
 	private static final long MAINTENANCE_LOCK_KEY = 0x5A464742424D4149L;
 	private static final int ALL_WRITERS = Integer.MAX_VALUE;
 
 	private final DataSource dataSource;
-	private final Duration mutationLeaseTimeout;
+	private final BackupRestoreProperties properties;
 	private final Semaphore writers = new Semaphore(ALL_WRITERS, true);
 	private final ThreadLocal<AtomicInteger> permitsHeldByThread =
 			ThreadLocal.withInitial(AtomicInteger::new);
-
-	public MaintenanceCoordinator(DataSource dataSource, BackupRestoreProperties properties) {
-		this.dataSource = dataSource;
-		this.mutationLeaseTimeout = properties.getMutationDrainTimeout();
-	}
 
 	public Optional<Lease> tryMutationLease() {
 		try {
@@ -45,7 +45,7 @@ public class MaintenanceCoordinator implements MutationLeaseProvider {
 
 	@Override
 	public Lease acquireMutationLease() throws InterruptedException {
-		if (!admitWriter(mutationLeaseTimeout))
+		if (!admitWriter(properties.getMutationDrainTimeout()))
 			throw new IllegalStateException("Application maintenance is in progress.");
 		return writerLease();
 	}
@@ -91,7 +91,6 @@ public class MaintenanceCoordinator implements MutationLeaseProvider {
 		});
 	}
 
-
 	private void assertSingleReplica() throws SQLException {
 		try (Connection connection = dataSource.getConnection();
 				PreparedStatement statement = connection.prepareStatement("""
@@ -102,14 +101,10 @@ public class MaintenanceCoordinator implements MutationLeaseProvider {
 				""");
 				ResultSet result = statement.executeQuery()) {
 			if (result.next() && result.getLong(1) > 1)
-				throw new SQLException("maintenance requires exactly one active API replica, but "
-						+ result.getLong(1) + " are connected; drain the deployment first");
+				throw new SQLException("maintenance requires exactly one active API replica, found "
+						+ result.getLong(1));
 		}
 	}
-
-
-
-
 
 	@FunctionalInterface
 	private interface LeaseRelease {

@@ -8,12 +8,6 @@ public record WikiTitle(String namespace, String title) {
 
 	public enum CaseMode { FIRST_LETTER, CASE_SENSITIVE }
 
-	/**
-	 * Engine default spellings, used ONLY by {@link #parse} when no namespace registry is available
-	 * (unit tests and null-registry callers). Anything holding a name that came from the database or
-	 * from operator configuration must use {@link #of}, which never rewrites the name it is given —
-	 * the wiki_namespace / wiki_namespace_alias tables are authoritative.
-	 */
 	private static final Map<String, String> BOOTSTRAP_NAMESPACE_ALIASES = Map.ofEntries(
 			Map.entry("", "MAIN"), Map.entry("main", "MAIN"),
 			Map.entry("template", "Template"), Map.entry("category", "Category"),

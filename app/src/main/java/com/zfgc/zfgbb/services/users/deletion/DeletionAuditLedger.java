@@ -15,11 +15,11 @@ import com.zfgc.zfgbb.dbo.AccountDeletionRequestDbo;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
 import com.zfgc.zfgbb.dbo.ModerationLogDbo;
 import com.zfgc.zfgbb.dbo.ModerationLogDboExample;
-import com.zfgc.zfgbb.mappers.AccountDeletionAuditDboMapper;
-import com.zfgc.zfgbb.mappers.AccountDeletionRequestDboMapper;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.mappers.ModerationLogDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
+import com.zfgc.zfgbb.dao.users.AccountDeletionAuditDao;
+import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.forum.ModerationLogDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,18 +27,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DeletionAuditLedger {
 
-    private final AccountDeletionAuditDboMapper deletionAuditMapper;
-    private final AccountDeletionRequestDboMapper deletionRequestMapper;
-    private final ModerationLogDboMapper moderationLogMapper;
-    private final ContentResourceDboMapper contentResourceMapper;
-    private final UserDeletionMapper deletionMapper;
+    private final AccountDeletionAuditDao accountDeletionAuditDao;
+    private final AccountDeletionRequestDao accountDeletionRequestDao;
+    private final ModerationLogDao moderationLogDao;
+    private final ContentResourceDao contentResourceDao;
+    private final UserErasureDao userErasureDao;
 
     public void recordDeletionRequestedAudit(Integer userId, String mode, OffsetDateTime requestedTs) {
         AccountDeletionAuditDbo audit = findOrCreateOpenAuditRow(userId, mode, requestedTs);
         audit.setMode(mode);
         audit.setRequestedTs(requestedTs);
-        audit.setUpdatedTs(requestedTs);
-        deletionAuditMapper.updateByPrimaryKey(audit);
+        accountDeletionAuditDao.save(audit);
     }
 
     public void stampAuditConfirmed(AccountDeletionRequestDbo request, OffsetDateTime now) {
@@ -47,25 +46,23 @@ public class DeletionAuditLedger {
         if (audit.getConfirmedTs() != null)
             return;
         audit.setConfirmedTs(now);
-        audit.setUpdatedTs(now);
-        deletionAuditMapper.updateByPrimaryKey(audit);
+        accountDeletionAuditDao.save(audit);
     }
 
     public void stampAuditExecuted(Integer userId, OffsetDateTime now) {
         AccountDeletionAuditDboExample ex = new AccountDeletionAuditDboExample();
         ex.createCriteria().andSubjectUserIdSnapshotEqualTo(userId).andExecutedTsIsNull();
         ex.setOrderByClause("deletion_id desc");
-        deletionAuditMapper.selectByExample(ex).stream().findFirst().ifPresent(audit -> {
+        accountDeletionAuditDao.getOne(ex).ifPresent(audit -> {
             audit.setExecutedTs(now);
-            audit.setUpdatedTs(now);
-            deletionAuditMapper.updateByPrimaryKey(audit);
+            accountDeletionAuditDao.save(audit);
         });
     }
 
     public void recordOperatorRemediation(String action, String detail) {
         ModerationLogDboExample ex = new ModerationLogDboExample();
         ex.createCriteria().andActionEqualTo(action).andDetailEqualTo(detail);
-        if (!moderationLogMapper.selectByExample(ex).isEmpty())
+        if (!moderationLogDao.get(ex).isEmpty())
             return;
         ModerationLogDbo entry = new ModerationLogDbo();
         entry.setAction(action);
@@ -73,8 +70,7 @@ public class DeletionAuditLedger {
         OffsetDateTime now = utcNow();
         entry.setLoggedTs(now);
         entry.setCreatedTs(now);
-        entry.setUpdatedTs(now);
-        moderationLogMapper.insertSelective(entry);
+        moderationLogDao.insertSelective(entry);
     }
 
     public Consumer<List<String>> blobPathSink(Optional<Integer> accountDeletionRequestId) {
@@ -83,37 +79,35 @@ public class DeletionAuditLedger {
     }
 
     public void clearRecordedBlobPaths(Integer accountDeletionRequestId) {
-        Optional.ofNullable(deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId)).ifPresent(request -> {
+        accountDeletionRequestDao.find(accountDeletionRequestId).ifPresent(request -> {
             request.setRecordedBlobPaths(null);
-            request.setUpdatedTs(utcNow());
-            deletionRequestMapper.updateByPrimaryKey(request);
+            accountDeletionRequestDao.save(request);
         });
     }
 
     public int countOwnedContentResources(Integer userId) {
         ContentResourceDboExample ownedResourcesExample = new ContentResourceDboExample();
         ownedResourcesExample.createCriteria().andUploadedUserIdEqualTo(userId);
-        return (int) contentResourceMapper.countByExample(ownedResourcesExample);
+        return (int) contentResourceDao.count(ownedResourcesExample);
     }
 
     private void appendRecordedBlobPaths(Integer accountDeletionRequestId, List<String> blobPaths) {
         if (blobPaths.isEmpty())
             return;
-        AccountDeletionRequestDbo request = deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId);
+        AccountDeletionRequestDbo request = accountDeletionRequestDao.find(accountDeletionRequestId).orElse(null);
         if (request == null)
             return;
         String appended = String.join("\n", blobPaths);
         String existing = request.getRecordedBlobPaths();
         request.setRecordedBlobPaths(existing == null || existing.isBlank() ? appended : existing + "\n" + appended);
-        request.setUpdatedTs(utcNow());
-        deletionRequestMapper.updateByPrimaryKey(request);
+        accountDeletionRequestDao.save(request);
     }
 
     private AccountDeletionAuditDbo findOrCreateOpenAuditRow(Integer userId, String mode, OffsetDateTime timestamp) {
         AccountDeletionAuditDboExample ex = new AccountDeletionAuditDboExample();
         ex.createCriteria().andSubjectUserIdSnapshotEqualTo(userId).andExecutedTsIsNull();
         ex.setOrderByClause("deletion_id desc");
-        Optional<AccountDeletionAuditDbo> existing = deletionAuditMapper.selectByExample(ex).stream().findFirst();
+        Optional<AccountDeletionAuditDbo> existing = accountDeletionAuditDao.getOne(ex);
         if (existing.isPresent())
             return existing.get();
         AccountDeletionAuditDbo audit = new AccountDeletionAuditDbo();
@@ -122,11 +116,10 @@ public class DeletionAuditLedger {
         audit.setMode(mode);
         audit.setInitiatedBy("SELF");
         audit.setRequestedTs(timestamp);
-        audit.setMessageCount(deletionMapper.countOwnedMessages(userId));
+        audit.setMessageCount(userErasureDao.countOwnedMessages(userId));
         audit.setContentResourceCount(countOwnedContentResources(userId));
         audit.setCreatedTs(timestamp);
-        audit.setUpdatedTs(timestamp);
-        deletionAuditMapper.insertSelective(audit);
+        accountDeletionAuditDao.insertSelective(audit);
         return audit;
     }
 

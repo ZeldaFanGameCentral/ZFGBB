@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -714,6 +715,21 @@ public class QuoteStripAuditDboExample {
 
         public Criteria andAppliedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("applied_ts not between", value1, value2, "appliedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andBeforeTextContains(String value) {
+            addCriterion("before_text ilike", LikePatterns.contains(value), "beforeText");
+            return (Criteria) this;
+        }
+
+        public Criteria andAfterTextContains(String value) {
+            addCriterion("after_text ilike", LikePatterns.contains(value), "afterText");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
             return (Criteria) this;
         }
     }

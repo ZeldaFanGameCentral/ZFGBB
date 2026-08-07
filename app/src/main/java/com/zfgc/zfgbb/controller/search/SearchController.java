@@ -2,7 +2,7 @@ package com.zfgc.zfgbb.controller.search;
 
 import com.zfgc.zfgbb.controller.BaseController;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public class SearchController extends BaseController {
 	@GetMapping
 	@AllowAnonymous
 	public ResponseEntity search(@RequestParam(name = "q") String query,
-			@RequestParam(name = "types", required = false) List<String> types) {
+			@RequestParam(name = "types", defaultValue = "") List<String> types) {
 		return ResponseEntity.ok(searchService.search(query, types, zfgcUser().permissionIds()));
 	}
 

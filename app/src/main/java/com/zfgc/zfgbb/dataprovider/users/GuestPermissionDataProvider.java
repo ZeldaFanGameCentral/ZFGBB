@@ -8,21 +8,21 @@ import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
+import com.zfgc.zfgbb.model.users.User;
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
 public class GuestPermissionDataProvider {
 
-	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final BoardPermissionViewDao boardPermissionViewDao;
 
 	@Cacheable("guestVisibleBoardIds")
 	public List<Integer> guestVisibleBoardIds() {
 		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
 		ex.createCriteria().andPermissionIdIn(User.guest().permissionIds());
-		return boardPermissionViewDboMapper.selectByExample(ex).stream()
+		return boardPermissionViewDao.get(ex).stream()
 				.map(BoardPermissionViewDbo::getBoardId).distinct().collect(Collectors.toList());
 	}
 }

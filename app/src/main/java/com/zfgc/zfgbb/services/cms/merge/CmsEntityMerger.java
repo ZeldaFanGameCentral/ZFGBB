@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.services.cms.merge;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -27,18 +28,18 @@ import com.zfgc.zfgbb.dbo.WikiPageDbo;
 import com.zfgc.zfgbb.dbo.WikiPageRevisionDbo;
 import com.zfgc.zfgbb.dbo.WikiPageRevisionDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.ContentCollectionItemDboMapper;
-import com.zfgc.zfgbb.mappers.ContentEntityDboMapper;
-import com.zfgc.zfgbb.mappers.MigratorIdMapMapper;
-import com.zfgc.zfgbb.mappers.ProjectDboMapper;
-import com.zfgc.zfgbb.mappers.ProjectDownloadDboMapper;
-import com.zfgc.zfgbb.mappers.ProjectNewsDboMapper;
-import com.zfgc.zfgbb.mappers.ProjectScreenshotDboMapper;
-import com.zfgc.zfgbb.mappers.ReactionDboMapper;
-import com.zfgc.zfgbb.mappers.WikiPageCategoryDboMapper;
-import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
-import com.zfgc.zfgbb.mappers.WikiPageRevisionDboMapper;
-import com.zfgc.zfgbb.mappers.custom.ProjectMergeMapper;
+import com.zfgc.zfgbb.dao.cms.ContentCollectionItemDao;
+import com.zfgc.zfgbb.dao.cms.ContentEntityDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.cms.ProjectDao;
+import com.zfgc.zfgbb.dao.cms.ProjectDownloadDao;
+import com.zfgc.zfgbb.dao.cms.ProjectNewsDao;
+import com.zfgc.zfgbb.dao.cms.ProjectScreenshotDao;
+import com.zfgc.zfgbb.dao.reactions.ReactionDao;
+import com.zfgc.zfgbb.dao.cms.WikiPageCategoryDao;
+import com.zfgc.zfgbb.dao.cms.WikiPageDao;
+import com.zfgc.zfgbb.dao.cms.WikiPageRevisionDao;
+import com.zfgc.zfgbb.dao.cms.ProjectTagDao;
 import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.model.cms.ContentMergeSide;
 import com.zfgc.zfgbb.model.cms.MergeApplyRequest;
@@ -50,18 +51,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CmsEntityMerger {
 
-	private final ProjectDboMapper projectMapper;
-	private final ContentEntityDboMapper contentEntityMapper;
-	private final WikiPageDboMapper wikiPageMapper;
-	private final WikiPageRevisionDboMapper wikiRevisionMapper;
-	private final WikiPageCategoryDboMapper wikiCategoryMapper;
-	private final ProjectScreenshotDboMapper screenshotMapper;
-	private final ProjectDownloadDboMapper downloadMapper;
-	private final ContentCollectionItemDboMapper collectionItemMapper;
-	private final ProjectMergeMapper projectMergeMapper;
-	private final MigratorIdMapMapper migratorIdMapMapper;
-	private final ReactionDboMapper reactionMapper;
-	private final ProjectNewsDboMapper projectNewsMapper;
+	private final ProjectDao projectDao;
+	private final ContentEntityDao contentEntityDao;
+	private final WikiPageDao wikiPageDao;
+	private final WikiPageRevisionDao wikiPageRevisionDao;
+	private final WikiPageCategoryDao wikiPageCategoryDao;
+	private final ProjectScreenshotDao projectScreenshotDao;
+	private final ProjectDownloadDao projectDownloadDao;
+	private final ContentCollectionItemDao contentCollectionItemDao;
+	private final ProjectTagDao projectTagDao;
+	private final MigratorIdMapDao migratorIdMapDao;
+	private final ReactionDao reactionDao;
+	private final ProjectNewsDao projectNewsDao;
 
 	public void applyMerge(MergeApplyRequest request) {
 		switch (request) {
@@ -82,16 +83,16 @@ public class CmsEntityMerger {
 	}
 
 	private void linkEntityWiki(Integer entityId, Integer wikiPageId) {
-		ContentEntityDbo entity = require(contentEntityMapper.selectByPrimaryKey(entityId));
+		ContentEntityDbo entity = contentEntityDao.find(entityId).orElseThrow(ZfgcNotFoundException::new);
 		if (entity.getWikiPageId() == null) {
 			entity.setWikiPageId(wikiPageId);
-			contentEntityMapper.updateByPrimaryKey(entity);
+			contentEntityDao.save(entity);
 			return;
 		}
 		String leadSummaryText = adoptArticle(entity.getWikiPageId(), wikiPageId);
 		if ((entity.getSummary() == null || entity.getSummary().isBlank()) && leadSummaryText != null && !leadSummaryText.isBlank()) {
 			entity.setSummary(leadSummaryText);
-			contentEntityMapper.updateByPrimaryKey(entity);
+			contentEntityDao.save(entity);
 		}
 	}
 
@@ -99,19 +100,19 @@ public class CmsEntityMerger {
 		if (entityPageId.equals(articlePageId)) {
 			return null;
 		}
-		WikiPageDbo entityPage = require(wikiPageMapper.selectByPrimaryKey(entityPageId));
-		WikiPageDbo articlePage = require(wikiPageMapper.selectByPrimaryKey(articlePageId));
+		WikiPageDbo entityPage = wikiPageDao.find(entityPageId).orElseThrow(ZfgcNotFoundException::new);
+		WikiPageDbo articlePage = wikiPageDao.find(articlePageId).orElseThrow(ZfgcNotFoundException::new);
 
 		WikiPageRevisionDboExample entityRevisionExample = new WikiPageRevisionDboExample();
 		entityRevisionExample.createCriteria().andWikiPageIdEqualTo(entityPageId);
-		List<WikiPageRevisionDbo> entityRevisions = wikiRevisionMapper.selectByExample(entityRevisionExample);
+		List<WikiPageRevisionDbo> entityRevisions = wikiPageRevisionDao.get(entityRevisionExample);
 		if (entityRevisions.size() == 1 && entityRevisions.get(0).getMigrationHash() != null) {
-			wikiRevisionMapper.deleteByPrimaryKey(entityRevisions.get(0).getWikiPageRevisionId());
+			wikiPageRevisionDao.delete(entityRevisions.get(0).getWikiPageRevisionId());
 		} else {
 			for (WikiPageRevisionDbo revision : entityRevisions) {
 				if (Boolean.TRUE.equals(revision.getCurrentFlag())) {
 					revision.setCurrentFlag(false);
-					wikiRevisionMapper.updateByPrimaryKey(revision);
+					wikiPageRevisionDao.save(revision);
 				}
 			}
 		}
@@ -119,81 +120,81 @@ public class CmsEntityMerger {
 		WikiPageRevisionDboExample moveRevisionExample = new WikiPageRevisionDboExample();
 		moveRevisionExample.createCriteria().andWikiPageIdEqualTo(articlePageId);
 		String leadSummaryText = null;
-		for (WikiPageRevisionDbo revision : wikiRevisionMapper.selectByExample(moveRevisionExample)) {
+		for (WikiPageRevisionDbo revision : wikiPageRevisionDao.get(moveRevisionExample)) {
 			revision.setWikiPageId(entityPageId);
 			if (Boolean.TRUE.equals(revision.getCurrentFlag())) {
 				leadSummaryText = CmsSupport.leadSummary(revision.getContent());
 			}
-			wikiRevisionMapper.updateByPrimaryKey(revision);
+			wikiPageRevisionDao.save(revision);
 		}
 
 		WikiPageCategoryDboExample entityCategoryExample = new WikiPageCategoryDboExample();
 		entityCategoryExample.createCriteria().andWikiPageIdEqualTo(entityPageId);
 		Set<String> entityCategories = new HashSet<>();
-		wikiCategoryMapper.selectByExample(entityCategoryExample)
+		wikiPageCategoryDao.get(entityCategoryExample)
 				.forEach(category -> entityCategories.add(category.getCategoryName()));
 
 		WikiPageCategoryDboExample articleCategoryExample = new WikiPageCategoryDboExample();
 		articleCategoryExample.createCriteria().andWikiPageIdEqualTo(articlePageId);
-		for (WikiPageCategoryDbo category : wikiCategoryMapper.selectByExample(articleCategoryExample)) {
+		for (WikiPageCategoryDbo category : wikiPageCategoryDao.get(articleCategoryExample)) {
 			if (entityCategories.add(category.getCategoryName())) {
 				WikiPageCategoryDbo movedCategory = new WikiPageCategoryDbo();
 				movedCategory.setWikiPageId(entityPageId);
 				movedCategory.setCategoryName(category.getCategoryName());
-				wikiCategoryMapper.insert(movedCategory);
+				wikiPageCategoryDao.insert(movedCategory);
 			}
 		}
-		wikiCategoryMapper.deleteByExample(articleCategoryExample);
+		wikiPageCategoryDao.deleteWhere(articleCategoryExample);
 
 		articlePage.setRedirectTo(entityPage.getSlug());
-		wikiPageMapper.updateByPrimaryKey(articlePage);
+		wikiPageDao.save(articlePage);
 		return leadSummaryText;
 	}
 
 	private void linkEntityThread(Integer entityId, Integer threadId) {
-		ContentEntityDbo entity = require(contentEntityMapper.selectByPrimaryKey(entityId));
+		ContentEntityDbo entity = contentEntityDao.find(entityId).orElseThrow(ZfgcNotFoundException::new);
 		entity.setThreadId(threadId);
-		contentEntityMapper.updateByPrimaryKey(entity);
+		contentEntityDao.save(entity);
 	}
 
 	private void mergeProjects(Integer sourceId, Integer targetId) {
-		ContentEntityDbo sourceEntity = require(contentEntityMapper.selectByPrimaryKey(sourceId));
-		ContentEntityDbo targetEntity = require(contentEntityMapper.selectByPrimaryKey(targetId));
-		ProjectDbo sourceProjectExtension = projectMapper.selectByPrimaryKey(sourceId);
-		ProjectDbo targetProjectExtension = projectMapper.selectByPrimaryKey(targetId);
+		ContentEntityDbo sourceEntity = contentEntityDao.find(sourceId).orElseThrow(ZfgcNotFoundException::new);
+		ContentEntityDbo targetEntity = contentEntityDao.find(targetId).orElseThrow(ZfgcNotFoundException::new);
+		Optional<ProjectDbo> sourceProjectExtension = projectDao.find(sourceId);
+		Optional<ProjectDbo> targetProjectExtension = projectDao.find(targetId);
 
 		ProjectScreenshotDbo screenshotRepoint = new ProjectScreenshotDbo();
 		screenshotRepoint.setContentEntityId(targetId);
 		ProjectScreenshotDboExample screenshotRepointExample = new ProjectScreenshotDboExample();
 		screenshotRepointExample.createCriteria().andContentEntityIdEqualTo(sourceId);
-		screenshotMapper.updateByExampleSelective(screenshotRepoint, screenshotRepointExample);
+		projectScreenshotDao.updateWhere(screenshotRepoint, screenshotRepointExample);
 
 		ProjectDownloadDbo downloadRepoint = new ProjectDownloadDbo();
 		downloadRepoint.setContentEntityId(targetId);
 		ProjectDownloadDboExample downloadRepointExample = new ProjectDownloadDboExample();
 		downloadRepointExample.createCriteria().andContentEntityIdEqualTo(sourceId);
-		downloadMapper.updateByExampleSelective(downloadRepoint, downloadRepointExample);
+		projectDownloadDao.updateWhere(downloadRepoint, downloadRepointExample);
 
 		ContentCollectionItemDboExample collectionItemExample = new ContentCollectionItemDboExample();
 		collectionItemExample.createCriteria().andContentEntityIdEqualTo(sourceId);
-		for (ContentCollectionItemDbo collectionItem : collectionItemMapper.selectByExample(collectionItemExample)) {
+		for (ContentCollectionItemDbo collectionItem : contentCollectionItemDao.get(collectionItemExample)) {
 			ContentCollectionItemDboExample duplicateItemExample = new ContentCollectionItemDboExample();
 			duplicateItemExample.createCriteria().andContentCollectionIdEqualTo(collectionItem.getContentCollectionId())
 					.andContentEntityIdEqualTo(targetId);
-			if (collectionItemMapper.selectByExample(duplicateItemExample).isEmpty()) {
+			if (contentCollectionItemDao.get(duplicateItemExample).isEmpty()) {
 				collectionItem.setContentEntityId(targetId);
-				collectionItemMapper.updateByPrimaryKey(collectionItem);
+				contentCollectionItemDao.save(collectionItem);
 			} else {
-				collectionItemMapper.deleteByPrimaryKey(collectionItem.getContentCollectionItemId());
+				contentCollectionItemDao.delete(collectionItem.getContentCollectionItemId());
 			}
 		}
 
-		projectMergeMapper.deleteDuplicateProjectReactions(sourceId, targetId);
+		reactionDao.deleteDuplicateProjectReactions(sourceId, targetId);
 		ReactionDbo reactionRepoint = new ReactionDbo();
 		reactionRepoint.setReactableId(targetId);
 		ReactionDboExample reactionRepointExample = new ReactionDboExample();
 		reactionRepointExample.createCriteria().andReactableTypeEqualTo("PROJECT").andReactableIdEqualTo(sourceId);
-		reactionMapper.updateByExampleSelective(reactionRepoint, reactionRepointExample);
+		reactionDao.updateWhere(reactionRepoint, reactionRepointExample);
 
 		if (targetEntity.getWikiPageId() == null) {
 			targetEntity.setWikiPageId(sourceEntity.getWikiPageId());
@@ -207,42 +208,37 @@ public class CmsEntityMerger {
 		if (targetEntity.getSummary() == null || targetEntity.getSummary().isBlank()) {
 			targetEntity.setSummary(sourceEntity.getSummary());
 		}
-		contentEntityMapper.updateByPrimaryKey(targetEntity);
+		contentEntityDao.save(targetEntity);
 
-		if (targetProjectExtension != null && sourceProjectExtension != null) {
+		if (targetProjectExtension.isPresent() && sourceProjectExtension.isPresent()) {
+			ProjectDbo target = targetProjectExtension.get();
+			ProjectDbo source = sourceProjectExtension.get();
 			boolean extensionChanged = false;
-			if (targetProjectExtension.getLanguage() == null) {
-				targetProjectExtension.setLanguage(sourceProjectExtension.getLanguage());
+			if (target.getLanguage() == null) {
+				target.setLanguage(source.getLanguage());
 				extensionChanged = true;
 			}
-			if (targetProjectExtension.getRequirements() == null) {
-				targetProjectExtension.setRequirements(sourceProjectExtension.getRequirements());
+			if (target.getRequirements() == null) {
+				target.setRequirements(source.getRequirements());
 				extensionChanged = true;
 			}
 			if (extensionChanged) {
-				projectMapper.updateByPrimaryKey(targetProjectExtension);
+				projectDao.update(target);
 			}
 		}
 
-		migratorIdMapMapper.repointMigratorIdMap(targetId, sourceId);
+		migratorIdMapDao.repoint(targetId, sourceId);
 
-		projectMergeMapper.repointProjectTags(targetId, sourceId);
+		projectTagDao.repoint(targetId, sourceId);
 		ProjectNewsDbo projectNewsRepoint = new ProjectNewsDbo();
 		projectNewsRepoint.setContentEntityId(targetId);
 		ProjectNewsDboExample projectNewsRepointExample = new ProjectNewsDboExample();
 		projectNewsRepointExample.createCriteria().andContentEntityIdEqualTo(sourceId);
-		projectNewsMapper.updateByExampleSelective(projectNewsRepoint, projectNewsRepointExample);
+		projectNewsDao.updateWhere(projectNewsRepoint, projectNewsRepointExample);
 
-		contentEntityMapper.deleteByPrimaryKey(sourceId);
+		contentEntityDao.delete(sourceId);
 		if (sourceEntity.getWikiPageId() != null && !sourceEntity.getWikiPageId().equals(targetEntity.getWikiPageId())) {
 			adoptArticle(targetEntity.getWikiPageId(), sourceEntity.getWikiPageId());
 		}
-	}
-
-	private static <T> T require(T value) {
-		if (value == null) {
-			throw new ZfgcNotFoundException();
-		}
-		return value;
 	}
 }

@@ -1,5 +1,9 @@
 package com.zfgc.zfgbb.migration;
 
+import com.zfgc.zfgbb.services.backup.BackupRestoreService;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import com.zfgc.zfgbb.migrator.jobs.SmfConnectionParams;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -44,7 +48,7 @@ import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.migrator.mappers.QuoteStripConversionMapper;
 import com.zfgc.zfgbb.migrator.web.QuoteStripOperations;
 import com.zfgc.zfgbb.migrator.web.QuoteStripOperations.QuoteStripApplyResult;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.ContentMergeSide;
 import com.zfgc.zfgbb.model.cms.MergeApplyRequest;
 import com.zfgc.zfgbb.model.cms.MergeCandidate;
@@ -56,15 +60,14 @@ import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.operations.archive.BackupArchiveWriter;
 import com.zfgc.zfgbb.services.cms.merge.MigrationConflictService;
 import com.zfgc.zfgbb.services.cms.catalog.ProjectService;
-import com.zfgc.zfgbb.config.security.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.ZfgcPasswordEncoder;
 import com.zfgc.zfgbb.services.auth.AuthService;
-import com.zfgc.zfgbb.config.security.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.ZfgcPasswordEncoder;
 import com.zfgc.zfgbb.services.auth.AuthService;
-import com.zfgc.zfgbb.services.system.InstallService;
-import com.zfgc.zfgbb.services.system.InstallerCompatibilityService;
-import com.zfgc.zfgbb.services.system.OperationStorageService;
+import com.zfgc.zfgbb.services.install.InstallService;
+import com.zfgc.zfgbb.services.backup.OperationStorageService;
 import com.zfgc.zfgbb.operations.postgres.PostgresBackupTool;
-import com.zfgc.zfgbb.services.system.RestoreService;
+import com.zfgc.zfgbb.services.backup.RestoreService;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
 @Order(5)
@@ -531,7 +534,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		private InstallService installService;
 
 		@Autowired
-		private InstallerCompatibilityService installerCompatibility;
+		private BackupRestoreService installabilityClassifier;
 
 		@Autowired
 		private AuthService authService;
@@ -814,8 +817,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		@Order(9)
 		void installingFromACorpusArchiveRestoresTheCorpusOntoTheRequestedAdministrator()
 				throws Exception {
-			InstallerCompatibilityService.Classification classification =
-					installerCompatibility.classify(contentTarget);
+			BackupRestoreService.ArchiveInstallability classification =
+					installabilityClassifier.classifyInstallability(contentTarget);
 			assertTrue(classification.compatible(),
 					() -> "the migrated corpus must be shippable as installation content: "
 							+ classification.reason());
@@ -834,7 +837,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 
 			InstallResult installed = installService.install(new InstallRequest("corpus_owner",
 					"Corpus Owner", "corpus_owner@example.invalid", "corpuspass789",
-					"Restored Corpus", "zfgc", false, true, null));
+					"Restored Corpus", true, false, true, null));
 
 			assertEquals(Integer.valueOf(anchorAdministratorId), installed.response().adminUserId());
 			assertEquals("Restored Corpus", installed.response().siteName());
@@ -852,7 +855,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 					"installing from the archive must not import generation-time sessions");
 			InstallRunDboExample corpusInstall = new InstallRunDboExample();
 			corpusInstall.createCriteria().andInstallIdEqualTo((short) 1).andStateEqualTo("INSTALLED")
-					.andContentPackEqualTo("zfgc").andSiteNameEqualTo("Restored Corpus")
+					.andSiteNameEqualTo("Restored Corpus")
 					.andProvisionRecycleBinEqualTo(true).andAdminUserIdEqualTo(anchorAdministratorId)
 					.andLastErrorIsNull();
 			assertEquals(1, installRunDboMapper.countByExample(corpusInstall));
@@ -893,7 +896,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 
 			InstallResult installed = installService.install(new InstallRequest(adoptedUserName,
 					"Adopted Owner", "adopted_owner@example.invalid", "adoptedpass789",
-					"Adopted Site", "zfgc", false, true, null));
+					"Adopted Site", true, false, true, null));
 
 			assertEquals(Integer.valueOf(adoptedUserId), installed.response().adminUserId(),
 					"the installation must report the adopted member as its administrator");
@@ -917,7 +920,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 					"the adopted member keeps their personal messages");
 			InstallRunDboExample adoptedInstall = new InstallRunDboExample();
 			adoptedInstall.createCriteria().andInstallIdEqualTo((short) 1).andStateEqualTo("INSTALLED")
-					.andContentPackEqualTo("zfgc").andAdminUserIdEqualTo(adoptedUserId).andLastErrorIsNull();
+					.andAdminUserIdEqualTo(adoptedUserId).andLastErrorIsNull();
 			assertEquals(1, installRunDboMapper.countByExample(adoptedInstall));
 
 			UserDboExample anonymizedAnchor = new UserDboExample();
@@ -986,12 +989,11 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		}
 
 		private void writeContentPackArchive(String schemaVersion,
-				InstallerCompatibilityService.Classification classification) throws Exception {
-			Path workspace = Files.createTempDirectory("zfgbb-content-pack-archive");
+				BackupRestoreService.ArchiveInstallability classification) throws Exception {
+			Path workspace = Files.createTempDirectory("zfgbb-sample-data-archive");
 			Path dump = workspace.resolve("database.dump");
 			PostgresBackupTool.DatabaseMetadata metadata = postgres.dump(dump);
-			Path destination = contentPackRoot.resolve("zfgc").resolve("v1")
-					.resolve("backup.tar.gz");
+			Path destination = sampleArchive;
 			Files.createDirectories(destination.getParent());
 			new BackupArchiveWriter(operationStorage.limits()).write(
 					new BackupArchiveWriter.Request(dump, contentTarget, "test", schemaVersion,
@@ -1034,7 +1036,6 @@ class MigrationAdminToolsTest extends MigrationE2E {
 			installRun.setState("READY");
 			installRun.setLastCompletedState("READY");
 			installRun.setRequestFingerprint(null);
-			installRun.setContentPack(null);
 			installRun.setProvisionRecycleBin(null);
 			installRun.setSiteName(null);
 			installRun.setAdminUserId(null);
@@ -1069,6 +1070,62 @@ class MigrationAdminToolsTest extends MigrationE2E {
 							Instant.now()),
 					archive);
 			return archive;
+		}
+	}
+
+	@Nested
+	@Order(1)
+	class SourceConnection {
+
+		@ParameterizedTest
+		@ValueSource(strings = {
+				"zfgc?allowLoadLocalInfile=true&allowUrlInLocalInfile=true",
+				"zfgc?autoDeserialize=true",
+				"zfgc&useSSL=false",
+				"zfgc/../other",
+				"zfgc#fragment",
+				"zfgc db",
+				"" })
+		void aDatabaseNameCannotSmuggleConnectorProperties(String database) {
+			assertThrows(IllegalArgumentException.class,
+					() -> SmfConnectionParams.smfJdbcUrl("db.example.com", 3306, database),
+					"a database name carrying '?', '&', '/' or '#' would append MySQL connector "
+							+ "properties such as allowLoadLocalInfile or autoDeserialize to the URL, "
+							+ "which lets a hostile source server read files off this host");
+		}
+
+		@ParameterizedTest
+		@ValueSource(strings = {
+				"db.example.com?autoDeserialize=true",
+				"db.example.com/x",
+				"db.example.com:3307",
+				"db.example.com#f",
+				"-leading.hyphen",
+				"trailing.dot.",
+				"" })
+		void aHostCannotSmuggleConnectorPropertiesOrExtraAuthority(String host) {
+			assertThrows(IllegalArgumentException.class,
+					() -> SmfConnectionParams.smfJdbcUrl(host, 3306, "zfgc"));
+		}
+
+		@ParameterizedTest
+		@ValueSource(ints = { 0, -1, 65536 })
+		void aPortOutsideTheTcpRangeIsRefused(int port) {
+			assertThrows(IllegalArgumentException.class,
+					() -> SmfConnectionParams.smfJdbcUrl("db.example.com", port, "zfgc"));
+		}
+
+		@Test
+		void theOperatorStillChoosesAnyLegitimateSourceHost() {
+			assertEquals("jdbc:mysql://db.example.com:3306/zfgc",
+					SmfConnectionParams.smfJdbcUrl("db.example.com", 3306, "zfgc"),
+					"migrating from an operator-hosted legacy database is the whole feature; "
+							+ "validation constrains the shape of the parts, never which host is reachable");
+			assertEquals("jdbc:mysql://10.0.0.5:3307/smf_legacy-1",
+					SmfConnectionParams.smfJdbcUrl("10.0.0.5", 3307, "smf_legacy-1"));
+			assertEquals("jdbc:mysql://[::1]:3306/zfgc",
+					SmfConnectionParams.smfJdbcUrl("[::1]", null, "zfgc"),
+					"an IPv6 literal and the default port must both still work");
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.config;
 
+import lombok.RequiredArgsConstructor;
+import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.sql.Connection;
 
 import javax.sql.DataSource;
@@ -14,12 +16,11 @@ import org.springframework.stereotype.Component;
  * request-scoped and has no connection until an administrator starts a migration.
  */
 @Component
+@RawSqlAccess("liveness probe")
+@RequiredArgsConstructor
 public class PrimaryDatabaseHealthIndicator extends AbstractHealthIndicator {
+	@Qualifier("dataSource")
 	private final DataSource dataSource;
-
-	public PrimaryDatabaseHealthIndicator(@Qualifier("dataSource") DataSource dataSource) {
-		this.dataSource = dataSource;
-	}
 
 	@Override
 	protected void doHealthCheck(Health.Builder builder) throws Exception {

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.model.system.SiteInfo;
 import com.zfgc.zfgbb.services.system.SystemConfigService;

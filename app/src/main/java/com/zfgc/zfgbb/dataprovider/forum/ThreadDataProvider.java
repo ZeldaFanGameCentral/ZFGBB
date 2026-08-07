@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
-import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.dao.forum.BoardDao;
+import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.dao.forum.PollDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
@@ -25,16 +25,16 @@ import com.zfgc.zfgbb.dbo.PollDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
-import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
-import com.zfgc.zfgbb.mappers.PollChoiceDboMapper;
+import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
+import com.zfgc.zfgbb.dao.forum.LatestMessageInThreadViewDao;
+import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mapstruct.forum.PollMap;
 import com.zfgc.zfgbb.mapstruct.forum.ThreadMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.Poll;
 import com.zfgc.zfgbb.model.forum.Thread;
@@ -55,21 +55,19 @@ public class ThreadDataProvider {
 
 	private final MessageDataProvider messageDataProvider;
 
-	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final BoardPermissionViewDao boardPermissionViewDao;
 
 	private final BoardDao boardDao;
 
 	private final PollDao pollDao;
 
-	private final PollChoiceDboMapper pollChoiceDboMapper;
+	private final PollChoiceDao pollChoiceDao;
 
 	private final UserDao userDao;
 
-	private final LatestMessageInThreadViewDboMapper latestMessageMapper;
+	private final LatestMessageInThreadViewDao latestMessageInThreadViewDao;
 
-	private final MessageDboMapper messageMapper;
-
-	private final MessagePostCountMapper messagePostCountMapper;
+	private final MessageDao messageDao;
 
 	private final PollMap pollMap;
 
@@ -87,7 +85,7 @@ public class ThreadDataProvider {
 
 			MessageDboExample ex = new MessageDboExample();
 			ex.createCriteria().andThreadIdEqualTo(threadId);
-			long msgCount = messageMapper.countByExample(ex);
+			long msgCount = messageDao.count(ex);
 
 			List<Message> messages = (page == null || page <= 0)
 					? messageDataProvider.getMessagesFrom(threadId, (int) Math.max(1, msgCount - pageSize + 1), pageSize)
@@ -110,13 +108,12 @@ public class ThreadDataProvider {
 	public Poll getPollInfo(Integer threadId) {
 		PollDboExample pollEx = new PollDboExample();
 		pollEx.createCriteria().andThreadIdEqualTo(threadId);
-		return pollDao.get(pollEx).stream()
-						  .findFirst()
+		return pollDao.getOne(pollEx)
 						  .map(poll -> {
 							  	PollChoiceDboExample choiceEx = new PollChoiceDboExample();
 							  	choiceEx.createCriteria().andActiveFlagEqualTo(true)
 							  							 .andPollIdEqualTo(poll.getPollId());
-							  	List<PollChoiceDbo> choices = pollChoiceDboMapper.selectByExample(choiceEx);
+							  	List<PollChoiceDbo> choices = pollChoiceDao.get(choiceEx);
 							  	
 							  	Poll result = pollMap.toModel(poll, choices);
 
@@ -138,7 +135,7 @@ public class ThreadDataProvider {
 		latestMessageEx.setOrderByClause("last_post_ts desc");
 		latestMessageEx.createCriteria().andBoardIdEqualTo(boardId).andPinnedFlagEqualTo(sticky);
 
-		List<LatestMessageInThreadViewDbo> latestMessages = latestMessageMapper.selectByExampleWithLimits(latestMessageEx);
+		List<LatestMessageInThreadViewDbo> latestMessages = latestMessageInThreadViewDao.get(latestMessageEx);
 		List<Thread> result = latestMessages.stream().map(threadMap::toThread).collect(Collectors.toList());
 		Map<Integer, LatestMessageInThreadViewDbo> messagesByThreadId = latestMessages.stream()
 																					  .collect(Collectors.toMap(LatestMessageInThreadViewDbo::getThreadId, Function.identity()));
@@ -151,12 +148,12 @@ public class ThreadDataProvider {
 		List<Integer> threadIds = result.stream().map(Thread::getThreadId).filter(Objects::nonNull).toList();
 
 		Map<Integer, Integer> postCountsByThreadId = threadIds.isEmpty() ? Map.of() :
-				messagePostCountMapper.postCountsByThreadIds(threadIds).stream()
+				messageDao.postCountsByThreadIds(threadIds).stream()
 						.collect(Collectors.toMap(MessagePostCountMapper.ThreadPostCount::getThreadId,
 								MessagePostCountMapper.ThreadPostCount::getPostCount));
 
 		Map<Integer, MessagePostCountMapper.LatestMessageUser> latestMessageUserByThreadId = threadIds.isEmpty() ? Map.of() :
-				messagePostCountMapper.latestMessageUsersByThreadIds(threadIds).stream()
+				messageDao.latestMessageUsersByThreadIds(threadIds).stream()
 						.collect(Collectors.toMap(MessagePostCountMapper.LatestMessageUser::getThreadId, Function.identity()));
 
 		Map<Integer, User> startersByUserId = loadStarterUsers(result);
@@ -202,7 +199,7 @@ public class ThreadDataProvider {
 			
 			MessageDboExample ex = new MessageDboExample();
 			ex.createCriteria().andThreadIdEqualTo(threadId);
-			long count = messageMapper.countByExample(ex);
+			long count = messageDao.count(ex);
 			result.setPageCount((int)Math.ceil(count / (double) DEFAULT_MESSAGES_PER_PAGE));
 			
 			return result;
@@ -226,7 +223,7 @@ public class ThreadDataProvider {
 	public List<Permission> getBoardPermissions(Integer boardId){
 		BoardPermissionViewDboExample bEx = new BoardPermissionViewDboExample();
 		bEx.createCriteria().andBoardIdEqualTo(boardId);
-		return boardPermissionViewDboMapper.selectByExample(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
+		return boardPermissionViewDao.get(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
 	}
 	
 	public Thread splitThread(ThreadSplit splitter, Thread newThread) {

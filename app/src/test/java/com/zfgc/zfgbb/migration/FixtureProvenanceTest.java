@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,7 +12,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -26,13 +29,14 @@ import com.zfgc.zfgbb.mappers.PersonalMessageDboMapper;
 import com.zfgc.zfgbb.mappers.SystemConfigDboMapper;
 import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
 import com.zfgc.zfgbb.mappers.UserWarningDboMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.system.AdminBackupResponse;
 import com.zfgc.zfgbb.operations.archive.BackupArchiveValidator;
+import com.zfgc.zfgbb.operations.archive.BackupLimits;
+import com.zfgc.zfgbb.operations.archive.BackupManifest;
 import com.zfgc.zfgbb.operations.archive.ValidatedBackup;
-import com.zfgc.zfgbb.services.system.BackupRestoreService;
-import com.zfgc.zfgbb.services.system.InstallerCompatibilityService;
-import com.zfgc.zfgbb.services.system.OperationStorageService;
+import com.zfgc.zfgbb.services.backup.BackupRestoreService;
+import com.zfgc.zfgbb.services.backup.OperationStorageService;
 import com.zfgc.zfgbb.operations.postgres.PostgresBackupTool;
 import com.zfgc.zfgbb.testsupport.FixtureSemanticInventory;
 
@@ -43,10 +47,13 @@ class FixtureProvenanceTest extends MigrationE2E {
 	static final String REGENERATE_APPROVED_INVENTORY_PROPERTY =
 			"zfgbb.regenerate.fixture.inventory";
 	static final String SHIPPED_ARCHIVE_DIRECTORY =
-			"app/src/main/resources/content-packs/zfgc/v1";
+			"app/src/main/resources/sample-data";
 	static final String SHIPPED_ARCHIVE_FILE_NAME = "backup.tar.gz";
 	static final String APPROVED_INVENTORY_FILE =
 			"app/src/test/resources/fixture-semantic-inventory.tsv";
+	private static final List<String> MIGRATION_LOCATIONS = List.of(
+			"app/src/main/resources/db/setup",
+			"app/src/main/resources/db/migration");
 
 	@Test
 	void immutableLegacyMigrationAndReviewedOverlaysMatchTheApprovedInventory()
@@ -73,6 +80,56 @@ class FixtureProvenanceTest extends MigrationE2E {
 		assertEquals(2, userAwardDboMapper.countByExample(grantedByAdministrator));
 		assertEquals(27, contentResourceDboMapper.countByExample(null));
 		assertNotNull(systemConfigDboMapper.selectByPrimaryKey("recycle_board_id"));
+	}
+
+	@Test
+	void theShippedArchiveIsInstallableAtTheCommittedSchemaVersion() throws Exception {
+		assumeFalse(Boolean.getBoolean(REGENERATE_SHIPPED_ARCHIVE_PROPERTY),
+				"the regeneration run rewrites the shipped archive, so it must not also be the "
+						+ "guard that decides whether the shipped archive is current");
+
+		Path shippedArchive = resolveFromProjectRoot(SHIPPED_ARCHIVE_DIRECTORY)
+				.resolve(SHIPPED_ARCHIVE_FILE_NAME);
+		assertTrue(Files.isRegularFile(shippedArchive),
+				() -> "this deployment must ship a sample data archive at " + shippedArchive);
+
+		BackupManifest shipped = new BackupArchiveValidator(BackupLimits.defaults())
+				.validate(shippedArchive).manifest();
+
+		assertTrue(shipped.installerCompatible(),
+				"the shipped archive must classify as installer compatible");
+		assertTrue(shipped.installerAnchorAdministratorId() > 0,
+				"the shipped archive must name the administrator the installer reconciles onto");
+		assertEquals(highestResolvedSchemaVersion(), shipped.flywayVersion(),
+				"the shipped archive must be regenerated whenever a migration is added, or the "
+						+ "restore drift guard will refuse every installation");
+		assertTrue(shipped.entries().stream().anyMatch(entry -> "database".equals(entry.type())),
+				"the shipped archive must carry a database dump");
+		assertTrue(shipped.entries().stream().anyMatch(entry -> "content".equals(entry.type())),
+				"the shipped archive must carry the preview content resources");
+	}
+
+	private static String highestResolvedSchemaVersion() throws Exception {
+		MigrationVersion highest = null;
+		for (String location : MIGRATION_LOCATIONS) {
+			try (var paths = Files.walk(resolveFromProjectRoot(location))) {
+				for (Path migration : paths.filter(Files::isRegularFile).toList()) {
+					MigrationVersion version = versionOf(migration.getFileName().toString());
+					if (version != null && (highest == null || version.compareTo(highest) > 0))
+						highest = version;
+				}
+			}
+		}
+		if (highest == null)
+			throw new AssertionError("no versioned migration was found under " + MIGRATION_LOCATIONS);
+		return highest.getVersion();
+	}
+
+	private static MigrationVersion versionOf(String fileName) {
+		int separator = fileName.indexOf("__");
+		if (!fileName.startsWith("V") || !fileName.endsWith(".sql") || separator < 2)
+			return null;
+		return MigrationVersion.fromVersion(fileName.substring(1, separator));
 	}
 
 	@Autowired
@@ -115,7 +172,7 @@ class FixtureProvenanceTest extends MigrationE2E {
 		private OperationStorageService operationStorage;
 
 		@Autowired
-		private InstallerCompatibilityService installerCompatibility;
+		private BackupRestoreService installabilityClassifier;
 
 		@Autowired
 		private PostgresBackupTool postgres;
@@ -127,8 +184,8 @@ class FixtureProvenanceTest extends MigrationE2E {
 							+ "shipped archive, or the archive would be approved against itself");
 			assertFixtureMatchesApprovedInventory();
 
-			InstallerCompatibilityService.Classification classification =
-					installerCompatibility.classify(contentTarget);
+			BackupRestoreService.ArchiveInstallability classification =
+					installabilityClassifier.classifyInstallability(contentTarget);
 			assertTrue(classification.compatible(),
 					() -> "the migrated preview corpus is not shippable as installation content: "
 							+ classification.reason());

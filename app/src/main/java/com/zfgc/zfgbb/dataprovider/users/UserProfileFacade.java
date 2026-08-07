@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
@@ -23,18 +23,19 @@ import com.zfgc.zfgbb.dbo.UserPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDbo;
 import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDboExample;
-import com.zfgc.zfgbb.mappers.AwardDboMapper;
-import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
-import com.zfgc.zfgbb.mappers.UserPermissionViewDboMapper;
-import com.zfgc.zfgbb.mappers.UserReactionSummaryViewDboMapper;
+import com.zfgc.zfgbb.dao.users.AwardDao;
+import com.zfgc.zfgbb.dao.users.UserAwardDao;
+import com.zfgc.zfgbb.dao.users.UserPermissionViewDao;
+import com.zfgc.zfgbb.dao.users.UserReactionSummaryViewDao;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
-import com.zfgc.zfgbb.mappers.custom.UserProfileHydrationMapper;
+import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.users.ReactionSummary;
@@ -48,9 +49,9 @@ import lombok.RequiredArgsConstructor;
 @UnfilteredBoardRead("counts only guest-visible boards")
 public class UserProfileFacade {
 
-    private final UserProfileHydrationMapper userProfileHydrationMapper;
+    private final UserDao userDao;
 
-    private final UserPermissionViewDboMapper userPermissionViewDboMapper;
+    private final UserPermissionViewDao userPermissionViewDao;
 
     private final ContentRenderingService contentRenderingService;
 
@@ -64,13 +65,13 @@ public class UserProfileFacade {
 
     private final PermissionMap permissionMap;
 
-    private final UserReactionSummaryViewDboMapper reactionSummaryMapper;
+    private final UserReactionSummaryViewDao reactionSummaryDao;
 
-    private final UserAwardDboMapper userAwardMapper;
+    private final UserAwardDao userAwardDao;
 
-    private final AwardDboMapper awardMapper;
+    private final AwardDao awardDao;
 
-    private final MessagePostCountMapper messagePostCountMapper;
+    private final MessageDao messageDao;
 
     private final GuestPermissionDataProvider guestPermissionDataProvider;
 
@@ -83,14 +84,14 @@ public class UserProfileFacade {
         List<Integer> distinctIds = userIds.stream().filter(id -> id != null).distinct().toList();
         if (distinctIds.isEmpty()) return Collections.emptyMap();
 
-        List<UserAggregateDbo> aggregates = userProfileHydrationMapper.hydrateUsers(distinctIds);
+        List<UserAggregateDbo> aggregates = userDao.hydrate(distinctIds);
         if (aggregates.isEmpty()) return Collections.emptyMap();
 
         Map<Integer, List<Permission>> permissionsByUserId = Collections.emptyMap();
         if (loadOptions.loadPermissions()) {
             UserPermissionViewDboExample permissionEx = new UserPermissionViewDboExample();
             permissionEx.createCriteria().andUserIdIn(distinctIds);
-            permissionsByUserId = userPermissionViewDboMapper.selectByExample(permissionEx).stream()
+            permissionsByUserId = userPermissionViewDao.get(permissionEx).stream()
                     .collect(Collectors.groupingBy(UserPermissionViewDbo::getUserId,
                             Collectors.mapping(permissionMap::toModel, Collectors.toList())));
         }
@@ -99,14 +100,14 @@ public class UserProfileFacade {
         if (loadOptions.loadReactions()) {
             UserReactionSummaryViewDboExample reactionEx = new UserReactionSummaryViewDboExample();
             reactionEx.createCriteria().andUserIdIn(distinctIds);
-            reactionByUserId = reactionSummaryMapper.selectByExample(reactionEx).stream()
+            reactionByUserId = reactionSummaryDao.get(reactionEx).stream()
                     .collect(Collectors.toMap(UserReactionSummaryViewDbo::getUserId, this::toReactionSummary));
         }
 
         Map<Integer, Integer> postCountByOwnerId = Collections.emptyMap();
         List<Integer> guestVisibleBoardIds = guestVisibleBoardIds();
         if (!guestVisibleBoardIds.isEmpty() && loadOptions.loadBio()) {
-            postCountByOwnerId = messagePostCountMapper
+            postCountByOwnerId = messageDao
                     .postCountsByOwnerWithinBoards(distinctIds, guestVisibleBoardIds).stream()
                     .collect(Collectors.toMap(MessagePostCountMapper.OwnerPostCount::getOwnerId,
                             ownerPostCount -> (int) ownerPostCount.getPostCount()));
@@ -117,12 +118,12 @@ public class UserProfileFacade {
             UserAwardDboExample grantEx = new UserAwardDboExample();
             grantEx.createCriteria().andUserIdIn(distinctIds);
             grantEx.setOrderByClause("granted_ts desc");
-            List<UserAwardDbo> grants = userAwardMapper.selectByExample(grantEx);
+            List<UserAwardDbo> grants = userAwardDao.get(grantEx);
             if (!grants.isEmpty()) {
                 List<Integer> awardIds = grants.stream().map(UserAwardDbo::getAwardId).distinct().toList();
                 AwardDboExample awardEx = new AwardDboExample();
                 awardEx.createCriteria().andAwardIdIn(awardIds);
-                Map<Integer, AwardDbo> awardsById = awardMapper.selectByExample(awardEx).stream()
+                Map<Integer, AwardDbo> awardsById = awardDao.get(awardEx).stream()
                         .collect(Collectors.toMap(AwardDbo::getAwardId, awardDbo -> awardDbo));
                 awardsByUserId = grants.stream()
                         .filter(grant -> awardsById.containsKey(grant.getAwardId()))

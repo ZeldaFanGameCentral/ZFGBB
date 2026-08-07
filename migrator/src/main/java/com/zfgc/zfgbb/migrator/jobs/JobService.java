@@ -160,9 +160,7 @@ public class JobService {
 			List<String> holder = targetJdbc.queryForList(
 					"select name from zfgbb.wiki_namespace where engine_role = ?", String.class, role);
 			if (holder.isEmpty() || holder.get(0).equalsIgnoreCase(configured)) continue;
-			log.warn("MediaWiki namespace {} is configured to import as '{}', but this wiki's {} namespace is "
-					+ "already '{}'. Importing into the existing namespace and correcting the import "
-					+ "configuration so it matches.", entry.getKey(), configured, role, holder.get(0));
+			log.warn("MediaWiki namespace {} maps to '{}' but the {} namespace is already '{}'; importing into the existing namespace", entry.getKey(), configured, role, holder.get(0));
 			entry.setValue(holder.get(0));
 			targetJdbc.update("update zfgbb.wiki_import_namespace set namespace_name = ?, updated_ts = now() "
 					+ "where source_namespace_id = ?", holder.get(0), entry.getKey());
@@ -285,8 +283,7 @@ public class JobService {
 		if (!prefix.matches("^[A-Za-z0-9_]*$")) {
 			throw new IllegalArgumentException("Invalid table prefix.");
 		}
-		int resolvedPort = port == null ? 3306 : port;
-		String jdbcUrl = "jdbc:mysql://" + host + ":" + resolvedPort + "/" + database
+		String jdbcUrl = SmfConnectionParams.smfJdbcUrl(host, port, database)
 				+ "?useSSL=false&allowPublicKeyRetrieval=true";
 		DataSource dataSource = buildDataSource(jdbcUrl, user, password);
 		try {

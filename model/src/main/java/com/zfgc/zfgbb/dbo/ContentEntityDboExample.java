@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1344,6 +1345,36 @@ public class ContentEntityDboExample {
 
         public Criteria andMigrationHashNotBetween(String value1, String value2) {
             addCriterion("migration_hash not between", value1, value2, "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andEntityTypeContains(String value) {
+            addCriterion("entity_type ilike", LikePatterns.contains(value), "entityType");
+            return (Criteria) this;
+        }
+
+        public Criteria andTitleContains(String value) {
+            addCriterion("title ilike", LikePatterns.contains(value), "title");
+            return (Criteria) this;
+        }
+
+        public Criteria andSlugContains(String value) {
+            addCriterion("slug ilike", LikePatterns.contains(value), "slug");
+            return (Criteria) this;
+        }
+
+        public Criteria andSummaryContains(String value) {
+            addCriterion("summary ilike", LikePatterns.contains(value), "summary");
+            return (Criteria) this;
+        }
+
+        public Criteria andAuthorNameContains(String value) {
+            addCriterion("author_name ilike", LikePatterns.contains(value), "authorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

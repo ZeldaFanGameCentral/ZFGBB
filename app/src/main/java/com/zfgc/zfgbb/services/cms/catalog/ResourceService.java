@@ -14,7 +14,7 @@ import com.zfgc.zfgbb.services.cms.CmsPageRenderer;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.cms.ResourceDataProvider;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Resource;
 import com.zfgc.zfgbb.model.cms.ResourceShowcase;
@@ -81,7 +81,7 @@ public class ResourceService {
 
 	private List<Resource> rail(List<Resource> catalog, String sort, int limit, String excludeSlug) {
 		List<Resource> ordered = new ArrayList<>(catalog);
-		if ("random".equals(sort)) {
+		if (sort.equals("random")) {
 			Collections.shuffle(ordered);
 		} else {
 			ordered.sort(comparator(sort));
@@ -93,7 +93,7 @@ public class ResourceService {
 
 	private static Comparator<Resource> comparator(String sort) {
 		Comparator<Resource> byTitle = Comparator.comparing(ResourceService::titleKey);
-		return switch (sort) {
+		return switch (sort == null ? "" : sort) {
 			case "newest" -> nullsLastDesc(Resource::getPublishedTs).thenComparing(byTitle);
 			case "rating" -> nullsLastDesc(Resource::getRating)
 					.thenComparing(nullsLastDesc(Resource::getVoteCount)).thenComparing(byTitle);

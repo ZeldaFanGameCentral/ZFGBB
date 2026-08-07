@@ -37,10 +37,10 @@ public abstract class AbstractSystemInstallTest extends ZfgbbIntegrationTest {
 	}
 
 	public static String installBody(boolean recycle) {
-		return installBody(recycle, "zfgc");
+		return installBody(recycle, true);
 	}
 
-	public static String installBody(boolean recycle, String contentPack) {
+	public static String installBody(boolean recycle, boolean installSampleData) {
 		return """
 				{
 				  "adminUserName": "pack_admin",
@@ -48,9 +48,9 @@ public abstract class AbstractSystemInstallTest extends ZfgbbIntegrationTest {
 				  "adminEmail": "pack-admin@example.invalid",
 				  "adminPassword": "pack-admin-password",
 				  "siteName": "Installer Site Name",
-				  "contentPack": "%s",
+				  "installSampleData": %s,
 				  "provisionRecycleBin": %s
 				}
-				""".formatted(contentPack, recycle);
+				""".formatted(installSampleData, recycle);
 	}
 }

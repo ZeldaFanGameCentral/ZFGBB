@@ -18,7 +18,7 @@ import com.zfgc.zfgbb.dbo.ReactionDbo;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.reactions.ContentReactionSummary;
 import com.zfgc.zfgbb.model.reactions.ReactionRequest;
 import com.zfgc.zfgbb.model.reactions.ReactionTally;

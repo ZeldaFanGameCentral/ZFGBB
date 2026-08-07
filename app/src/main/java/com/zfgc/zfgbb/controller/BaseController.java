@@ -5,7 +5,7 @@ import java.util.Map;
 
 
 import com.zfgc.zfgbb.authorization.RequestingUser;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 
 public class BaseController {
 

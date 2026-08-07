@@ -35,7 +35,7 @@ public abstract class MigrationE2E extends MigrationTestSupport {
 	static final ComposeContainer pg = devPostgres();
 	static final ComposeContainer smf = smfFixture();
 	static final Path contentTarget;
-	protected static final Path contentPackRoot;
+	protected static final Path sampleArchive;
 
 	static {
 		pg.start();
@@ -43,7 +43,8 @@ public abstract class MigrationE2E extends MigrationTestSupport {
 		waitForSmf(smf);
 		try {
 			contentTarget = Files.createTempDirectory("zfgbb-e2e-content");
-			contentPackRoot = Files.createTempDirectory("zfgbb-e2e-content-packs");
+			sampleArchive = Files.createTempDirectory("zfgbb-e2e-sample-data")
+					.resolve("backup.tar.gz");
 		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
@@ -63,7 +64,7 @@ public abstract class MigrationE2E extends MigrationTestSupport {
 	static void props(DynamicPropertyRegistry r) {
 		datasource(r, pg);
 		migrationProperties(r, () -> contentTarget.toString());
-		r.add("zfgbb.install.content-pack-root", () -> "file:" + contentPackRoot + "/");
+		r.add("zfgbb.install.sample-archive", () -> "file:" + sampleArchive);
 	}
 
 	protected SmfConnectionParams params() {

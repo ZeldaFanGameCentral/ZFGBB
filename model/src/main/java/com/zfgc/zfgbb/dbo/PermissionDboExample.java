@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -464,6 +465,16 @@ public class PermissionDboExample {
 
         public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionNameContains(String value) {
+            addCriterion("permission_name ilike", LikePatterns.contains(value), "permissionName");
+            return (Criteria) this;
+        }
+
+        public Criteria andPermissionCodeContains(String value) {
+            addCriterion("permission_code ilike", LikePatterns.contains(value), "permissionCode");
             return (Criteria) this;
         }
     }

@@ -240,7 +240,7 @@ public final class MediaWikiParser {
 
     private Node table(Element el) {
         boolean fullWidth = el.attr("style").replace(" ", "").contains("width:100%")
-                || "100%".equals(el.attr("width").trim());
+                || el.attr("width").trim().equals("100%");
         List<Node.Table.Row> rows = new ArrayList<>();
         for (Element section : el.children()) {
             if (section.normalName().equals("tr")) {

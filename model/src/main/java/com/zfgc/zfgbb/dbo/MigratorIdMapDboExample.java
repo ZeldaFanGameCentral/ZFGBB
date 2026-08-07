@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -454,6 +455,11 @@ public class MigratorIdMapDboExample {
 
         public Criteria andCreatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("created_ts not between", value1, value2, "createdTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andEntityTypeContains(String value) {
+            addCriterion("entity_type ilike", LikePatterns.contains(value), "entityType");
             return (Criteria) this;
         }
     }

@@ -14,7 +14,7 @@ ADD ./migrator/src ./migrator/src
 ADD ./app/src ./app/src
 RUN mvn clean package -Dmaven.test.skip=true
 
-# FIXME: This image should be switched to gcr.io/distroless/java-base-debian12 because it is much smaller. For now, this will work.
+# FIXME: switch to gcr.io/distroless/java-base-debian12
 FROM tomcat:jre21-temurin-noble AS deploy
 
 # Backup format v1 supports PostgreSQL 18 only, including its client tools.
@@ -33,7 +33,6 @@ RUN apt-get update \
 ARG ZFGBB_BUILD_VERSION
 ENV ZFGBB_BUILD_VERSION=$ZFGBB_BUILD_VERSION
 
-# Copy WAR
 COPY --from=build /usr/src/app/target/zfgbb.war /usr/local/tomcat/webapps/
 
 # Create the configured content root inside the image.

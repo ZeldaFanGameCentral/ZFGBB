@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.controller.cms;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

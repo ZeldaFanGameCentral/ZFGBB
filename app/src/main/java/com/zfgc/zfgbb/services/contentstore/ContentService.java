@@ -19,13 +19,13 @@ import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dbo.AttachmentBoardViewDbo;
 import com.zfgc.zfgbb.dbo.AttachmentBoardViewDboExample;
-import com.zfgc.zfgbb.mappers.AttachmentBoardViewDboMapper;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
+import com.zfgc.zfgbb.dao.forum.AttachmentBoardViewDao;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
-import com.zfgc.zfgbb.mappers.BoardPermissionViewDboMapper;
-import com.zfgc.zfgbb.model.User;
-import com.zfgc.zfgbb.services.system.ContentRoot;
+import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
+import com.zfgc.zfgbb.model.users.User;
+import com.zfgc.zfgbb.services.contentstore.ContentRoot;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,11 +34,11 @@ import lombok.RequiredArgsConstructor;
 public class ContentService {
 	private static final String LEGACY_IMAGE_DIRECTORY = "images";
 
-	private final ContentResourceDboMapper contentResourceDboMapper;
+	private final ContentResourceDao contentResourceDao;
 
-	private final AttachmentBoardViewDboMapper attachmentBoardViewDboMapper;
+	private final AttachmentBoardViewDao attachmentBoardViewDao;
 
-	private final BoardPermissionViewDboMapper boardPermissionViewDboMapper;
+	private final BoardPermissionViewDao boardPermissionViewDao;
 
 	private final ContentRoot contentRoot;
 
@@ -47,14 +47,14 @@ public class ContentService {
 		attEx.createCriteria().andContentResourceIdEqualTo(resourceId);
 		attEx.setLimit(1);
 		attEx.setOffset(0);
-		List<AttachmentBoardViewDbo> results = attachmentBoardViewDboMapper.selectByExampleWithLimits(attEx);
+		List<AttachmentBoardViewDbo> results = attachmentBoardViewDao.get(attEx);
 		Integer boardId = results.isEmpty() ? null : results.get(0).getBoardId();
 		if (boardId == null) {
 			return;
 		}
 		BoardPermissionViewDboExample permEx = new BoardPermissionViewDboExample();
 		permEx.createCriteria().andBoardIdEqualTo(boardId);
-		List<Integer> required = boardPermissionViewDboMapper.selectByExample(permEx).stream()
+		List<Integer> required = boardPermissionViewDao.get(permEx).stream()
 				.map(BoardPermissionViewDbo::getPermissionId)
 				.toList();
 		if (!user.hasAnyPermissionId(required)) {
@@ -65,7 +65,7 @@ public class ContentService {
 	public Optional<ContentResourceDbo> getContentResourceDbo(Integer resourceId) {
 		ContentResourceDboExample ex = new ContentResourceDboExample();
 		ex.createCriteria().andContentResourceIdEqualTo(resourceId);
-		return contentResourceDboMapper.selectByExample(ex).stream().findFirst();
+		return contentResourceDao.getOne(ex);
 	}
 
 	public Resource getImageResource(Integer resourceId) throws MalformedURLException {

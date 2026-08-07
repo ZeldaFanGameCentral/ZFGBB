@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -413,6 +414,21 @@ public class AttributeValueMappingDboExample {
 
         public Criteria andToValueNotBetween(String value1, String value2) {
             addCriterion("to_value not between", value1, value2, "toValue");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeContains(String value) {
+            addCriterion("attribute_data_type ilike", LikePatterns.contains(value), "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andFromValueContains(String value) {
+            addCriterion("from_value ilike", LikePatterns.contains(value), "fromValue");
+            return (Criteria) this;
+        }
+
+        public Criteria andToValueContains(String value) {
+            addCriterion("to_value ilike", LikePatterns.contains(value), "toValue");
             return (Criteria) this;
         }
     }

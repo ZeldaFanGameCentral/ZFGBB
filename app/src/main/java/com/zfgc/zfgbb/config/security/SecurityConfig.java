@@ -1,5 +1,12 @@
 package com.zfgc.zfgbb.config.security;
 
+import com.zfgc.zfgbb.authorization.AllowAnonymousRequestMatcher;
+import com.zfgc.zfgbb.services.auth.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.ZfgcUserDetailsPasswordService;
+import com.zfgc.zfgbb.services.auth.ZfgcUserDetailsService;
+import com.zfgc.zfgbb.web.filter.AccessCookieBearerHeaderFilter;
+import com.zfgc.zfgbb.web.filter.MaintenanceGateFilter;
+import com.zfgc.zfgbb.web.filter.PartialInstallGateFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +38,7 @@ import jakarta.servlet.Filter;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final JwtUserAuthenticationConverter jwtUserAuthenticationConverter;
+	private final UserJwtAuthenticationConverter jwtUserAuthenticationConverter;
 	private final AccessCookieBearerHeaderFilter accessCookieBearerHeaderFilter;
 	private final PartialInstallGateFilter partialInstallGateFilter;
 	private final MaintenanceGateFilter maintenanceGateFilter;

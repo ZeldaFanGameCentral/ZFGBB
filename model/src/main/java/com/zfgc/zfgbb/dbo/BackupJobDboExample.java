@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -894,6 +895,21 @@ public class BackupJobDboExample {
 
         public Criteria andLastErrorNotBetween(String value1, String value2) {
             addCriterion("last_error not between", value1, value2, "lastError");
+            return (Criteria) this;
+        }
+
+        public Criteria andStateContains(String value) {
+            addCriterion("state ilike", LikePatterns.contains(value), "state");
+            return (Criteria) this;
+        }
+
+        public Criteria andArchiveSha256Contains(String value) {
+            addCriterion("archive_sha256 ilike", LikePatterns.contains(value), "archiveSha256");
+            return (Criteria) this;
+        }
+
+        public Criteria andLastErrorContains(String value) {
+            addCriterion("last_error ilike", LikePatterns.contains(value), "lastError");
             return (Criteria) this;
         }
     }

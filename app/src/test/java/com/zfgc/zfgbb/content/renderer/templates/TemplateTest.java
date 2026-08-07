@@ -34,15 +34,15 @@ import com.zfgc.zfgbb.content.renderer.RenderedTextEnricher;
 import com.zfgc.zfgbb.content.renderer.SourceReferenceService;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeRenderer;
 import com.zfgc.zfgbb.content.renderer.markdown.MarkdownRenderer;
-import com.zfgc.zfgbb.mappers.SmileyDboMapper;
+import com.zfgc.zfgbb.dao.forum.SmileyDao;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammar;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder;
 import com.zfgc.zfgbb.model.forum.AttributeValuePolicy;
 import com.zfgc.zfgbb.testsupport.BBCodeTestFixtures;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.services.cms.catalog.ProjectService;
 import com.zfgc.zfgbb.services.cms.wiki.WikiModerationService.TemplateSourceDirective;
@@ -276,12 +276,12 @@ class TemplateTest {
 			wikiPages = mock(WikiDataProvider.class);
 			holder = new BBCodeGrammarHolder();
 			holder.publish(grammarDeclaring(BBCodeTestFixtures.templateConfig()));
-			expander = new TemplateExpander(mock(ContentResourceDboMapper.class), templates, fetcher, wikiPages,
+			expander = new TemplateExpander(mock(ContentResourceDao.class), templates, fetcher, wikiPages,
 					holder);
 			SourceReferenceService sourceReferences = new SourceReferenceService(List.of(), holder);
 			BBCodeRenderer bbCodeRenderer =
 					new BBCodeRenderer(holder, sourceReferences, new TemplateExpansion(expander, holder));
-			markdownLane = new MarkdownRenderer(holder, new RenderedTextEnricher(mock(SmileyDboMapper.class)),
+			markdownLane = new MarkdownRenderer(holder, new RenderedTextEnricher(mock(SmileyDao.class)),
 					sourceReferences, bbCodeRenderer, new TemplateExpansion(expander, holder));
 			bbCodeLane = bbCodeRenderer;
 		}

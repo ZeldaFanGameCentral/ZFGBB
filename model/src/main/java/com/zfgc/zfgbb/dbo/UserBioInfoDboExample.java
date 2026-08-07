@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -1445,6 +1446,56 @@ public class UserBioInfoDboExample {
 
         public Criteria andPreferredTimezoneNotBetween(String value1, String value2) {
             addCriterion("preferred_timezone not between", value1, value2, "preferredTimezone");
+            return (Criteria) this;
+        }
+
+        public Criteria andCustomTitleContains(String value) {
+            addCriterion("custom_title ilike", LikePatterns.contains(value), "customTitle");
+            return (Criteria) this;
+        }
+
+        public Criteria andPersonalTextContains(String value) {
+            addCriterion("personal_text ilike", LikePatterns.contains(value), "personalText");
+            return (Criteria) this;
+        }
+
+        public Criteria andSignatureContains(String value) {
+            addCriterion("signature ilike", LikePatterns.contains(value), "signature");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andRealNameContains(String value) {
+            addCriterion("real_name ilike", LikePatterns.contains(value), "realName");
+            return (Criteria) this;
+        }
+
+        public Criteria andWebsiteTitleContains(String value) {
+            addCriterion("website_title ilike", LikePatterns.contains(value), "websiteTitle");
+            return (Criteria) this;
+        }
+
+        public Criteria andWebsiteUrlContains(String value) {
+            addCriterion("website_url ilike", LikePatterns.contains(value), "websiteUrl");
+            return (Criteria) this;
+        }
+
+        public Criteria andLocationContains(String value) {
+            addCriterion("location ilike", LikePatterns.contains(value), "location");
+            return (Criteria) this;
+        }
+
+        public Criteria andTimeFormatContains(String value) {
+            addCriterion("time_format ilike", LikePatterns.contains(value), "timeFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andPreferredTimezoneContains(String value) {
+            addCriterion("preferred_timezone ilike", LikePatterns.contains(value), "preferredTimezone");
             return (Criteria) this;
         }
     }

@@ -11,8 +11,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.DeletionMode;
 import com.zfgc.zfgbb.services.users.deletion.CoreUserDataHandler;
 import com.zfgc.zfgbb.services.users.deletion.UserDataHandler;
@@ -26,7 +26,7 @@ public class UserDeletionService {
 
     private final List<UserDataHandler> dataHandlers;
     private final CoreUserDataHandler coreUserDataHandler;
-    private final UserDeletionMapper deletionMapper;
+    private final UserErasureDao userErasureDao;
     private final UserDataProvider userDataProvider;
     private final ForumService forumService;
     private final PlatformTransactionManager transactionManager;
@@ -41,7 +41,7 @@ public class UserDeletionService {
     }
 
     private List<String> eraseUserData(Integer userId, DeletionMode mode) {
-        List<Integer> emailAddressIds = deletionMapper.findEmailAddressIds(userId);
+        List<Integer> emailAddressIds = userErasureDao.findEmailAddressIds(userId);
         List<String> releasedBlobPaths = new ArrayList<>();
         for (UserDataHandler handler : dataHandlers)
             releasedBlobPaths.addAll(switch (mode) {
@@ -63,10 +63,10 @@ public class UserDeletionService {
         if (userDataProvider.findUser(userId).isEmpty()) {
             throw new ZfgcNotFoundException();
         }
-        if (deletionMapper.isSiteAdmin(userId)) {
+        if (userErasureDao.isSiteAdmin(userId)) {
             throw new ZfgcInvalidRequestException("Site administrators cannot be deleted.");
         }
-        if (deletionMapper.findUserIdBySsoKey("__deleted__").filter(userId::equals).isPresent()) {
+        if (userErasureDao.findUserIdBySsoKey("__deleted__").filter(userId::equals).isPresent()) {
             throw new ZfgcInvalidRequestException("The deleted-user account cannot be deleted.");
         }
     }

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -734,6 +735,31 @@ public class ContentTemplateDboExample {
 
         public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatContains(String value) {
+            addCriterion("content_format ilike", LikePatterns.contains(value), "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andScopeContains(String value) {
+            addCriterion("scope ilike", LikePatterns.contains(value), "scope");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceContains(String value) {
+            addCriterion("source ilike", LikePatterns.contains(value), "source");
+            return (Criteria) this;
+        }
+
+        public Criteria andBodyContains(String value) {
+            addCriterion("body ilike", LikePatterns.contains(value), "body");
             return (Criteria) this;
         }
     }

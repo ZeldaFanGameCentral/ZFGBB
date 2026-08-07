@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1604,6 +1605,46 @@ public class ProjectViewDboExample {
 
         public Criteria andTeamIdNotBetween(Integer value1, Integer value2) {
             addCriterion("team_id not between", value1, value2, "teamId");
+            return (Criteria) this;
+        }
+
+        public Criteria andTitleContains(String value) {
+            addCriterion("title ilike", LikePatterns.contains(value), "title");
+            return (Criteria) this;
+        }
+
+        public Criteria andSlugContains(String value) {
+            addCriterion("slug ilike", LikePatterns.contains(value), "slug");
+            return (Criteria) this;
+        }
+
+        public Criteria andSummaryContains(String value) {
+            addCriterion("summary ilike", LikePatterns.contains(value), "summary");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andAuthorNameContains(String value) {
+            addCriterion("author_name ilike", LikePatterns.contains(value), "authorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
+            return (Criteria) this;
+        }
+
+        public Criteria andLanguageContains(String value) {
+            addCriterion("language ilike", LikePatterns.contains(value), "language");
+            return (Criteria) this;
+        }
+
+        public Criteria andRequirementsContains(String value) {
+            addCriterion("requirements ilike", LikePatterns.contains(value), "requirements");
             return (Criteria) this;
         }
     }

@@ -14,11 +14,11 @@ import com.zfgc.zfgbb.dbo.FileAttachmentDboExample;
 import com.zfgc.zfgbb.dbo.PersonalMessageRecipientDboExample;
 import com.zfgc.zfgbb.dbo.PollDboExample;
 import com.zfgc.zfgbb.dbo.UserPollChoiceDboExample;
-import com.zfgc.zfgbb.mappers.FileAttachmentDboMapper;
-import com.zfgc.zfgbb.mappers.PersonalMessageRecipientDboMapper;
-import com.zfgc.zfgbb.mappers.PollDboMapper;
-import com.zfgc.zfgbb.mappers.UserPollChoiceDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
+import com.zfgc.zfgbb.dao.forum.FileAttachmentDao;
+import com.zfgc.zfgbb.dao.forum.PersonalMessageRecipientDao;
+import com.zfgc.zfgbb.dao.forum.PollDao;
+import com.zfgc.zfgbb.dao.forum.UserPollChoiceDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,17 +27,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ForumUserDataHandler implements UserDataHandler {
 
-    private final UserDeletionMapper deletionMapper;
-    private final PollDboMapper pollMapper;
-    private final FileAttachmentDboMapper fileAttachmentMapper;
-    private final UserPollChoiceDboMapper userPollChoiceMapper;
-    private final PersonalMessageRecipientDboMapper personalMessageRecipientMapper;
+    private final UserErasureDao userErasureDao;
+    private final PollDao pollDao;
+    private final FileAttachmentDao fileAttachmentDao;
+    private final UserPollChoiceDao userPollChoiceDao;
+    private final PersonalMessageRecipientDao personalMessageRecipientDao;
     private final CoreUserDataHandler coreUserDataHandler;
     private final PlatformTransactionManager transactionManager;
 
     public PurgeBatchOutcome purgeOwnedMessagesBatch(Optional<Integer> accountDeletionRequestId, Integer userId,
             int chunkSize) {
-        List<Integer> messageIds = deletionMapper.findOwnedMessageIds(userId, chunkSize);
+        List<Integer> messageIds = userErasureDao.findOwnedMessageIds(userId, chunkSize);
         if (messageIds.isEmpty())
             return new PurgeBatchOutcome(0, List.of());
         List<String> blobPaths = purgeMessagesByIds(messageIds,
@@ -54,50 +54,50 @@ public class ForumUserDataHandler implements UserDataHandler {
 
     private List<String> purgeMessagesByIdsAtomically(List<Integer> messageIds,
             Consumer<List<String>> releasedBlobPathSink) {
-        List<Integer> touchedThreadIds = deletionMapper.findThreadIdsForMessages(messageIds);
-        deletionMapper.deleteAttachmentRefRewritesForMessages(messageIds);
-        List<Integer> attachmentIds = deletionMapper.findAttachmentIdsForMessages(messageIds);
-        List<Integer> releasedResourceIds = deletionMapper.findAttachmentContentResourceIds(messageIds);
+        List<Integer> touchedThreadIds = userErasureDao.findThreadIdsForMessages(messageIds);
+        userErasureDao.deleteAttachmentRefRewritesForMessages(messageIds);
+        List<Integer> attachmentIds = userErasureDao.findAttachmentIdsForMessages(messageIds);
+        List<Integer> releasedResourceIds = userErasureDao.findAttachmentContentResourceIds(messageIds);
         FileAttachmentDboExample attachmentsExample = new FileAttachmentDboExample();
         attachmentsExample.createCriteria().andMessageIdIn(messageIds);
-        fileAttachmentMapper.deleteByExample(attachmentsExample);
+        fileAttachmentDao.deleteWhere(attachmentsExample);
         if (!attachmentIds.isEmpty())
             coreUserDataHandler.deleteMigratorIdMapEntries("ATTACHMENT", attachmentIds);
-        List<Integer> candidateIpIds = deletionMapper.findHistoryIpAddressIds(messageIds);
-        deletionMapper.deleteHistoryForMessages(messageIds);
+        List<Integer> candidateIpIds = userErasureDao.findHistoryIpAddressIds(messageIds);
+        userErasureDao.deleteHistoryForMessages(messageIds);
         if (!candidateIpIds.isEmpty())
-            deletionMapper.deleteUnreferencedIpAddresses(candidateIpIds);
+            userErasureDao.deleteUnreferencedIpAddresses(candidateIpIds);
         coreUserDataHandler.deleteReactions("MESSAGE", messageIds);
         coreUserDataHandler.deleteMigratorIdMapEntries("MESSAGE", messageIds);
-        deletionMapper.deleteMessagesByIds(messageIds);
+        userErasureDao.deleteMessagesByIds(messageIds);
         gcThreadsEmptiedByDeletion(touchedThreadIds);
         if (!touchedThreadIds.isEmpty())
-            deletionMapper.resequencePostInThread(touchedThreadIds);
+            userErasureDao.resequencePostInThread(touchedThreadIds);
         return coreUserDataHandler.deleteContentResourcesIfUnreferenced(releasedBlobPathSink, releasedResourceIds);
     }
 
     public int orphanOwnedMessagesBatch(Integer userId, Integer sentinelId, int chunkSize) {
-        List<Integer> messageIds = deletionMapper.findOwnedMessageIds(userId, chunkSize);
+        List<Integer> messageIds = userErasureDao.findOwnedMessageIds(userId, chunkSize);
         if (messageIds.isEmpty())
             return 0;
-        List<Integer> candidateIpIds = deletionMapper.findHistoryIpAddressIds(messageIds);
-        deletionMapper.scrubHistoryForMessages(messageIds);
+        List<Integer> candidateIpIds = userErasureDao.findHistoryIpAddressIds(messageIds);
+        userErasureDao.scrubHistoryForMessages(messageIds);
         if (!candidateIpIds.isEmpty())
-            deletionMapper.deleteUnreferencedIpAddresses(candidateIpIds);
-        List<Integer> attachmentIds = deletionMapper.findAttachmentIdsForMessages(messageIds);
+            userErasureDao.deleteUnreferencedIpAddresses(candidateIpIds);
+        List<Integer> attachmentIds = userErasureDao.findAttachmentIdsForMessages(messageIds);
         if (!attachmentIds.isEmpty())
             coreUserDataHandler.deleteMigratorIdMapEntries("ATTACHMENT", attachmentIds);
-        deletionMapper.scrubAttachmentMigrationHashesForMessages(messageIds);
+        userErasureDao.scrubAttachmentMigrationHashesForMessages(messageIds);
         coreUserDataHandler.deleteMigratorIdMapEntries("MESSAGE", messageIds);
-        deletionMapper.reassignAndScrubMessages(messageIds, sentinelId);
+        userErasureDao.reassignAndScrubMessages(messageIds, sentinelId);
         return messageIds.size();
     }
 
     public void purgeOwnedPolls(Integer userId) {
-        List<Integer> pollIds = deletionMapper.findOwnedPollIds(userId);
+        List<Integer> pollIds = userErasureDao.findOwnedPollIds(userId);
         if (!pollIds.isEmpty()) {
-            deletionMapper.deleteUserPollVotes(userId);
-            deletionMapper.deleteUserPollChoices(userId);
+            userErasureDao.deleteUserPollVotes(userId);
+            userErasureDao.deleteUserPollChoices(userId);
             coreUserDataHandler.deleteMigratorIdMapEntries("POLL", pollIds);
             deleteOwnedPolls(userId);
         }
@@ -105,10 +105,10 @@ public class ForumUserDataHandler implements UserDataHandler {
     }
 
     public void orphanOwnedPolls(Integer userId, Integer sentinelId) {
-        List<Integer> pollIds = deletionMapper.findOwnedPollIds(userId);
+        List<Integer> pollIds = userErasureDao.findOwnedPollIds(userId);
         if (!pollIds.isEmpty()) {
             coreUserDataHandler.deleteMigratorIdMapEntries("POLL", pollIds);
-            deletionMapper.reassignPolls(userId, sentinelId);
+            userErasureDao.reassignPolls(userId, sentinelId);
         }
         deleteOwnVotesAndRecount(userId);
     }
@@ -116,72 +116,72 @@ public class ForumUserDataHandler implements UserDataHandler {
     private void deleteOwnedPolls(Integer userId) {
         PollDboExample ownedPollsExample = new PollDboExample();
         ownedPollsExample.createCriteria().andCreatedUserIdEqualTo(userId);
-        pollMapper.deleteByExample(ownedPollsExample);
+        pollDao.deleteWhere(ownedPollsExample);
     }
 
     private void deleteOwnVotesAndRecount(Integer userId) {
-        List<Integer> votedChoiceIds = deletionMapper.findVotedPollChoiceIds(userId);
+        List<Integer> votedChoiceIds = userErasureDao.findVotedPollChoiceIds(userId);
         UserPollChoiceDboExample ownVotesExample = new UserPollChoiceDboExample();
         ownVotesExample.createCriteria().andUserIdEqualTo(userId);
-        userPollChoiceMapper.deleteByExample(ownVotesExample);
+        userPollChoiceDao.deleteWhere(ownVotesExample);
         if (!votedChoiceIds.isEmpty())
-            deletionMapper.recountPollChoiceVotes(votedChoiceIds);
+            userErasureDao.recountPollChoiceVotes(votedChoiceIds);
     }
 
     public void purgePersonalMessages(Integer userId) {
-        List<Integer> conversationIds = deletionMapper.findParticipantConversationIds(userId);
-        deletionMapper.scrubSentPersonalMessages(userId);
+        List<Integer> conversationIds = userErasureDao.findParticipantConversationIds(userId);
+        userErasureDao.scrubSentPersonalMessages(userId);
         PersonalMessageRecipientDboExample recipientExample = new PersonalMessageRecipientDboExample();
         recipientExample.createCriteria().andRecipientUserIdEqualTo(userId);
-        personalMessageRecipientMapper.deleteByExample(recipientExample);
+        personalMessageRecipientDao.deleteWhere(recipientExample);
         if (conversationIds.isEmpty())
             return;
-        deletionMapper.scrubPersonalMessageMigrationHashesInConversations(conversationIds);
-        deletionMapper.scrubConversationMigrationHashes(conversationIds);
-        deletionMapper.gcEmptyConversationsAmong(conversationIds);
+        userErasureDao.scrubPersonalMessageMigrationHashesInConversations(conversationIds);
+        userErasureDao.scrubConversationMigrationHashes(conversationIds);
+        userErasureDao.gcEmptyConversationsAmong(conversationIds);
     }
 
     public void purgeThreadsWithGc(Integer userId, Integer sentinelId) {
-        List<Integer> ownedThreadIds = deletionMapper.findOwnedThreadIds(userId);
+        List<Integer> ownedThreadIds = userErasureDao.findOwnedThreadIds(userId);
         if (!ownedThreadIds.isEmpty())
             coreUserDataHandler.deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
         gcThreadsEmptiedByDeletion(ownedThreadIds);
-        deletionMapper.reassignThreads(userId, sentinelId);
+        userErasureDao.reassignThreads(userId, sentinelId);
     }
 
     public void gcThreadsEmptiedByDeletion(List<Integer> candidateThreadIds) {
         if (candidateThreadIds.isEmpty())
             return;
-        List<Integer> emptyThreadIds = deletionMapper.findEmptyThreadIdsAmong(candidateThreadIds);
+        List<Integer> emptyThreadIds = userErasureDao.findEmptyThreadIdsAmong(candidateThreadIds);
         if (emptyThreadIds.isEmpty())
             return;
-        List<Integer> pollIds = deletionMapper.findPollIdsOnThreads(emptyThreadIds);
+        List<Integer> pollIds = userErasureDao.findPollIdsOnThreads(emptyThreadIds);
         if (!pollIds.isEmpty())
             coreUserDataHandler.deleteMigratorIdMapEntries("POLL", pollIds);
-        deletionMapper.deleteVotesForPollsOnThreads(emptyThreadIds);
-        deletionMapper.deleteChoicesForPollsOnThreads(emptyThreadIds);
+        userErasureDao.deleteVotesForPollsOnThreads(emptyThreadIds);
+        userErasureDao.deleteChoicesForPollsOnThreads(emptyThreadIds);
         PollDboExample pollsOnThreadsExample = new PollDboExample();
         pollsOnThreadsExample.createCriteria().andThreadIdIn(emptyThreadIds);
-        pollMapper.deleteByExample(pollsOnThreadsExample);
+        pollDao.deleteWhere(pollsOnThreadsExample);
         coreUserDataHandler.deleteMigratorIdMapEntries("THREAD", emptyThreadIds);
-        deletionMapper.deleteThreadsByIds(emptyThreadIds);
+        userErasureDao.deleteThreadsByIds(emptyThreadIds);
     }
 
     public void orphanThreads(Integer userId, Integer sentinelId) {
-        List<Integer> ownedThreadIds = deletionMapper.findOwnedThreadIds(userId);
+        List<Integer> ownedThreadIds = userErasureDao.findOwnedThreadIds(userId);
         if (!ownedThreadIds.isEmpty())
             coreUserDataHandler.deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
-        deletionMapper.reassignThreads(userId, sentinelId);
+        userErasureDao.reassignThreads(userId, sentinelId);
     }
 
     public void scrubModerationAndReactionResidue(Integer userId) {
-        deletionMapper.scrubIssuedWarnings(userId);
-        deletionMapper.scrubReceivedWarningMigrationHashes(userId);
-        deletionMapper.nullModerationLogActors(userId);
-        deletionMapper.scrubModerationLogTargets(userId);
-        deletionMapper.nullMigrationConflictResolvers(userId);
-        deletionMapper.scrubGivenReactions(userId);
-        deletionMapper.nullAwardGranters(userId);
+        userErasureDao.scrubIssuedWarnings(userId);
+        userErasureDao.scrubReceivedWarningMigrationHashes(userId);
+        userErasureDao.nullModerationLogActors(userId);
+        userErasureDao.scrubModerationLogTargets(userId);
+        userErasureDao.nullMigrationConflictResolvers(userId);
+        userErasureDao.scrubGivenReactions(userId);
+        userErasureDao.nullAwardGranters(userId);
     }
 
     @Override

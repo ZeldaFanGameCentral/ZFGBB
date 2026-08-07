@@ -10,8 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
-import com.zfgc.zfgbb.dao.ThreadDao;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
@@ -25,13 +25,13 @@ import com.zfgc.zfgbb.dbo.FileAttachmentDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
-import com.zfgc.zfgbb.mappers.CurrentMessageDboMapper;
-import com.zfgc.zfgbb.mappers.FileAttachmentDboMapper;
-import com.zfgc.zfgbb.mappers.custom.SearchQueryMapper;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.forum.CurrentMessageDao;
+import com.zfgc.zfgbb.dao.forum.FileAttachmentDao;
+import com.zfgc.zfgbb.mappers.custom.ForumSearchQueryMapper;
 import com.zfgc.zfgbb.mapstruct.forum.MessageHistoryMap;
 import com.zfgc.zfgbb.mapstruct.forum.MessageMap;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.forum.FileAttachment;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
@@ -48,15 +48,15 @@ public class MessageDataProvider {
 
 	private final ThreadDao threadDao;
 
-	private final CurrentMessageDboMapper currentMessageDboMapper;
+	private final CurrentMessageDao currentMessageDao;
 
 	private final UserDataProvider userDataProvider;
 
-	private final FileAttachmentDboMapper fileAttachmentDboMapper;
+	private final FileAttachmentDao fileAttachmentDao;
 
-	private final ContentResourceDboMapper contentResourceMapper;
+	private final ContentResourceDao contentResourceDao;
 
-	private final SearchQueryMapper searchQueryMapper;
+	private final ForumSearchQueryMapper forumSearchQueryMapper;
 
 	private final MessageMap messageMap;
 
@@ -111,7 +111,7 @@ public class MessageDataProvider {
 						   .andPostInThreadBetween(start, start + count - 1);
 		ex.setOrderByClause("post_in_thread asc");
 
-		List<CurrentMessageDbo> currentMessageDbos = currentMessageDboMapper.selectByExample(ex);
+		List<CurrentMessageDbo> currentMessageDbos = currentMessageDao.get(ex);
 		List<Integer> ownerIds = currentMessageDbos.stream()
 				.map(CurrentMessageDbo::getOwnerId)
 				.filter(ownerId -> ownerId != null)
@@ -136,14 +136,14 @@ public class MessageDataProvider {
 
 		FileAttachmentDboExample faEx = new FileAttachmentDboExample();
 		faEx.createCriteria().andMessageIdIn(messageIds);
-		List<FileAttachmentDbo> attachmentDbos = fileAttachmentDboMapper.selectByExample(faEx);
+		List<FileAttachmentDbo> attachmentDbos = fileAttachmentDao.get(faEx);
 		if (attachmentDbos.isEmpty()) return;
 
 		List<Integer> resourceIds = attachmentDbos.stream()
 				.map(FileAttachmentDbo::getContentResourceId).distinct().toList();
 		ContentResourceDboExample crEx = new ContentResourceDboExample();
 		crEx.createCriteria().andContentResourceIdIn(resourceIds);
-		Map<Integer, ContentResourceDbo> resourceById = contentResourceMapper.selectByExample(crEx).stream()
+		Map<Integer, ContentResourceDbo> resourceById = contentResourceDao.get(crEx).stream()
 				.collect(Collectors.toMap(ContentResourceDbo::getContentResourceId, r -> r));
 
 		Map<Integer, List<FileAttachment>> byMessageId = attachmentDbos.stream()
@@ -244,7 +244,7 @@ public class MessageDataProvider {
 		}
 
 		Map<Integer, User> ownerCache = new HashMap<>();
-		return searchQueryMapper.messagesByUser(userId, perms, pageSize, (int) offset)
+		return forumSearchQueryMapper.messagesByUser(userId, perms, pageSize, (int) offset)
 						 .stream()
 						 .map(dbo -> mapMessage(dbo, ownerCache)).toList();
 	}

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -537,76 +538,6 @@ public class InstallRunDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andContentPackIsNull() {
-            addCriterion("content_pack is null");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackIsNotNull() {
-            addCriterion("content_pack is not null");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackEqualTo(String value) {
-            addCriterion("content_pack =", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackNotEqualTo(String value) {
-            addCriterion("content_pack <>", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackGreaterThan(String value) {
-            addCriterion("content_pack >", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackGreaterThanOrEqualTo(String value) {
-            addCriterion("content_pack >=", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackLessThan(String value) {
-            addCriterion("content_pack <", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackLessThanOrEqualTo(String value) {
-            addCriterion("content_pack <=", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackLike(String value) {
-            addCriterion("content_pack ilike", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackNotLike(String value) {
-            addCriterion("content_pack not ilike", value, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackIn(List<String> values) {
-            addCriterion("content_pack in", values, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackNotIn(List<String> values) {
-            addCriterion("content_pack not in", values, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackBetween(String value1, String value2) {
-            addCriterion("content_pack between", value1, value2, "contentPack");
-            return (Criteria) this;
-        }
-
-        public Criteria andContentPackNotBetween(String value1, String value2) {
-            addCriterion("content_pack not between", value1, value2, "contentPack");
-            return (Criteria) this;
-        }
-
         public Criteria andProvisionRecycleBinIsNull() {
             addCriterion("provision_recycle_bin is null");
             return (Criteria) this;
@@ -994,6 +925,36 @@ public class InstallRunDboExample {
 
         public Criteria andInstallStrategyNotBetween(String value1, String value2) {
             addCriterion("install_strategy not between", value1, value2, "installStrategy");
+            return (Criteria) this;
+        }
+
+        public Criteria andStateContains(String value) {
+            addCriterion("state ilike", LikePatterns.contains(value), "state");
+            return (Criteria) this;
+        }
+
+        public Criteria andLastCompletedStateContains(String value) {
+            addCriterion("last_completed_state ilike", LikePatterns.contains(value), "lastCompletedState");
+            return (Criteria) this;
+        }
+
+        public Criteria andRequestFingerprintContains(String value) {
+            addCriterion("request_fingerprint ilike", LikePatterns.contains(value), "requestFingerprint");
+            return (Criteria) this;
+        }
+
+        public Criteria andSiteNameContains(String value) {
+            addCriterion("site_name ilike", LikePatterns.contains(value), "siteName");
+            return (Criteria) this;
+        }
+
+        public Criteria andLastErrorContains(String value) {
+            addCriterion("last_error ilike", LikePatterns.contains(value), "lastError");
+            return (Criteria) this;
+        }
+
+        public Criteria andInstallStrategyContains(String value) {
+            addCriterion("install_strategy ilike", LikePatterns.contains(value), "installStrategy");
             return (Criteria) this;
         }
     }

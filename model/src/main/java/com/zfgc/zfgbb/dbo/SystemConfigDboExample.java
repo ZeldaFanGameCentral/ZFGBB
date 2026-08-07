@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -404,6 +405,16 @@ public class SystemConfigDboExample {
 
         public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andConfigKeyContains(String value) {
+            addCriterion("config_key ilike", LikePatterns.contains(value), "configKey");
+            return (Criteria) this;
+        }
+
+        public Criteria andConfigValueContains(String value) {
+            addCriterion("config_value ilike", LikePatterns.contains(value), "configValue");
             return (Criteria) this;
         }
     }

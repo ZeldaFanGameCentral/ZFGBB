@@ -13,8 +13,6 @@ TBD. We could use some help writing this out.
   - [Table of Contents](#table-of-contents)
   - [Development](#development)
     - [Prerequisites](#prerequisites)
-      - [Setting up the PostgreSQL database](#setting-up-the-postgresql-database)
-        - [First-run installation: `/system/install`](#first-run-installation-systeminstall)
     - [IDEs](#ides)
       - [Visual Studio Code](#visual-studio-code)
       - [Eclipse](#eclipse)
@@ -22,6 +20,9 @@ TBD. We could use some help writing this out.
     - [Building](#building)
     - [Running Tests](#running-tests)
       - [Test lanes](#test-lanes)
+      - [Setting up the PostgreSQL database](#setting-up-the-postgresql-database)
+        - [First-run installation: `/system/install`](#first-run-installation-systeminstall)
+        - [Regenerating the sample data archive](#regenerating-the-sample-data-archive)
     - [Running MyBatis Generator](#running-mybatis-generator)
     - [Docker](#docker)
       - [Utilizing pgadmin](#utilizing-pgadmin)
@@ -29,6 +30,7 @@ TBD. We could use some help writing this out.
     - [Tearing down Docker](#tearing-down-docker)
     - [Migrating from SMF2](#migrating-from-smf2)
       - [Enabling the migrator](#enabling-the-migrator)
+        - [Bringing up a local SMF fixture](#bringing-up-a-local-smf-fixture)
       - [Submitting and tracking jobs](#submitting-and-tracking-jobs)
       - [Production note](#production-note)
     - [Workflow - Typical Development Workflow](#workflow---typical-development-workflow)
@@ -40,7 +42,6 @@ TBD. We could use some help writing this out.
 Clone the repository.
 
 - [ ] Install [Git](https://git-scm.com/downloads)
-
 - [ ] Java 21
 - [ ] Maven
 - [ ] Docker
@@ -71,16 +72,8 @@ After installing Docker Desktop, launch it once so the daemon starts. You may ne
 
 <summary>Setting up for Mac OSX</summary>
 
-First, install [Homebrew](https://brew.sh/).
-
-Then, we will install git, openjdk, maven, and docker.
-
-```bash
-brew install git openjdk@21 maven
-brew install --cask docker
-```
-
-Now we're ready to install nix!
+> [!IMPORTANT]
+> We have a [Nix flake](https://nixos.wiki/wiki/Flakes) that provides a reproducible development environment. Use the following commands to set up Nix.
 
 ```bash
 sh <(curl -L https://nixos.org/nix/install)
@@ -104,26 +97,8 @@ ready to go!
 
 <summary>Setting up for Linux</summary>
 
-First we have to setup docker on your system. This setup procedure varies depending on the
-distro you're using, so if your distro is not listed below, please consult the
-[Docker documentation](https://docs.docker.com/engine/install/).
-
-```bash
-# Debian/Ubuntu
-sudo apt install docker.io docker-compose-v2
-
-# Arch
-sudo pacman -S docker docker-compose
-
-# Fedora/RHEL
-sudo dnf install docker docker-compose
-
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER
-# log out and back in for the group change to take effect
-```
-
-Now you're ready to setup nix!
+> [!IMPORTANT]
+> We have a [Nix flake](https://nixos.wiki/wiki/Flakes) that provides a reproducible development environment. Use the following commands to set up Nix.
 
 ```bash
 sh <(curl -L https://nixos.org/nix/install) --daemon
@@ -138,6 +113,8 @@ Then from the repo root:
 nix develop
 ```
 
+Anytime you want to start a shell with the environment, run `nix develop`. \o/
+
 </details>
 
 Now that you have everything installed, let's clone the repo and get started!
@@ -146,202 +123,6 @@ Now that you have everything installed, let's clone the repo and get started!
 git clone https://github.com/ZFGC/ZFGCBB.git
 cd ZFGCBB
 ```
-
-#### Setting up the PostgreSQL database
-
-You will need a PostgreSQL 18 database and the version-18 client tools. The
-default Compose project provisions the application role:
-
-```bash
-docker compose up -d --wait postgresql
-```
-
-To run pgAdmin too:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.service.pgadmin.yml up -d --wait
-```
-
-You can access pgAdmin at `http://localhost:5050`.
-
-On the first volume start, the database image creates a local bootstrap role.
-`postgresql-init-application-role.sh` then creates the `zfgbb_user` application
-role from `.env.local`. Flyway applies
-[V0__zfgbb-setup.sql](./app/src/main/resources/db/setup/V0__zfgbb-setup.sql)
-and the remaining schema migrations when the application starts.
-
-##### First-run installation: `/system/install`
-
-> [!NOTE]
-> Remember to run ZFGBB first! If you haven't already, look at the [IDEs](#ides) section for
-> how to set up an IDE to run ZFGBB.
-
-The schema migrations leave the app in an `installed = false` state. To finish
-setup, call the install endpoint once. It creates the site administrator, or
-restores the requested content pack's installation archive and reconciles the
-administrator onto it, applies the recycle-bin choice and site name, and returns
-only after the application is installed. No application restart is part of
-installation.
-
-The endpoint is gated by an install token read from the `ZFGBB_INSTALL_TOKEN` env var. If the var is unset, the endpoint always returns 404. For dev, [.env.local](./.env.local) ships with `ZFGBB_INSTALL_TOKEN=dev-install-token`.
-
-Check status (no token needed):
-
-```bash
-curl -s http://localhost:8080/zfgbb/system/install/status
-# {"installed":false,"siteName":null}
-```
-
-Run the install:
-
-```bash
-curl -sX POST http://localhost:8080/zfgbb/system/install \
-  -H 'Content-Type: application/json' \
-  -H 'X-Install-Token: dev-install-token' \
-  -d '{
-    "adminUserName": "admin",
-    "adminDisplayName": "Site Admin",
-    "adminEmail": "admin@example.dev",
-    "adminPassword": "adminpass123",
-    "siteName": "ZFGBB Dev",
-    "contentPack": "zfgc",
-    "provisionRecycleBin": true
-  }'
-# {"installed":true,"adminUserId":1,"siteName":"ZFGBB Dev","contentPack":"zfgc"}
-```
-
-An interrupted installation remains resumable by retrying the exact same
-request; completion still returns HTTP 200. A different request while an
-installation is in progress is rejected, and ordinary subsequent calls after
-installation are unavailable. The `installed: true` flag stays in
-`system_config`. To re-test the install flow, use the **Reset DB** VS Code task
-(or `docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c
-'drop schema if exists zfgbb cascade' && mvn -pl app -am flyway:migrate`) to
-wipe and re-migrate, then re-run the install.
-
-An `install_run` row a *previous* build left part-way through the pipeline can be
-unresumable on this build, and the endpoint says so instead of completing an
-installation whose content was never applied:
-
-- A row written before the `V20260731.2` migration carries
-  `install_strategy IS NULL`, so nothing records which sources the interrupted
-  run started from. Any retry is refused with HTTP 409 asking you to reset the
-  row.
-- A row a build older than the archive installer left at a mid-pipeline state
-  with `install_strategy='SEED'` **and** `content_pack='zfgc'` describes an
-  installation this build can no longer perform. Retrying **with** the pack is
-  refused as a strategy switch (409), and retrying **without** it is refused as a
-  different request (409), because the pack name is part of the request
-  fingerprint.
-- A row parked at `PACK_READY` or `ASSETS_READY` names a phase this build never
-  records at all, and is refused the same way.
-
-Reset such a row by hand and install again from the top:
-
-```bash
-docker compose exec -T postgresql psql -U zfgbb_user -d zfgc_dev -c "
-  update zfgbb.install_run
-     set state='READY', last_completed_state='READY', request_fingerprint=null,
-         content_pack=null, provision_recycle_bin=null, site_name=null,
-         install_strategy=null, admin_user_id=null, last_error=null
-   where install_id=1"
-```
-
-Whatever the interrupted run already wrote to the database stays there, so reset
-the schema too (see the **Reset DB** task above) whenever you want a genuinely
-clean installation.
-
-Omit `contentPack` for an empty-site installation. The `zfgc` option restores a
-versioned developer-preview backup archive that ZFGBB produced itself from the
-committed test fixture. The restore replaces the schema contents wholesale, and
-the installer then reconciles the submitted administrator onto the archive's
-anchor administrator (user ID 1), replacing that account's identity, contact
-information, and authentication material with the submitted ones. Other preview
-users have no usable password credentials. Generation-time sessions,
-account-deletion state, backup and install bookkeeping, and the migrator's
-legacy-identifier mappings are not carried into the installation, so a later
-`MIGRATE_SMF_INSTALLATION` against your own legacy database still starts from an
-empty mapping table. The request fails closed if the archive is not
-installer-compatible, does not name a single reconcilable administrator, or was
-cut at a database schema version other than the one this build expects.
-
-The installer records only phase and request-fingerprint metadata in the
-database, so retrying the same request after an interruption resumes safely.
-Every archive entry is digest-checked before anything is written.
-
-> [!IMPORTANT]
-> A content pack now ships nothing but `backup.tar.gz`; the SQL seed
-> (`V1__preview_seed.sql`), its `manifest.tsv` and its loose `assets/` tree are
-> gone. Maven never deletes resources that disappeared from the source tree, so
-> `app/target/classes/content-packs/zfgc/v1/` still holds those files in any
-> working copy built before the change, and an incremental `package` would ship
-> them. Run `bash ./mvnw clean` (or `mvn clean`) once after pulling this change.
-
-##### Regenerating the `zfgc` installation archive
-
-Every installation that requests the `zfgc` pack restores
-`app/src/main/resources/content-packs/zfgc/v1/backup.tar.gz`; a content pack
-that ships no archive cannot be installed at all. The archive records the
-database schema version it was cut at, so it must be regenerated after every new
-migration or the restore drift guard refuses the installation.
-
-The generator is an opt-in test that runs the real pipeline — fresh install, SMF
-migration, CMS/wiki migration, reviewed overlays — against the committed test
-fixture and then takes an ordinary administrator backup of the result:
-
-```bash
-bash ./mvnw -o -pl app test -Dtest=FixtureProvenanceTest \
-  -Dzfgbb.regenerate.preview.archive=true
-```
-
-Without `-Dzfgbb.regenerate.preview.archive=true` the generator is skipped, so a
-normal test run never writes into the source tree. The generator refuses to cut
-an archive from a drifted corpus: it first asserts the migrated fixture against
-the approved semantic inventory, exactly as the ordinary provenance test does.
-Verify the regenerated archive with:
-
-```bash
-bash ./mvnw -o -pl app test \
-  -Dtest=CanonicalContentPackInventoryTest,SystemInstallContentPackTest
-```
-
-The archive is a `pg_dump` of the whole `zfgbb` schema minus the data of the
-operational and migration-bookkeeping tables (`backup_job`, `install_run`,
-`migrator_id_map`, `migration_conflict`, `migrator_attachment_ref_rewrites`,
-`quote_strip_audit`, `quote_strip_run`). Carrying the identifier mappings would
-make a later migration of somebody else's legacy database resolve their rows
-onto preview rows and silently overwrite them. `flyway_schema_history` is kept
-because a full restore has to land at a known schema version, and `system_config`
-is kept because the installer reconciles the installation keys itself.
-
-##### Regenerating the approved fixture inventory
-
-`app/src/test/resources/fixture-semantic-inventory.tsv` is the approved semantic
-inventory of the migrated corpus: a normalized digest per row of every
-corpus-influenced table plus a digest of every content asset. Never edit its rows
-by hand. When a deliberate corpus or inventory-coverage change lands, rewrite it
-from the live migrated fixture:
-
-```bash
-bash ./mvnw -o -pl app test -Dtest=FixtureProvenanceTest \
-  -Dzfgbb.regenerate.fixture.inventory=true
-```
-
-Then re-run `FixtureProvenanceTest` without the flag, review the diff, and
-regenerate the installation archive so the shipped artifact and the approved
-inventory stay in step.
-
-Backup archives are staged outside the served content directory. Compose uses
-the private `operations` volume at `/var/lib/zfgbb/operations`; local runs
-default to `${java.io.tmpdir}/zfgbb-operations` and can override it with
-`ZFGBB_OPERATIONS_WORK_PATH`. Completed, failed, and expired backup job metadata
-is retained for seven days by default; configure
-`ZFGBB_OPERATIONS_METADATA_RETENTION` to change that window.
-
-For production deployments, generate a strong random token
-(`openssl rand -hex 32`) and set `ZFGBB_INSTALL_TOKEN` at deploy time. Once
-installed, the endpoint is unavailable even while the token remains configured;
-remove the token during the next normal deployment.
 
 ### IDEs
 
@@ -436,16 +217,6 @@ carries and every container-backed test inherits:
 | **Fast** | `mvn -pl app -Pfast-tests test` | Container-free unit tests only. No Docker needed. |
 | **Integration** | `mvn -pl app -Pintegration-tests test` | Only the container-backed tests. |
 
-> [!IMPORTANT]
-> **The default is deliberately the full suite.** Running `mvn test` with no
-> profile runs the integration tests too, so CI and a bare local `mvn test` keep
-> their full coverage. `-Pfast-tests` is an explicit opt-out for tight local
-> iteration — never assume a green fast lane means a green build.
-
-The profiles are declared in the root [pom.xml](./pom.xml) and just set
-Surefire's `groups` / `excludedGroups` parameters, so the equivalent raw
-invocations still work if you prefer them:
-
 ```bash
 mvn -pl app test -DexcludedGroups=integration   # same as -Pfast-tests
 mvn -pl app test -Dgroups=integration           # same as -Pintegration-tests
@@ -453,6 +224,83 @@ mvn -pl app test -Dgroups=integration           # same as -Pintegration-tests
 
 Tag a new test class with `@Tag("integration")` only if it does not already
 extend `ZfgbbIntegrationTest`; anything extending that base is tagged already.
+
+#### Setting up the PostgreSQL database
+
+You will need a PostgreSQL 18 database and the version-18 client tools. The
+default Compose project provisions the application role:
+
+```bash
+docker compose up -d --wait postgresql
+```
+
+To run pgAdmin too:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.service.pgadmin.yml up -d --wait
+```
+
+You can access pgAdmin at `http://localhost:5050`.
+
+##### First-run installation: `/system/install`
+
+> [!NOTE]
+> Remember to run ZFGBB first! If you haven't already, look at the [IDEs](#ides) section for
+> how to set up an IDE to run ZFGBB.
+
+The schema migrations leave the app in an `installed = false` state. To finish
+setup, call the install endpoint once. It creates the site administrator, or
+restores the sample data archive and reconciles the
+administrator onto it, applies the recycle-bin choice and site name, and returns
+only after the application is installed. No application restart is part of
+installation.
+
+The endpoint is gated by an install token read from the `ZFGBB_INSTALL_TOKEN` env var. If the var is unset, the endpoint always returns 404. For dev, [.env.local](./.env.local) ships with `ZFGBB_INSTALL_TOKEN=dev-install-token`.
+
+Check status (no token needed):
+
+```bash
+curl -s http://localhost:8080/zfgbb/system/install/status
+```
+
+Run the install:
+
+```bash
+curl -sX POST http://localhost:8080/zfgbb/system/install \
+  -H 'Content-Type: application/json' \
+  -H 'X-Install-Token: dev-install-token' \
+  -d '{
+    "adminUserName": "admin",
+    "adminDisplayName": "Site Admin",
+    "adminEmail": "admin@example.dev",
+    "adminPassword": "adminpass123",
+    "siteName": "ZFGBB Dev",
+    "installSampleData": true,
+    "provisionRecycleBin": true
+  }'
+```
+
+##### Regenerating the sample data archive
+
+Every installation that asks for sample data restores
+`app/src/main/resources/sample-data/backup.tar.gz`; a deployment that ships no
+archive refuses the request. The archive records the database schema version it
+was cut at, so it must be regenerated after every new migration or the restore
+drift guard refuses the installation.
+
+```bash
+bash ./mvnw -o -pl app test -Dtest=FixtureProvenanceTest \
+  -Dzfgbb.regenerate.preview.archive=true
+```
+
+`FixtureProvenanceTest` is also the guard: without the regeneration flag it fails
+the build when the shipped archive was cut at anything other than the highest
+committed migration version.
+
+For production deployments, generate a strong random token
+(`openssl rand -hex 32`) and set `ZFGBB_INSTALL_TOKEN` at deploy time. Once
+installed, the endpoint is unavailable even while the token remains configured;
+remove the token during the next normal deployment.
 
 ### Running MyBatis Generator
 
@@ -603,46 +451,7 @@ curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -d '{"type": "MIGRATE_SMF_INSTALLATION"}'
-# 202 Accepted
-# [{"id":"...","type":"USERS","state":"QUEUED",...},
-#  {"id":"...","type":"CATEGORIES","state":"QUEUED",...},
-#  ... 13 more ...]
 ```
-
-Or submit a single converter when you need to re-run one step:
-
-```bash
-curl -sX POST http://localhost:8080/zfgbb/system/migrate/jobs \
-  -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -d '{"type": "USERS"}'
-# 202 Accepted
-# [{"id":"e2c1...","type":"USERS","state":"QUEUED",...}]
-```
-
-List all jobs (handy for watching pipeline progress):
-
-```bash
-curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-  http://localhost:8080/zfgbb/system/migrate/jobs
-```
-
-Poll one job:
-
-```bash
-curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
-```
-
-Cancel a running or queued job:
-
-```bash
-curl -sX DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
-  http://localhost:8080/zfgbb/system/migrate/jobs/e2c1...
-# 204 No Content
-```
-
-Available individual job types: `USERS`, `CATEGORIES`, `BOARDS`, `THREADS`, `MESSAGES`, `IPS`, `MESSAGE_HISTORY`, `USER_BIO_INFO`, `ATTACHMENTS`, `ATTACHMENT_FILES`, `USER_CONTACT_INFO`, `POLLS`, `POLL_CHOICES`, `USER_POLL_CHOICES`, `KARMA`. `ATTACHMENTS` migrates the file-attachment metadata rows; `ATTACHMENT_FILES` is a separate step that copies SMF's hash-named files on disk back to their original filenames. Failures don't halt the pipeline — subsequent jobs keep running, so a failed step shows up as one `FAILED` entry in the list while the rest complete.
 
 #### Production note
 

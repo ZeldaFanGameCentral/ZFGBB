@@ -22,9 +22,6 @@ public class InstallRunDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.admin_user_id")
     private Integer adminUserId;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.content_pack")
-    private String contentPack;
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.provision_recycle_bin")
     private Boolean provisionRecycleBin;
 
@@ -101,16 +98,6 @@ public class InstallRunDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.admin_user_id")
     public void setAdminUserId(Integer adminUserId) {
         this.adminUserId = adminUserId;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.content_pack")
-    public String getContentPack() {
-        return contentPack;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.content_pack")
-    public void setContentPack(String contentPack) {
-        this.contentPack = contentPack;
     }
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.install_run.provision_recycle_bin")

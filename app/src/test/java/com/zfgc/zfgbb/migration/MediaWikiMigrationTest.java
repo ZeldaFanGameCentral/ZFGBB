@@ -27,7 +27,7 @@ import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateExpansion;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.Project;
 import com.zfgc.zfgbb.model.cms.WikiConfig.NavItem;
 import com.zfgc.zfgbb.model.cms.WikiConfig.NavSection;

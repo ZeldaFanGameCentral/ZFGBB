@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -924,6 +925,36 @@ public class MigrationConflictDboExample {
 
         public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andEntityTypeContains(String value) {
+            addCriterion("entity_type ilike", LikePatterns.contains(value), "entityType");
+            return (Criteria) this;
+        }
+
+        public Criteria andFieldNameContains(String value) {
+            addCriterion("field_name ilike", LikePatterns.contains(value), "fieldName");
+            return (Criteria) this;
+        }
+
+        public Criteria andCandidatesContains(String value) {
+            addCriterion("candidates ilike", LikePatterns.contains(value), "candidates");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
+            return (Criteria) this;
+        }
+
+        public Criteria andResolvedSourceTypeContains(String value) {
+            addCriterion("resolved_source_type ilike", LikePatterns.contains(value), "resolvedSourceType");
+            return (Criteria) this;
+        }
+
+        public Criteria andResolvedValueContains(String value) {
+            addCriterion("resolved_value ilike", LikePatterns.contains(value), "resolvedValue");
             return (Criteria) this;
         }
     }

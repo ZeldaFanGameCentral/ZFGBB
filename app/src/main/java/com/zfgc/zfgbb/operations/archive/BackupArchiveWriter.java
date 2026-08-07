@@ -31,7 +31,7 @@ public final class BackupArchiveWriter {
 	private static final long CANONICAL_MTIME_MILLIS = 0;
 
 	public static boolean isOperationalArtifact(String topLevelName) {
-		return ".zfgbb".equals(topLevelName) || topLevelName.startsWith(".incoming-")
+		return topLevelName.equals(".zfgbb") || topLevelName.startsWith(".incoming-")
 				|| topLevelName.startsWith(".pre-restore-");
 	}
 

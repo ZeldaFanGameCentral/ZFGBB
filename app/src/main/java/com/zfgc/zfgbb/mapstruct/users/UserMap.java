@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 
 import com.zfgc.zfgbb.config.BBMapperConfig;
 import com.zfgc.zfgbb.dbo.UserDbo;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import org.mapstruct.Mapping;
 
 @Mapper(config=BBMapperConfig.class)

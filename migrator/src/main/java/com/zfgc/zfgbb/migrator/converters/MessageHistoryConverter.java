@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.converters;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -44,6 +45,7 @@ import com.zfgc.zfgbb.migrator.smf.queries.SmfResilientReadMapper;
 import com.zfgc.zfgbb.migrator.smf.queries.SmfMessageStreamMapper;
 
 @Component
+@RequiredArgsConstructor
 public class MessageHistoryConverter extends AbstractConverter<Void> {
 
 	private final SmfResilientReadMapper resilientReads;
@@ -53,6 +55,7 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 	private final IpAddressDboMapper ipMapper;
 	private final MigratorIdMapService idMap;
 	private final SqlSessionFactory sqlSessionFactory;
+	@Value("${zfgbb.migrator.batch-size:5000}")
 	private final int batchSize;
 
 	private static final Logger logger = LoggerFactory.getLogger(MessageHistoryConverter.class);
@@ -60,25 +63,6 @@ public class MessageHistoryConverter extends AbstractConverter<Void> {
 	private boolean freshRun;
 
 	private Map<Integer, Integer> messageIdMap;
-
-	public MessageHistoryConverter(
-			SmfResilientReadMapper resilientReads,
-			SMFMessageDbMapper smfMsgMapper,
-			SmfMessageStreamMapper smfMessageStreamMapper,
-			MessageHistoryDboMapper msgHistoryMapper,
-			IpAddressDboMapper ipMapper,
-			MigratorIdMapService idMap,
-			SqlSessionFactory sqlSessionFactory,
-			@Value("${zfgbb.migrator.batch-size:5000}") int batchSize) {
-		this.resilientReads = resilientReads;
-		this.smfMsgMapper = smfMsgMapper;
-		this.smfMessageStreamMapper = smfMessageStreamMapper;
-		this.msgHistoryMapper = msgHistoryMapper;
-		this.ipMapper = ipMapper;
-		this.idMap = idMap;
-		this.sqlSessionFactory = sqlSessionFactory;
-		this.batchSize = batchSize;
-	}
 
 	@Override
 	public JobType getType() {

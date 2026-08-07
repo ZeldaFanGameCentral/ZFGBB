@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.content.renderer.templates;
 
+import lombok.RequiredArgsConstructor;
+
 import static org.jsoup.nodes.Entities.escape;
 
 import java.net.URLEncoder;
@@ -30,10 +32,11 @@ import com.zfgc.zfgbb.model.forum.BBCodeConfig;
 import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
-import com.zfgc.zfgbb.mappers.ContentResourceDboMapper;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 
 @Component
+@RequiredArgsConstructor
 public class TemplateExpander {
 
 	private static final int MAX_CACHED_TEMPLATES = 256;
@@ -46,22 +49,13 @@ public class TemplateExpander {
 
 	private final Logger logger = LoggerFactory.getLogger(TemplateExpander.class);
 
-	private final ContentResourceDboMapper contentMapper;
+	private final ContentResourceDao contentResourceDao;
 	private final ContentTemplateCatalog templates;
 	private final TemplateDataFetcher fetcher;
 	private final WikiDataProvider wikiPages;
 	private final BBCodeGrammarHolder grammarHolder;
 
 	private final Map<String, Template> compiled = new ConcurrentHashMap<>();
-
-	public TemplateExpander(ContentResourceDboMapper contentMapper, ContentTemplateCatalog templates,
-			TemplateDataFetcher fetcher, WikiDataProvider wikiPages, BBCodeGrammarHolder grammarHolder) {
-		this.contentMapper = contentMapper;
-		this.templates = templates;
-		this.fetcher = fetcher;
-		this.wikiPages = wikiPages;
-		this.grammarHolder = grammarHolder;
-	}
 
 
 
@@ -248,7 +242,7 @@ public class TemplateExpander {
 		}
 		ContentResourceDboExample ex = new ContentResourceDboExample();
 		ex.createCriteria().andFilenameIn(new ArrayList<>(filenames));
-		for (ContentResourceDbo dbo : contentMapper.selectByExample(ex)) {
+		for (ContentResourceDbo dbo : contentResourceDao.get(ex)) {
 			result.putIfAbsent(dbo.getFilename(), dbo.getContentResourceId());
 		}
 		return result;

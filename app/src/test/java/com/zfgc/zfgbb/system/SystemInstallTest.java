@@ -29,10 +29,10 @@ import org.testcontainers.junit.jupiter.Container;
 
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
-import com.zfgc.zfgbb.services.system.InstallRunRepository;
+import com.zfgc.zfgbb.services.install.InstallRunRepository;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.operations.postgres.PostgresAdvisoryLock;
 import com.zfgc.zfgbb.testsupport.ZfgbbIntegrationTest;
@@ -115,7 +115,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.adminUserId").value(1))
 				.andExpect(jsonPath("$.siteName").value("ZFGC Test"))
-				.andExpect(jsonPath("$.contentPack").doesNotExist())
+				.andExpect(jsonPath("$.installSampleData").value(false))
 				.andExpect(jsonPath("$.accessToken").doesNotExist())
 				.andExpect(jsonPath("$.refreshToken").doesNotExist())
 				.andExpect(cookie().value(AuthCookieService.ACCESS_COOKIE_NAME, ""))
@@ -255,7 +255,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.adminUserId").value(1))
 				.andExpect(jsonPath("$.siteName").value("ZFGC Test"))
-				.andExpect(jsonPath("$.contentPack").doesNotExist());
+				.andExpect(jsonPath("$.installSampleData").value(false));
 
 		assertEquals(1, installRunDboMapper.countByExample(where(new InstallRunDboExample(),
 				example -> example.createCriteria().andInstallIdEqualTo((short) 1).andStateEqualTo("INSTALLED")

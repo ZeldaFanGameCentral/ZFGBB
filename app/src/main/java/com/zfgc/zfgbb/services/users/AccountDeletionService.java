@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.services.users;
 
+import lombok.RequiredArgsConstructor;
+import com.zfgc.zfgbb.services.mail.MailDispatcher;
 import static com.zfgc.zfgbb.util.ZfgcSecurityUtils.sha256Hex;
 
 import java.nio.charset.StandardCharsets;
@@ -37,12 +39,12 @@ import com.zfgc.zfgbb.dbo.WikiPageDboExample;
 import com.zfgc.zfgbb.dbo.PersonalMessageDboExample;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.AccountDeletionRequestDboMapper;
-import com.zfgc.zfgbb.mappers.PollDboMapper;
-import com.zfgc.zfgbb.mappers.WikiPageDboMapper;
-import com.zfgc.zfgbb.mappers.PersonalMessageDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
+import com.zfgc.zfgbb.dao.forum.PollDao;
+import com.zfgc.zfgbb.dao.cms.WikiPageDao;
+import com.zfgc.zfgbb.dao.forum.PersonalMessageDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.AccountDeletionPreview;
 import com.zfgc.zfgbb.model.users.AccountDeletionRequest;
 import com.zfgc.zfgbb.model.users.AccountDeletionState;
@@ -59,6 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AccountDeletionService {
 
 	private static final SecureRandom CONFIRMATION_TOKEN_RNG = new SecureRandom();
@@ -75,15 +78,18 @@ public class AccountDeletionService {
 	private final DeletionAuditLedger deletionAuditLedger;
 	private final AuthService authService;
 	private final ForumService forumService;
-	private final AccountDeletionRequestDboMapper deletionRequestMapper;
+	private final AccountDeletionRequestDao accountDeletionRequestDao;
 	private final ObjectProvider<MailDispatcher> mailDispatcherProvider;
+	@Value("${zfgbb.account-deletion.purge-async:true}")
 	private final boolean purgeAsync;
+	@Value("${zfgbb.account-deletion.confirm-base-url:https://zfgc.com/account/delete/confirm}")
 	private final String confirmBaseUrl;
+	@Value("${zfgbb.account-deletion.confirm-ttl-hours:24}")
 	private final long confirmTtlHours;
-	private final PollDboMapper pollMapper;
-	private final WikiPageDboMapper wikiPageMapper;
-	private final PersonalMessageDboMapper personalMessageMapper;
-	private final UserDeletionMapper deletionMapper;
+	private final PollDao pollDao;
+	private final WikiPageDao wikiPageDao;
+	private final PersonalMessageDao personalMessageDao;
+	private final UserErasureDao userErasureDao;
 	private final MutationLeaseProvider mutationLeases;
 
 	private final ConcurrentHashMap<String, Deque<Instant>> attemptWindows = new ConcurrentHashMap<>();
@@ -93,37 +99,6 @@ public class AccountDeletionService {
 		worker.setDaemon(true);
 		return worker;
 	});
-
-	public AccountDeletionService(List<UserDataHandler> dataHandlers,
-			CoreUserDataHandler coreUserDataHandler,
-			DeletionAuditLedger deletionAuditLedger,
-			AuthService authService,
-			ForumService forumService,
-			AccountDeletionRequestDboMapper deletionRequestMapper,
-			ObjectProvider<MailDispatcher> mailDispatcherProvider,
-			@Value("${zfgbb.account-deletion.purge-async:true}") boolean purgeAsync,
-			@Value("${zfgbb.account-deletion.confirm-base-url:https://zfgc.com/account/delete/confirm}") String confirmBaseUrl,
-			@Value("${zfgbb.account-deletion.confirm-ttl-hours:24}") long confirmTtlHours,
-			PollDboMapper pollMapper, WikiPageDboMapper wikiPageMapper,
-			PersonalMessageDboMapper personalMessageMapper,
-			UserDeletionMapper deletionMapper,
-			MutationLeaseProvider mutationLeases) {
-		this.dataHandlers = dataHandlers;
-		this.coreUserDataHandler = coreUserDataHandler;
-		this.deletionAuditLedger = deletionAuditLedger;
-		this.authService = authService;
-		this.forumService = forumService;
-		this.deletionRequestMapper = deletionRequestMapper;
-		this.mailDispatcherProvider = mailDispatcherProvider;
-		this.purgeAsync = purgeAsync;
-		this.confirmBaseUrl = confirmBaseUrl;
-		this.confirmTtlHours = confirmTtlHours;
-		this.pollMapper = pollMapper;
-		this.wikiPageMapper = wikiPageMapper;
-		this.personalMessageMapper = personalMessageMapper;
-		this.deletionMapper = deletionMapper;
-		this.mutationLeases = mutationLeases;
-	}
 
 	public AccountDeletionState requestDeletion(User principal, AccountDeletionRequest submission) {
 		Integer userId = principal.getUserId();
@@ -174,12 +149,11 @@ public class AccountDeletionService {
 		rotation.setExpiresTs(now.plusHours(confirmTtlHours));
 		rotation.setResendCount(nextResendCount);
 		rotation.setLastSentTs(now);
-		rotation.setUpdatedTs(now);
 		AccountDeletionRequestDboExample stillPending = new AccountDeletionRequestDboExample();
 		stillPending.createCriteria()
 				.andAccountDeletionRequestIdEqualTo(pending.getAccountDeletionRequestId())
 				.andStatusEqualTo(CoreUserDataHandler.REQUEST_STATUS_PENDING);
-		if (deletionRequestMapper.updateByExampleSelective(rotation, stillPending) != 1)
+		if (accountDeletionRequestDao.updateWhere(rotation, stillPending) != 1)
 			throw new ZfgcNotFoundException();
 		dispatchConfirmationEmail(pending.getUserId(), pending.getMode(), rawToken);
 		return new AccountDeletionState(CoreUserDataHandler.REQUEST_STATUS_PENDING, pending.getMode(),
@@ -195,8 +169,7 @@ public class AccountDeletionService {
 				CoreUserDataHandler.REQUEST_STATUS_CANCELLED, utcNow()))
 			return new AccountDeletionState(CoreUserDataHandler.REQUEST_STATUS_CANCELLED, request.getMode(),
 					request.getExpiresTs(), request.getResendCount(), request.getLastSentTs());
-		return Optional
-				.ofNullable(deletionRequestMapper.selectByPrimaryKey(request.getAccountDeletionRequestId()))
+		return accountDeletionRequestDao.find(request.getAccountDeletionRequestId())
 				.map(this::pendingState)
 				.orElseGet(AccountDeletionState::none);
 	}
@@ -216,14 +189,14 @@ public class AccountDeletionService {
 		PersonalMessageDboExample sentPersonalMessagesExample = new PersonalMessageDboExample();
 		sentPersonalMessagesExample.createCriteria().andSenderUserIdEqualTo(principal.getUserId());
 		return new AccountDeletionPreview(
-				deletionMapper.countOwnedMessages(principal.getUserId()),
-				deletionMapper.countOwnedThreads(principal.getUserId()),
-				(int) pollMapper.countByExample(ownedPollsExample),
+				userErasureDao.countOwnedMessages(principal.getUserId()),
+				userErasureDao.countOwnedThreads(principal.getUserId()),
+				(int) pollDao.count(ownedPollsExample),
 				deletionAuditLedger.countOwnedContentResources(principal.getUserId()),
-				(int) wikiPageMapper.countByExample(ownedWikiPagesExample),
+				(int) wikiPageDao.count(ownedWikiPagesExample),
 				coreUserDataHandler.countOwnedContentEntities(principal.getUserId(), "PROJECT"),
 				coreUserDataHandler.countOwnedContentEntities(principal.getUserId(), "RESOURCE"),
-				(int) personalMessageMapper.countByExample(sentPersonalMessagesExample),
+				(int) personalMessageDao.count(sentPersonalMessagesExample),
 				coreUserDataHandler.adminReplacementRequired(principal.getUserId()));
 	}
 
@@ -245,7 +218,7 @@ public class AccountDeletionService {
 				executeConfirmedDeletion(request.getAccountDeletionRequestId());
 				return confirmOutcome(request.getAccountDeletionRequestId());
 			}
-			request = deletionRequestMapper.selectByPrimaryKey(request.getAccountDeletionRequestId());
+			request = accountDeletionRequestDao.find(request.getAccountDeletionRequestId()).orElse(null);
 			if (request == null)
 				throw invalidConfirmationToken();
 		}
@@ -262,7 +235,7 @@ public class AccountDeletionService {
 	}
 
 	public void executeConfirmedDeletion(Integer accountDeletionRequestId) {
-		AccountDeletionRequestDbo request = deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId);
+		AccountDeletionRequestDbo request = accountDeletionRequestDao.find(accountDeletionRequestId).orElse(null);
 		if (request == null)
 			throw new ZfgcNotFoundException();
 		switch (request.getStatus()) {
@@ -290,7 +263,7 @@ public class AccountDeletionService {
 		AccountDeletionRequestDboExample ex = new AccountDeletionRequestDboExample();
 		ex.createCriteria().andStatusIn(List.of(CoreUserDataHandler.REQUEST_STATUS_CONFIRMED,
 				CoreUserDataHandler.REQUEST_STATUS_EXECUTING));
-		for (AccountDeletionRequestDbo request : deletionRequestMapper.selectByExample(ex))
+		for (AccountDeletionRequestDbo request : accountDeletionRequestDao.get(ex))
 			purgeExecutor.submit(() -> {
 				try {
 					executeConfirmedDeletion(request.getAccountDeletionRequestId());
@@ -347,7 +320,7 @@ public class AccountDeletionService {
 	}
 
 	private void runPurge(Integer accountDeletionRequestId) {
-		AccountDeletionRequestDbo request = deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId);
+		AccountDeletionRequestDbo request = accountDeletionRequestDao.find(accountDeletionRequestId).orElse(null);
 		if (request == null || CoreUserDataHandler.REQUEST_STATUS_COMPLETED.equals(request.getStatus()))
 			return;
 		if (!CoreUserDataHandler.REQUEST_STATUS_EXECUTING.equals(request.getStatus()))
@@ -388,14 +361,14 @@ public class AccountDeletionService {
 		AccountDeletionRequestDboExample ex = new AccountDeletionRequestDboExample();
 		ex.createCriteria().andUserIdEqualTo(userId)
 				.andStatusEqualTo(CoreUserDataHandler.REQUEST_STATUS_PENDING);
-		return deletionRequestMapper.selectByExample(ex).stream().findFirst();
+		return accountDeletionRequestDao.getOne(ex);
 	}
 
 	private Optional<AccountDeletionRequestDbo> findRequestByTokenHash(String tokenSha256) {
 		AccountDeletionRequestDboExample ex = new AccountDeletionRequestDboExample();
 		ex.createCriteria().andTokenSha256EqualTo(tokenSha256);
 		ex.setOrderByClause("account_deletion_request_id desc");
-		return deletionRequestMapper.selectByExample(ex).stream().findFirst();
+		return accountDeletionRequestDao.getOne(ex);
 	}
 
 	private AccountDeletionState createPendingRequest(Integer userId, DeletionMode mode, OffsetDateTime now) {
@@ -410,9 +383,8 @@ public class AccountDeletionService {
 		request.setResendCount(0);
 		request.setLastSentTs(now);
 		request.setCreatedTs(now);
-		request.setUpdatedTs(now);
 		try {
-			deletionRequestMapper.insertSelective(request);
+			accountDeletionRequestDao.insertSelective(request);
 		} catch (DuplicateKeyException concurrentRequest) {
 			return findPendingRequest(userId).map(this::pendingState)
 					.orElseThrow(() -> concurrentRequest);
@@ -431,16 +403,15 @@ public class AccountDeletionService {
 	private boolean transitionPendingTo(Integer accountDeletionRequestId, String targetStatus, OffsetDateTime now) {
 		AccountDeletionRequestDbo transition = new AccountDeletionRequestDbo();
 		transition.setStatus(targetStatus);
-		transition.setUpdatedTs(now);
 		AccountDeletionRequestDboExample stillPending = new AccountDeletionRequestDboExample();
 		stillPending.createCriteria()
 				.andAccountDeletionRequestIdEqualTo(accountDeletionRequestId)
 				.andStatusEqualTo(CoreUserDataHandler.REQUEST_STATUS_PENDING);
-		return deletionRequestMapper.updateByExampleSelective(transition, stillPending) == 1;
+		return accountDeletionRequestDao.updateWhere(transition, stillPending) == 1;
 	}
 
 	private boolean deletionAlreadyUnderway(Integer accountDeletionRequestId) {
-		AccountDeletionRequestDbo current = deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId);
+		AccountDeletionRequestDbo current = accountDeletionRequestDao.find(accountDeletionRequestId).orElse(null);
 		if (current == null)
 			return false;
 		return switch (current.getStatus()) {
@@ -455,17 +426,16 @@ public class AccountDeletionService {
 		AccountDeletionRequestDbo update = new AccountDeletionRequestDbo();
 		update.setStatus(CoreUserDataHandler.REQUEST_STATUS_CONFIRMED);
 		update.setConfirmedTs(now);
-		update.setUpdatedTs(now);
 		AccountDeletionRequestDboExample ex = new AccountDeletionRequestDboExample();
 		ex.createCriteria().andAccountDeletionRequestIdEqualTo(accountDeletionRequestId)
 				.andStatusEqualTo(CoreUserDataHandler.REQUEST_STATUS_PENDING)
 				.andTokenSha256EqualTo(tokenSha256)
 				.andExpiresTsGreaterThan(now);
-		return deletionRequestMapper.updateByExampleSelective(update, ex);
+		return accountDeletionRequestDao.updateWhere(update, ex);
 	}
 
 	private AccountDeletionConfirmOutcome confirmOutcome(Integer accountDeletionRequestId) {
-		AccountDeletionRequestDbo request = deletionRequestMapper.selectByPrimaryKey(accountDeletionRequestId);
+		AccountDeletionRequestDbo request = accountDeletionRequestDao.find(accountDeletionRequestId).orElse(null);
 		if (request == null)
 			throw invalidConfirmationToken();
 		AccountDeletionState state = new AccountDeletionState(request.getStatus(), request.getMode(),

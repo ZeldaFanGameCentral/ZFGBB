@@ -22,14 +22,14 @@ import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ThreadDataProvider;
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.ModerationLogDbo;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.ModerationLogDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserDeletionMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.dao.forum.ModerationLogDao;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.services.AbstractService;
 import com.zfgc.zfgbb.model.forum.MessageDeletionResponse;
 import com.zfgc.zfgbb.model.forum.RestoreResponse;
@@ -72,8 +72,8 @@ public class ForumModerationOrchestrator extends AbstractService {
 	private final MessageDataProvider messageDataProvider;
 	private final MessageDao messageDao;
 	private final ForumUserDataHandler forumUserDataHandler;
-	private final UserDeletionMapper userDeletionMapper;
-	private final ModerationLogDboMapper moderationLogMapper;
+	private final UserErasureDao userErasureDao;
+	private final ModerationLogDao moderationLogDao;
 
 	public ThreadDeletionResponse deleteThread(Integer threadId, User user) {
 		forumService.lockThreadRows(List.of(threadId));
@@ -157,7 +157,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		Thread newThread = forumService.getThreadTemplate(split.boardId(), user);
 		Thread splitResult = threadDataProvider.splitThread(split, newThread);
 
-		userDeletionMapper.resequencePostInThread(List.of(split.threadId(), splitResult.getThreadId()));
+		userErasureDao.resequencePostInThread(List.of(split.threadId(), splitResult.getThreadId()));
 		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(split.threadId()));
 
 		writeModerationLog(ACTION_THREAD_SPLIT, user, sourceThread.getCreatedUserId(), newThread.getBoardId(),
@@ -218,7 +218,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		Thread savedWrapper = threadDataProvider.saveThread(wrapper);
 
 		messageDataProvider.reparentMessage(lockedMessage.messageId(), savedWrapper.getThreadId(), recycleBoardId, 1);
-		userDeletionMapper.resequencePostInThread(List.of(originThreadId));
+		userErasureDao.resequencePostInThread(List.of(originThreadId));
 		writeModerationLog(ACTION_MESSAGE_RECYCLED, user, lockedMessage.ownerId(), originBoardId, originThreadId,
 				lockedMessage.messageId(), "message_id=" + lockedMessage.messageId() + " post "
 						+ lockedMessage.postInThread() + " recycled from thread_id=" + originThreadId + " board_id="
@@ -301,7 +301,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		messageDataProvider.reparentMessage(messageId, originThreadId, originBoardId, restoredPostInThread);
 		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(wrapperThreadId));
 		if (forumService.threadExists(wrapperThreadId))
-			userDeletionMapper.resequencePostInThread(List.of(wrapperThreadId));
+			userErasureDao.resequencePostInThread(List.of(wrapperThreadId));
 
 		writeModerationLog(ACTION_MESSAGE_RESTORED, user, lockedMessage.ownerId(), wrapperThread.getBoardId(),
 				originThreadId, messageId, "message_id=" + messageId + " restored to thread_id=" + originThreadId
@@ -365,8 +365,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 		entry.setLoggedTs(now);
 		entry.setCreatedTs(now);
-		entry.setUpdatedTs(now);
-		moderationLogMapper.insertSelective(entry);
+		moderationLogDao.insertSelective(entry);
 	}
 
 	private void deleteBlobFilesAfterCommit(List<String> blobPaths) {

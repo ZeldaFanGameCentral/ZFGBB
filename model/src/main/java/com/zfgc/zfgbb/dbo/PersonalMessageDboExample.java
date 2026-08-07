@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -774,6 +775,21 @@ public class PersonalMessageDboExample {
 
         public Criteria andMigrationHashNotBetween(String value1, String value2) {
             addCriterion("migration_hash not between", value1, value2, "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andSenderNameContains(String value) {
+            addCriterion("sender_name ilike", LikePatterns.contains(value), "senderName");
+            return (Criteria) this;
+        }
+
+        public Criteria andBodyContains(String value) {
+            addCriterion("body ilike", LikePatterns.contains(value), "body");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

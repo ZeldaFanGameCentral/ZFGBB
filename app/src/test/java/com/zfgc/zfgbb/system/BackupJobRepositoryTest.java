@@ -27,7 +27,7 @@ import org.testcontainers.junit.jupiter.Container;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.model.system.BackupJob;
 import com.zfgc.zfgbb.model.system.BackupJob.State;
-import com.zfgc.zfgbb.services.system.BackupJobRepository;
+import com.zfgc.zfgbb.services.backup.BackupJobRepository;
 import com.zfgc.zfgbb.services.system.MaintenanceCoordinator;
 import com.zfgc.zfgbb.testsupport.ZfgbbIntegrationTest;
 import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -834,6 +835,21 @@ public class ProjectDownloadDboExample {
 
         public Criteria andPublishedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("published_ts not between", value1, value2, "publishedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andLabelContains(String value) {
+            addCriterion("label ilike", LikePatterns.contains(value), "label");
+            return (Criteria) this;
+        }
+
+        public Criteria andUrlContains(String value) {
+            addCriterion("url ilike", LikePatterns.contains(value), "url");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
             return (Criteria) this;
         }
     }

@@ -30,15 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
-import com.zfgc.zfgbb.mappers.custom.RefreshTokenConsumeMapper;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.UserDbo;
-import com.zfgc.zfgbb.mappers.custom.LoginLockoutMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.AuthCredentials;
 import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
 import com.zfgc.zfgbb.model.users.LoginResponse;
@@ -53,11 +52,12 @@ public class AuthService {
 	private static final int TOKEN_BYTES = 32;
 
 	private final UserDataProvider userDataProvider;
-	private final LoginLockoutMapper loginLockoutMapper;
+
+	private final TokenSubjectValidator tokenSubjects;
+	private final UserDao userDao;
 	private final AuthenticationManager loginAuthenticationManager;
 	private final JwtEncoder accessTokenEncoder;
 	private final UserRefreshTokenDao refreshTokenDao;
-	private final RefreshTokenConsumeMapper refreshTokenConsumeMapper;
 	private final Duration rememberedTtl;
 	private final Duration sessionTtl;
 	private final Duration rotationGrace;
@@ -67,11 +67,11 @@ public class AuthService {
 	private final long accessTokenTtlSeconds;
 
 	public AuthService(UserDataProvider userDataProvider,
-			LoginLockoutMapper loginLockoutMapper,
+			TokenSubjectValidator tokenSubjects,
+			UserDao userDao,
 			@Qualifier("loginAuthenticationManager") AuthenticationManager loginAuthenticationManager,
 			JwtEncoder accessTokenEncoder,
 			UserRefreshTokenDao refreshTokenDao,
-			RefreshTokenConsumeMapper refreshTokenConsumeMapper,
 			@Value("${zfgbb.auth.refresh.ttl-days}") long rememberedTtlDays,
 			@Value("${zfgbb.auth.refresh.session-ttl-hours}") long sessionTtlHours,
 			@Value("${zfgbb.auth.refresh.rotation-grace-seconds}") long rotationGraceSeconds,
@@ -79,11 +79,11 @@ public class AuthService {
 			@Value("${zfgbb.auth.lockout.duration-minutes}") long lockoutDurationMinutes,
 			@Value("${zfgbb.auth.jwt.access-ttl-minutes}") long accessTokenTtlMinutes) {
 		this.userDataProvider = userDataProvider;
-		this.loginLockoutMapper = loginLockoutMapper;
+		this.tokenSubjects = tokenSubjects;
+		this.userDao = userDao;
 		this.loginAuthenticationManager = loginAuthenticationManager;
 		this.accessTokenEncoder = accessTokenEncoder;
 		this.refreshTokenDao = refreshTokenDao;
-		this.refreshTokenConsumeMapper = refreshTokenConsumeMapper;
 		this.rememberedTtl = Duration.ofDays(rememberedTtlDays);
 		this.sessionTtl = Duration.ofHours(sessionTtlHours);
 		if (rotationGraceSeconds < 0)
@@ -124,7 +124,7 @@ public class AuthService {
 
 		User principal = (User) authentication.getPrincipal();
 		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-		loginLockoutMapper.clearFailedLoginState(principal.getUserId(), now);
+		userDao.clearFailedLoginState(principal.getUserId(), now);
 		return principal;
 	}
 
@@ -136,13 +136,9 @@ public class AuthService {
 
 	public TokenPair refresh(String refreshToken) {
 		ConsumedRefreshToken consumed = consume(refreshToken);
-		User user = userDataProvider.findUser(consumed.userId(), UserLoadOptions.loggedIn())
-				.orElseThrow(() -> new BadCredentialsException("Refresh token references unknown user"));
-		if (!user.isEnabled())
-			throw new BadCredentialsException("Refresh token references a disabled user");
-		if (user.invalidatesTokenIssuedAt(
-				Optional.ofNullable(consumed.issuedTs()).map(OffsetDateTime::toInstant)))
-			throw new BadCredentialsException("Refresh token was issued before the token validity cutoff");
+		User user = tokenSubjects.validSubject(consumed.userId(),
+				Optional.ofNullable(consumed.issuedTs()).map(OffsetDateTime::toInstant),
+				BadCredentialsException::new);
 		String newAccess = issueAccessToken(user);
 		String newRefresh = consumed.existingSuccessorRaw() != null
 				? consumed.existingSuccessorRaw()
@@ -170,7 +166,7 @@ public class AuthService {
 	private void recordFailedLogin(UserDbo dbo) {
 		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 		OffsetDateTime lockUntil = now.plus(Duration.ofMinutes(lockoutDurationMinutes));
-		loginLockoutMapper.recordFailedLoginAttempt(dbo.getUserId(), now, lockoutFailedAttempts, lockUntil);
+		userDao.recordFailedLoginAttempt(dbo.getUserId(), now, lockoutFailedAttempts, lockUntil);
 	}
 	public String issue(Integer userId, boolean stayLoggedIn) {
 		return mint(userId, stayLoggedIn, UUID.randomUUID().toString()).rawToken();
@@ -200,7 +196,7 @@ public class AuthService {
 
 		boolean stayLoggedIn = wasIssuedForAPersistentSession(tokenRecord);
 
-		int consumed = refreshTokenConsumeMapper.consumeToken(tokenRecord.getUserRefreshTokenId(), now);
+		int consumed = refreshTokenDao.consume(tokenRecord.getUserRefreshTokenId(), now);
 		if (consumed == 1)
 			return new ConsumedRefreshToken(tokenRecord.getUserId(), stayLoggedIn, tokenRecord.getIssuedTs(),
 					tokenRecord.getFamilyId(), tokenRecord.getUserRefreshTokenId(), null);
@@ -287,7 +283,7 @@ public class AuthService {
 		}
 		UserRefreshTokenDboExample ex = new UserRefreshTokenDboExample();
 		ex.createCriteria().andTokenHashEqualTo(sha256Hex(rawToken));
-		return refreshTokenDao.get(ex).stream().findFirst();
+		return refreshTokenDao.getOne(ex);
 	}
 
 	private static String generateRawToken() {

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -814,6 +815,11 @@ public class QuoteStripRunDboExample {
 
         public Criteria andAttemptNoNotBetween(Integer value1, Integer value2) {
             addCriterion("attempt_no not between", value1, value2, "attemptNo");
+            return (Criteria) this;
+        }
+
+        public Criteria andStatusContains(String value) {
+            addCriterion("status ilike", LikePatterns.contains(value), "status");
             return (Criteria) this;
         }
     }

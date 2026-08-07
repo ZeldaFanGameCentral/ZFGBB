@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.operations.postgres;
 
+import lombok.RequiredArgsConstructor;
+import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +42,8 @@ import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.operations.archive.InvalidBackupException;
 
 @Component
+@RawSqlAccess("pg_dump and pg_restore orchestration")
+@RequiredArgsConstructor
 public class PostgresBackupTool {
 	private static final Logger LOG = LoggerFactory.getLogger(PostgresBackupTool.class);
 	private static final Pattern MAJOR = Pattern.compile("(\\d+)(?:\\.\\d+)?");
@@ -49,23 +53,13 @@ public class PostgresBackupTool {
 
 	private final DataSource dataSource;
 	private final ObjectProvider<Flyway> migrationRunnerProvider;
+	@Value("${spring.datasource.url}")
 	private final String jdbcUrl;
+	@Value("${spring.datasource.username}")
 	private final String username;
+	@Value("${spring.datasource.password}")
 	private final String password;
 	private final BackupRestoreProperties properties;
-
-	public PostgresBackupTool(DataSource dataSource, ObjectProvider<Flyway> migrationRunnerProvider,
-			@Value("${spring.datasource.url}") String jdbcUrl,
-			@Value("${spring.datasource.username}") String username,
-			@Value("${spring.datasource.password}") String password,
-			BackupRestoreProperties properties) {
-		this.dataSource = dataSource;
-		this.migrationRunnerProvider = migrationRunnerProvider;
-		this.jdbcUrl = jdbcUrl;
-		this.username = username;
-		this.password = password;
-		this.properties = properties;
-	}
 
 	public DatabaseMetadata metadata() throws IOException {
 		String schemaVersion = appliedSchemaVersion().orElseThrow(() -> new IOException(
@@ -119,10 +113,8 @@ public class PostgresBackupTool {
 		if (MigrationVersion.fromVersion(databaseSchemaVersion)
 				.equals(MigrationVersion.fromVersion(applicationSchemaVersion)))
 			return applicationSchemaVersion;
-		throw new IllegalStateException("This database is at schema version "
-				+ databaseSchemaVersion + " but this application build expects database schema "
-				+ "version " + applicationSchemaVersion
-				+ ". Migrate the database before backing it up or restoring into it.");
+		throw new IllegalStateException("database schema " + databaseSchemaVersion
+				+ " does not match application schema " + applicationSchemaVersion);
 	}
 
 	private static Optional<String> appliedSchemaVersion(MigrationInfoService migrations) {
@@ -142,11 +134,8 @@ public class PostgresBackupTool {
 		MigrationVersion archiveVersion = parseSchemaVersion(archiveSchemaVersion);
 		if (MigrationVersion.fromVersion(applicationSchemaVersion).equals(archiveVersion))
 			return;
-		throw new ZfgcInvalidRequestException(
-				"Backup archive was produced at database schema version " + archiveVersion.getVersion()
-						+ " but this application expects database schema version "
-						+ applicationSchemaVersion
-						+ ". Restoring it would pin the database at the archive's schema version.");
+		throw new ZfgcInvalidRequestException("archive schema " + archiveVersion.getVersion()
+				+ " does not match application schema " + applicationSchemaVersion);
 	}
 
 	private static MigrationVersion parseSchemaVersion(String archiveSchemaVersion) {
@@ -226,23 +215,17 @@ public class PostgresBackupTool {
 	private void retirePooledConnections() throws IOException {
 		try {
 			if (!dataSource.isWrapperFor(HikariDataSource.class)) {
-				LOG.warn("The configured DataSource {} is not a HikariDataSource, so pooled "
-						+ "connections cannot be retired after the restore. Every relation was "
-						+ "replaced, so connections holding cached statement plans may now be stale.",
+				LOG.warn("DataSource {} is not Hikari; pooled connections were not retired after the restore",
 						dataSource.getClass().getName());
 				return;
 			}
 			HikariPoolMXBean pool = dataSource.unwrap(HikariDataSource.class).getHikariPoolMXBean();
 			if (pool == null)
-				LOG.warn("The Hikari pool is not registered, so pooled connections cannot be "
-						+ "retired after the restore. Connections holding cached statement plans "
-						+ "may now be stale.");
+				LOG.warn("Hikari pool not registered; pooled connections were not retired after the restore");
 			else
 				pool.softEvictConnections();
 		} catch (SQLException unreachable) {
-			throw new IOException("Unable to retire pooled connections after the restore. Every "
-					+ "relation was replaced, so connections holding cached statement plans must "
-					+ "not be reused.", unreachable);
+			throw new IOException("unable to retire pooled connections after the restore", unreachable);
 		}
 	}
 
@@ -265,9 +248,7 @@ public class PostgresBackupTool {
 				dump.toAbsolutePath().normalize().toString()), Map.of(),
 				tocByteBudget());
 		if (listing.truncated())
-			throw new ZfgcInvalidRequestException("The archive's table of contents is larger than "
-					+ properties.getEntries() + " entries can account for, so it cannot be "
-					+ "confined to the application schema.");
+			throw new ZfgcInvalidRequestException("archive table of contents exceeds " + properties.getEntries() + " entries");
 		try {
 			return new PostgresDumpTocValidator().validate(listing.text(), properties.getEntries());
 		} catch (InvalidBackupException invalid) {

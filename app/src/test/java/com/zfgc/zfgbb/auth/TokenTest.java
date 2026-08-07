@@ -47,18 +47,18 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
-import com.zfgc.zfgbb.config.security.AccessCookieBearerHeaderFilter;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.web.filter.AccessCookieBearerHeaderFilter;
 import com.zfgc.zfgbb.config.security.JwtConfig;
 import com.zfgc.zfgbb.config.security.JwtProperties;
-import com.zfgc.zfgbb.config.security.JwtUserAuthenticationConverter;
+import com.zfgc.zfgbb.config.security.UserJwtAuthenticationConverter;
+import com.zfgc.zfgbb.services.auth.TokenSubjectValidator;
+import com.zfgc.zfgbb.dao.users.UserDao;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
-import com.zfgc.zfgbb.mappers.custom.LoginLockoutMapper;
-import com.zfgc.zfgbb.mappers.custom.RefreshTokenConsumeMapper;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.ConsumedRefreshToken;
 import com.zfgc.zfgbb.model.users.PasswordAlgo;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -67,7 +67,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 
-import com.zfgc.zfgbb.config.security.ZfgcPasswordEncoder;
+import com.zfgc.zfgbb.services.auth.ZfgcPasswordEncoder;
 import com.zfgc.zfgbb.services.auth.AuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,12 +80,12 @@ class TokenTest {
 		private static final Integer SUBJECT_USER_ID = 5;
 
 		private UserDataProvider userDataProvider;
-		private JwtUserAuthenticationConverter converter;
+		private UserJwtAuthenticationConverter converter;
 
 		@BeforeEach
 		void setup() {
 			userDataProvider = mock(UserDataProvider.class);
-			converter = new JwtUserAuthenticationConverter(userDataProvider);
+			converter = new UserJwtAuthenticationConverter(new TokenSubjectValidator(userDataProvider));
 		}
 
 		private User enabledUser() {
@@ -206,9 +206,10 @@ class TokenTest {
 			Jwt encodedAccessToken = mock(Jwt.class);
 			when(encodedAccessToken.getTokenValue()).thenReturn("reissued-access-token");
 			when(accessTokenEncoder.encode(any(JwtEncoderParameters.class))).thenReturn(encodedAccessToken);
-			authService = spy(new AuthService(userDataProvider, mock(LoginLockoutMapper.class),
+			authService = spy(new AuthService(userDataProvider, new TokenSubjectValidator(userDataProvider),
+					mock(UserDao.class),
 					mock(AuthenticationManager.class), accessTokenEncoder, mock(UserRefreshTokenDao.class),
-					mock(RefreshTokenConsumeMapper.class), 30, 24, 60, 10, 15, 15));
+					30, 24, 60, 10, 15, 15));
 		}
 
 		private void stubTokenHolderWithCutoff(OffsetDateTime tokensValidAfterTs) {
@@ -462,21 +463,24 @@ class TokenTest {
 			token.setExpiresTs(now.plusHours(1));
 			token.setRevokedFlag(false);
 
-			SingleSuccessConsumeMapper consumeMapper = new SingleSuccessConsumeMapper();
-			AuthService service = new AuthService(mock(UserDataProvider.class), mock(LoginLockoutMapper.class),
-					mock(AuthenticationManager.class), mock(JwtEncoder.class), new FixedTokenDao(token),
-					consumeMapper, 30, 24, 60, 10, 15, 15);
+			FixedTokenDao refreshTokenDao = new FixedTokenDao(token);
+			AuthService service = new AuthService(mock(UserDataProvider.class),
+					new TokenSubjectValidator(mock(UserDataProvider.class)), mock(UserDao.class),
+					mock(AuthenticationManager.class), mock(JwtEncoder.class), refreshTokenDao,
+					30, 24, 60, 10, 15, 15);
 
 			assertEquals(7, service.consume("token").userId());
 			assertThrows(BadCredentialsException.class, () -> service.consume("token"));
-			assertEquals(2, consumeMapper.attempts);
+			assertEquals(2, refreshTokenDao.consumeAttempts);
 		}
 
 		private static final class FixedTokenDao extends UserRefreshTokenDao {
 			private final UserRefreshTokenDbo token;
 
+			private int consumeAttempts;
+
 			FixedTokenDao(UserRefreshTokenDbo token) {
-				super(null);
+				super(null, null);
 				this.token = token;
 			}
 
@@ -484,15 +488,11 @@ class TokenTest {
 			public List<UserRefreshTokenDbo> get(UserRefreshTokenDboExample ex) {
 				return List.of(token);
 			}
-		}
-
-		private static final class SingleSuccessConsumeMapper implements RefreshTokenConsumeMapper {
-			private int attempts;
 
 			@Override
-			public int consumeToken(Integer userRefreshTokenId, OffsetDateTime now) {
-				attempts++;
-				return attempts == 1 ? 1 : 0;
+			public int consume(Integer userRefreshTokenId, OffsetDateTime now) {
+				consumeAttempts++;
+				return consumeAttempts == 1 ? 1 : 0;
 			}
 		}
 	}

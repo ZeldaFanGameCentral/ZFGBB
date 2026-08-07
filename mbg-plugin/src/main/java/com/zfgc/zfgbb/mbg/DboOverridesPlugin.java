@@ -52,9 +52,6 @@ public class DboOverridesPlugin extends PluginAdapter {
 		} else {
 			IntrospectedColumn pk = pks.get(0);
 			String pkJavaType = pk.getFullyQualifiedJavaType().getFullyQualifiedName();
-			// Single-column Integer PK is the convention. Tables with a non-Integer
-			// PK (e.g. system_config keyed by text) get null here -- they don't go
-			// through AbstractDao.save anyway.
 			if (java.lang.Integer.class.getName().equals(pkJavaType)) {
 				m.addBodyLine("return " + pk.getJavaProperty() + ";");
 			} else {

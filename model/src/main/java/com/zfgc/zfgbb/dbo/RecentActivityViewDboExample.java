@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -594,6 +595,21 @@ public class RecentActivityViewDboExample {
 
         public Criteria andLastPostTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
             addCriterion("last_post_ts not between", value1, value2, "lastPostTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andThreadNameContains(String value) {
+            addCriterion("thread_name ilike", LikePatterns.contains(value), "threadName");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardNameContains(String value) {
+            addCriterion("board_name ilike", LikePatterns.contains(value), "boardName");
+            return (Criteria) this;
+        }
+
+        public Criteria andLastPosterContains(String value) {
+            addCriterion("last_poster ilike", LikePatterns.contains(value), "lastPoster");
             return (Criteria) this;
         }
     }

@@ -28,7 +28,7 @@ import com.zfgc.zfgbb.exception.InvalidBBCodeGrammarException;
 import com.zfgc.zfgbb.model.forum.BBCodeAttribute;
 import com.zfgc.zfgbb.model.forum.BBCodeAttributeMode;
 import com.zfgc.zfgbb.model.forum.BBCodeConfig;
-import com.zfgc.zfgbb.security.LinkPolicy;
+import com.zfgc.zfgbb.content.renderer.LinkPolicy;
 
 import lombok.RequiredArgsConstructor;
 
@@ -118,7 +118,7 @@ public class ContentOutputSanitizer {
 		Document clean = new Cleaner(SAFELIST).clean(Jsoup.parseBodyFragment(html));
 		clean.outputSettings(settings);
 		for (Element el : clean.body().getAllElements()) {
-			if ("iframe".equals(el.tagName())) {
+			if (el.tagName().equals("iframe")) {
 				String normalized = normalizeYoutubeEmbed(el.attr("src"));
 				if (normalized == null) {
 					el.remove();
@@ -137,7 +137,7 @@ public class ContentOutputSanitizer {
 	}
 
 	private static void rewriteLegacySpecialPageHref(Element el) {
-		if (!"a".equals(el.normalName()))
+		if (!el.normalName().equals("a"))
 			return;
 		String legacyHref = el.attr("href");
 		if (!legacyHref.startsWith(LEGACY_SPECIAL_PAGE_PREFIX))

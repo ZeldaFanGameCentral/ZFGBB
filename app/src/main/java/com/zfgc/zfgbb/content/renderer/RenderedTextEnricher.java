@@ -22,8 +22,8 @@ import org.jsoup.select.NodeVisitor;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.SmileyDboExample;
-import com.zfgc.zfgbb.mappers.SmileyDboMapper;
-import com.zfgc.zfgbb.security.LinkPolicy;
+import com.zfgc.zfgbb.dao.forum.SmileyDao;
+import com.zfgc.zfgbb.content.renderer.LinkPolicy;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,7 @@ public class RenderedTextEnricher {
 	private static final Set<String> AUTOLINK_SKIP_CLASSES =
 			Set.of(SMILEY_WRAPPER_CLASS, TELETYPE_WRAPPER_CLASS);
 
-	private final SmileyDboMapper smileyMapper;
+	private final SmileyDao smileyDao;
 
 	private List<SmileyToken> smileys = List.of();
 
@@ -70,7 +70,7 @@ public class RenderedTextEnricher {
 
 	@PostConstruct
 	public void loadSmilies() {
-		registerSmilies(smileyMapper.selectByExample(new SmileyDboExample()).stream()
+		registerSmilies(smileyDao.get(new SmileyDboExample()).stream()
 				.filter(dbo -> !Boolean.TRUE.equals(dbo.getHiddenFlag()))
 				.map(dbo -> new SmileyToken(dbo.getCode(), dbo.getName(),
 						dbo.getLabel() == null ? dbo.getName() : dbo.getLabel()))

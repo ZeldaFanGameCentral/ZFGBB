@@ -1,5 +1,16 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
+import com.zfgc.zfgbb.dao.users.UserPermissionViewDao;
+import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
+import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
+import com.zfgc.zfgbb.dbo.UserPermissionViewDbo;
+import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
+import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
+import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
+import com.zfgc.zfgbb.dbo.AccountDeletionRequestDboExample;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +23,7 @@ import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
 import com.zfgc.zfgbb.dao.users.EmailAddressDao;
 import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
+import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dbo.AwardDboExample;
 import com.zfgc.zfgbb.dbo.UserAwardDbo;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
@@ -24,14 +35,14 @@ import com.zfgc.zfgbb.dbo.UserContactInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDbo;
-import com.zfgc.zfgbb.mappers.AwardDboMapper;
-import com.zfgc.zfgbb.mappers.UserAwardDboMapper;
-import com.zfgc.zfgbb.mappers.UserContactInfoDboMapper;
-import com.zfgc.zfgbb.mappers.UserSettingsDboMapper;
+import com.zfgc.zfgbb.dao.users.AwardDao;
+import com.zfgc.zfgbb.dao.users.UserAwardDao;
+import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
+import com.zfgc.zfgbb.dao.users.UserSettingsDao;
 import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
 import com.zfgc.zfgbb.model.users.UserSettings;
@@ -40,6 +51,10 @@ import lombok.RequiredArgsConstructor;
 @Repository
 @RequiredArgsConstructor
 public class UserDataProvider {
+
+	private static final String SITE_ADMIN_PERMISSION_CODE = "ZFGC_SITE_ADMIN";
+
+	private static final int ANONYMIZATION_SENTINEL_USER_ID = 0;
 
 	private static final Integer ZFGC_USER_PERMISSION_ID = 1;
 
@@ -51,7 +66,7 @@ public class UserDataProvider {
 
 	private final UserBioInfoDao bioInfoDao;
 
-	private final UserContactInfoDboMapper userContactInfoDboMapper;
+	private final UserContactInfoDao userContactInfoDao;
 
 	private final UserMap userMap;
 
@@ -59,11 +74,17 @@ public class UserDataProvider {
 
 	private final EmailAddressMap emailAddressMap;
 
-	private final UserSettingsDboMapper userSettingsMapper;
+	private final UserSettingsDao userSettingsDao;
 
-	private final AwardDboMapper awardMapper;
+	private final AwardDao awardDao;
 
-	private final UserAwardDboMapper userAwardMapper;
+	private final UserAwardDao userAwardDao;
+
+	private final UserPermissionViewDao userPermissionViewDao;
+
+	private final UserRefreshTokenDao userRefreshTokenDao;
+
+	private final AccountDeletionRequestDao accountDeletionRequestDao;
 
 	private final UserProfileFacade userProfileFacade;
 
@@ -72,7 +93,7 @@ public class UserDataProvider {
 			return Optional.empty();
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName);
-		return userDao.get(ex).stream().findFirst()
+		return userDao.getOne(ex)
 				.map(dbo -> hydrateUser(dbo, UserLoadOptions.loggedIn()));
 	}
 
@@ -86,7 +107,7 @@ public class UserDataProvider {
 		}
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdEqualTo(userId).andActiveFlagEqualTo(true);
-		return userDao.get(ex).stream().findFirst()
+		return userDao.getOne(ex)
 				.map(userDb -> hydrateUser(userDb, loadOptions));
 	}
 
@@ -131,9 +152,9 @@ public class UserDataProvider {
 		dbo.setNotifySendBodyFlag(settings.getNotifySendBodyFlag());
 		dbo.setSendHappyBirthdayFlag(settings.getSendHappyBirthdayFlag());
 
-		UserSettingsDbo existing = userSettingsMapper.selectByPrimaryKey(userId);
+		UserSettingsDbo existing = userSettingsDao.find(userId).orElse(null);
 		if (existing == null) {
-			userSettingsMapper.insertSelective(dbo);
+			userSettingsDao.insertSelective(dbo);
 		} else {
 			dbo.setMigrationHash(existing.getMigrationHash());
 			if (dbo.getNotifyAnnouncementsFlag() == null) {
@@ -145,9 +166,9 @@ public class UserDataProvider {
 			if (dbo.getSendHappyBirthdayFlag() == null) {
 				dbo.setSendHappyBirthdayFlag(existing.getSendHappyBirthdayFlag());
 			}
-			userSettingsMapper.updateByPrimaryKey(dbo);
+			userSettingsDao.update(dbo);
 		}
-		return toSettings(userSettingsMapper.selectByPrimaryKey(userId));
+		return toSettings(userSettingsDao.find(userId).orElse(null));
 	}
 
 	public User createUser(User user) {
@@ -164,7 +185,7 @@ public class UserDataProvider {
 		contactInfo.setEmailAddressId(emailDbo.getEmailAddressId());
 		contactInfo.setAllowEmailFlag(true);
 		contactInfo.setAllowPmFlag(true);
-		userContactInfoDboMapper.insertSelective(contactInfo);
+		userContactInfoDao.insertSelective(contactInfo);
 
 		UserBioInfoDbo bioInfo = user.getBioInfo() != null
 				? userBioInfoMap.toDbo(user.getBioInfo())
@@ -200,8 +221,7 @@ public class UserDataProvider {
 	}
 
 	private void replaceEmailAddress(int userId, EmailAddress requested) {
-		Optional<UserContactInfoDbo> contactInfo = Optional
-				.ofNullable(userContactInfoDboMapper.selectByPrimaryKey(userId));
+		Optional<UserContactInfoDbo> contactInfo = userContactInfoDao.find(userId);
 		Optional<EmailAddressDbo> currentAddress = contactInfo
 				.map(UserContactInfoDbo::getEmailAddressId)
 				.flatMap(emailDao::find);
@@ -225,12 +245,12 @@ public class UserDataProvider {
 		link.setUserId(userId);
 		link.setEmailAddressId(replacement.getEmailAddressId());
 		if (contactInfo.isPresent()) {
-			userContactInfoDboMapper.updateByPrimaryKeySelective(link);
+			userContactInfoDao.updateSelective(link);
 			return;
 		}
 		link.setAllowEmailFlag(true);
 		link.setAllowPmFlag(true);
-		userContactInfoDboMapper.insertSelective(link);
+		userContactInfoDao.insertSelective(link);
 	}
 
 	private EmailAddressDbo newEmailAddress(EmailAddress requested) {
@@ -242,31 +262,31 @@ public class UserDataProvider {
 	private boolean isEmailAddressSharedWithAnotherUser(Integer emailAddressId, int userId) {
 		UserContactInfoDboExample ex = new UserContactInfoDboExample();
 		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId).andUserIdNotEqualTo(userId);
-		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
+		return !userContactInfoDao.get(ex).isEmpty();
 	}
 
 	public boolean emailAddressIsClaimedBySomeUser(Integer emailAddressId) {
 		UserContactInfoDboExample ex = new UserContactInfoDboExample();
 		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId);
-		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
+		return !userContactInfoDao.get(ex).isEmpty();
 	}
 
 	public boolean emailAddressBelongsTo(Integer emailAddressId, int userId) {
 		UserContactInfoDboExample ex = new UserContactInfoDboExample();
 		ex.createCriteria().andEmailAddressIdEqualTo(emailAddressId).andUserIdEqualTo(userId);
-		return !userContactInfoDboMapper.selectByExample(ex).isEmpty();
+		return !userContactInfoDao.get(ex).isEmpty();
 	}
 
 	public Optional<UserDbo> findByUserName(String userName) {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName);
-		return userDao.get(ex).stream().findFirst();
+		return userDao.getOne(ex);
 	}
 
 	public Optional<UserDbo> findBySsoKey(String ssoKey) {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andSsoKeyEqualTo(ssoKey);
-		return userDao.get(ex).stream().findFirst();
+		return userDao.getOne(ex);
 	}
 
 	public List<Integer> findUserIdsHoldingIdentity(String identity) {
@@ -291,7 +311,7 @@ public class UserDataProvider {
 	public Optional<EmailAddressDbo> findByEmail(String email) {
 		EmailAddressDboExample ex = new EmailAddressDboExample();
 		ex.createCriteria().andEmailAddressEqualTo(email);
-		return emailDao.get(ex).stream().findFirst();
+		return emailDao.getOne(ex);
 	}
 
 
@@ -300,7 +320,7 @@ public class UserDataProvider {
 	public List<Award> getAwardCatalog() {
 		AwardDboExample awardEx = new AwardDboExample();
 		awardEx.setOrderByClause("award_id");
-		return awardMapper.selectByExample(awardEx).stream()
+		return awardDao.get(awardEx).stream()
 				.map(awardDbo -> {
 					Award model = new Award();
 					model.setAwardId(awardDbo.getAwardId());
@@ -321,8 +341,59 @@ public class UserDataProvider {
 		dbo.setReason(reason);
 		dbo.setContentEntityId(contentEntityId);
 		dbo.setGrantedByUserId(grantedByUserId);
-		userAwardMapper.insertSelective(dbo);
+		userAwardDao.insertSelective(dbo);
 		return findUser(userId, UserLoadOptions.full())
 				.orElseThrow(() -> new IllegalStateException("user disappeared after grantAward"));
+	}
+
+	public List<Integer> siteAdministratorIdsWithUsableCredentials() {
+		UserPermissionViewDboExample siteAdministrators = new UserPermissionViewDboExample();
+		siteAdministrators.createCriteria().andPermissionCodeEqualTo(SITE_ADMIN_PERMISSION_CODE)
+				.andUserIdNotEqualTo(ANONYMIZATION_SENTINEL_USER_ID);
+		List<Integer> candidates = userPermissionViewDao.get(siteAdministrators).stream()
+				.map(UserPermissionViewDbo::getUserId)
+				.distinct()
+				.toList();
+		if (candidates.isEmpty())
+			return List.of();
+
+		UserDboExample withPassword = new UserDboExample();
+		withPassword.createCriteria().andUserIdIn(candidates)
+				.andPasswordHashIsNotNull().andPasswordHashNotEqualTo("");
+		Set<Integer> usable = userDao.get(withPassword).stream()
+				.map(UserDbo::getUserId)
+				.collect(Collectors.toCollection(LinkedHashSet::new));
+
+		UserRefreshTokenDboExample withRefreshToken = new UserRefreshTokenDboExample();
+		withRefreshToken.createCriteria().andUserIdIn(candidates);
+		userRefreshTokenDao.get(withRefreshToken).stream()
+				.map(UserRefreshTokenDbo::getUserId)
+				.forEach(usable::add);
+
+		return candidates.stream().filter(usable::contains).sorted().toList();
+	}
+
+	public boolean hasUsableCredentialsOutside(int anchorAdministratorId) {
+		List<Integer> exempt = List.of(anchorAdministratorId, ANONYMIZATION_SENTINEL_USER_ID);
+
+		UserDboExample foreignPassword = new UserDboExample();
+		foreignPassword.createCriteria().andUserIdNotIn(exempt)
+				.andPasswordHashIsNotNull().andPasswordHashNotEqualTo("");
+		foreignPassword.or(foreignPassword.createCriteria().andUserIdNotIn(exempt)
+				.andPasswordAlgoIsNotNull().andPasswordAlgoNotEqualTo(""));
+		foreignPassword.or(foreignPassword.createCriteria().andUserIdNotIn(exempt)
+				.andPasswordSaltIsNotNull().andPasswordSaltNotEqualTo(""));
+		if (userDao.exists(foreignPassword))
+			return true;
+
+		UserRefreshTokenDboExample foreignRefreshToken = new UserRefreshTokenDboExample();
+		foreignRefreshToken.createCriteria().andUserIdNotEqualTo(anchorAdministratorId);
+		if (userRefreshTokenDao.exists(foreignRefreshToken))
+			return true;
+
+		AccountDeletionRequestDboExample foreignDeletionRequest =
+				new AccountDeletionRequestDboExample();
+		foreignDeletionRequest.createCriteria().andUserIdNotEqualTo(anchorAdministratorId);
+		return accountDeletionRequestDao.exists(foreignDeletionRequest);
 	}
 }

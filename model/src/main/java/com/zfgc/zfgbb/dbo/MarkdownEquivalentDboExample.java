@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.util.ArrayList;
 import java.util.List;
@@ -343,6 +344,16 @@ public class MarkdownEquivalentDboExample {
 
         public Criteria andOrdinalNotBetween(Integer value1, Integer value2) {
             addCriterion("ordinal not between", value1, value2, "ordinal");
+            return (Criteria) this;
+        }
+
+        public Criteria andCodeContains(String value) {
+            addCriterion("code ilike", LikePatterns.contains(value), "code");
+            return (Criteria) this;
+        }
+
+        public Criteria andLabelContains(String value) {
+            addCriterion("label ilike", LikePatterns.contains(value), "label");
             return (Criteria) this;
         }
     }

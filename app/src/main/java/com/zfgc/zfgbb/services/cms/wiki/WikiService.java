@@ -12,7 +12,7 @@ import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
 import com.zfgc.zfgbb.dataprovider.cms.WikiNamespaceDataProvider;
 import com.zfgc.zfgbb.model.cms.PagedResult;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateDataService;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateSource;
@@ -36,7 +36,7 @@ public class WikiService implements TemplateDataService {
 
 	private final WikiNamespaceDataProvider namespaceData;
 
-	private final WikiAccessRules wikiAccessRules;
+	private final WikiNamespaceEditGate wikiNamespaceEditGate;
 
 	public String previewContent(String slug, String content, ContentFormat contentFormat, ContentScope scope) {
 		WikiTitle canonical = slug == null || slug.isBlank() ? null : namespaceData.resolve(slug);
@@ -64,7 +64,7 @@ public class WikiService implements TemplateDataService {
 			page.setEntityUrl(entityBase + "/" + CmsPageRenderer.unprefixedSlug(page.getNamespace(), page.getSlug()));
 		}
 		String editNamespace = namespaceData.resolve(page.getSlug()).namespace();
-		page.setEditable(wikiAccessRules.canViewerEdit(editNamespace, viewer));
+		page.setEditable(wikiNamespaceEditGate.canViewerEdit(editNamespace, viewer));
 		if (!includeSource) {
 			page.setContent(null);
 		}

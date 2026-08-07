@@ -66,7 +66,7 @@ class PostgresBackupToolTest {
 				() -> migrated.requireArchiveSchemaMatchesApplication("19700101.1"));
 		assertTrue(drifted.getMessage().contains("19700101.1"), drifted.getMessage());
 		assertTrue(drifted.getMessage().contains(HEAD), drifted.getMessage());
-		assertTrue(drifted.getMessage().contains("Backup archive was produced"),
+		assertTrue(drifted.getMessage().contains("archive schema"),
 				drifted.getMessage());
 	}
 
@@ -77,10 +77,10 @@ class PostgresBackupToolTest {
 		IllegalStateException stale = assertThrows(IllegalStateException.class,
 				() -> behind.requireArchiveSchemaMatchesApplication(APPLIED));
 
-		assertTrue(stale.getMessage().contains("This database is at schema version " + APPLIED),
+		assertTrue(stale.getMessage().contains("database schema " + APPLIED),
 				stale.getMessage());
 		assertTrue(stale.getMessage().contains(HEAD), stale.getMessage());
-		assertFalse(stale.getMessage().contains("Backup archive"),
+		assertFalse(stale.getMessage().contains("archive schema"),
 				"the database failure must not read as an archive rejection: " + stale.getMessage());
 		assertEquals(stale.getMessage(),
 				assertThrows(IllegalStateException.class,
@@ -125,7 +125,7 @@ class PostgresBackupToolTest {
 		ZfgcInvalidRequestException refused = assertThrows(ZfgcInvalidRequestException.class,
 				() -> toolWith(budgeted).validateToc(temporary.resolve("database.dump")));
 
-		assertTrue(refused.getMessage().contains("cannot be confined to the application schema"),
+		assertTrue(refused.getMessage().contains("exceeds"),
 				"a listing the reader could not hold whole must be refused, not silently validated "
 						+ "up to the cut: " + refused.getMessage());
 	}

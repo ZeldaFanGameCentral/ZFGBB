@@ -9,6 +9,8 @@ import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeRenderer;
 import com.zfgc.zfgbb.content.renderer.markdown.MarkdownRenderer;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -55,6 +57,16 @@ public class ContentRenderingService {
 			return "";
 		}
 		return outputSanitizer.sanitize(renderContent(format, source, quotingCreatedTs, scope));
+	}
+
+	public String plainText(String source, ContentFormat format, ContentScope scope) {
+		return visibleTextOf(render(source, format, scope));
+	}
+
+	static String visibleTextOf(String html) {
+		Document parsed = Jsoup.parse(html);
+		parsed.outputSettings().prettyPrint(false);
+		return parsed.wholeText();
 	}
 
 	public String renderWithTemplates(String source, ContentFormat format, ContentScope scope,

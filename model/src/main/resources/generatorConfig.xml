@@ -10,6 +10,10 @@
     <plugin type="com.zfgc.zfgbb.mbg.PaginatedSelectPlugin"/>
     <!-- Uses PostgreSQL ILIKE for generated String pattern criteria. -->
     <plugin type="com.zfgc.zfgbb.mbg.PostgresqlIlikePlugin"/>
+    <!-- Emits andXxxContains(String) beside every String Like criterion, wrapping in %...% and
+         escaping wildcards. Must run after PostgresqlIlikePlugin: it copies the Like body, and
+         that plugin only rewrites methods named *Like. -->
+    <plugin type="com.zfgc.zfgbb.mbg.ContainsCriterionPlugin"/>
     <!-- Emits updateByPrimaryKeyAndVersion(Dbo) on identity tables with a generated updated_ts. -->
     <plugin type="com.zfgc.zfgbb.mbg.VersionedUpdatePlugin"/>
     <!-- Hoists the CRUD methods onto a generic root interface. Must stay last: it prunes the

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.dbo;
 
+import com.zfgc.zfgbb.persistence.LikePatterns;
 import jakarta.annotation.Generated;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -1534,6 +1535,41 @@ public class ResourceViewDboExample {
 
         public Criteria andFileSizeNotBetween(Long value1, Long value2) {
             addCriterion("file_size not between", value1, value2, "fileSize");
+            return (Criteria) this;
+        }
+
+        public Criteria andTitleContains(String value) {
+            addCriterion("title ilike", LikePatterns.contains(value), "title");
+            return (Criteria) this;
+        }
+
+        public Criteria andSlugContains(String value) {
+            addCriterion("slug ilike", LikePatterns.contains(value), "slug");
+            return (Criteria) this;
+        }
+
+        public Criteria andSummaryContains(String value) {
+            addCriterion("summary ilike", LikePatterns.contains(value), "summary");
+            return (Criteria) this;
+        }
+
+        public Criteria andMigrationHashContains(String value) {
+            addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andAuthorNameContains(String value) {
+            addCriterion("author_name ilike", LikePatterns.contains(value), "authorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andResourceTypeContains(String value) {
+            addCriterion("resource_type ilike", LikePatterns.contains(value), "resourceType");
+            return (Criteria) this;
+        }
+
+        public Criteria andDownloadUrlContains(String value) {
+            addCriterion("download_url ilike", LikePatterns.contains(value), "downloadUrl");
             return (Criteria) this;
         }
     }

@@ -18,7 +18,7 @@ import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.cms.ProjectDataProvider;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.model.User;
+import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.Project;
 import com.zfgc.zfgbb.model.cms.ProjectShowcase;
@@ -181,7 +181,7 @@ public class ProjectService implements TemplateDataService {
 
 	private static List<Project> sortedCatalog(List<Project> catalog, String sort) {
 		List<Project> sorted = new ArrayList<>(catalog);
-		if ("random".equals(sort)) {
+		if (sort.equals("random")) {
 			Collections.shuffle(sorted);
 		} else {
 			sorted.sort(catalogComparator(sort));

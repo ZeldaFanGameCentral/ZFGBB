@@ -18,7 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Repository;
 
-import com.zfgc.zfgbb.dao.bbcode.BBCodeConfigDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeConfigDao;
 import com.zfgc.zfgbb.exception.InvalidBBCodeGrammarException;
 import com.zfgc.zfgbb.dbo.AttributeDataTypeDbo;
 import com.zfgc.zfgbb.dbo.AttributeDataTypeDboExample;
@@ -34,11 +34,11 @@ import com.zfgc.zfgbb.dbo.BBCodeConfigDbo;
 import com.zfgc.zfgbb.dbo.BBCodeConfigDboExample;
 import com.zfgc.zfgbb.dbo.ListStyleTypeDbo;
 import com.zfgc.zfgbb.dbo.ListStyleTypeDboExample;
-import com.zfgc.zfgbb.mappers.AttributeDataTypeDboMapper;
-import com.zfgc.zfgbb.mappers.AttributeValueMappingDboMapper;
-import com.zfgc.zfgbb.mappers.BBCodeAttributeDboMapper;
-import com.zfgc.zfgbb.mappers.BBCodeAttributeModeDboMapper;
-import com.zfgc.zfgbb.mappers.ListStyleTypeDboMapper;
+import com.zfgc.zfgbb.dao.forum.AttributeDataTypeDao;
+import com.zfgc.zfgbb.dao.forum.AttributeValueMappingDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeAttributeDao;
+import com.zfgc.zfgbb.dao.forum.BBCodeAttributeModeDao;
+import com.zfgc.zfgbb.dao.forum.ListStyleTypeDao;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeAttributeMap;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeAttributeModeMap;
 import com.zfgc.zfgbb.mapstruct.forum.BBCodeConfigMap;
@@ -55,15 +55,15 @@ public class BBCodeDataProvider {
 
 	private final BBCodeConfigDao bbCodeConfigDao;
 
-	private final BBCodeAttributeModeDboMapper bbCodeAttributeModeDboMapper;
+	private final BBCodeAttributeModeDao bbCodeAttributeModeDao;
 
-	private final BBCodeAttributeDboMapper bbCodeAttributeDboMapper;
+	private final BBCodeAttributeDao bbCodeAttributeDao;
 
-	private final AttributeDataTypeDboMapper attributeDataTypeDboMapper;
+	private final AttributeDataTypeDao attributeDataTypeDao;
 
-	private final AttributeValueMappingDboMapper attributeValueMappingDboMapper;
+	private final AttributeValueMappingDao attributeValueMappingDao;
 
-	private final ListStyleTypeDboMapper listStyleTypeDboMapper;
+	private final ListStyleTypeDao listStyleTypeDao;
 
 	private static final Logger LOGGER = LogManager.getLogger(BBCodeDataProvider.class);
 
@@ -124,7 +124,7 @@ public class BBCodeDataProvider {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.createCriteria().andCodeEqualTo(code);
 		Set<String> tooStructuralToScope = codesTooStructuralToScope();
-		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
+		return bbCodeConfigDao.getOne(ex).map(dbo -> {
 			dbo.setEnabledFlag(enabled);
 			bbCodeConfigDao.save(dbo);
 			return theToggleFor(dbo, tooStructuralToScope);
@@ -135,7 +135,7 @@ public class BBCodeDataProvider {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.createCriteria().andCodeEqualTo(code);
 		Set<String> tooStructuralToScope = codesTooStructuralToScope();
-		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
+		return bbCodeConfigDao.getOne(ex).map(dbo -> {
 			if (tooStructuralToScope.contains(dbo.getCode().toUpperCase(Locale.ROOT)))
 				throw new IllegalArgumentException("code is not scopable: " + dbo.getCode());
 			switch (surface) {
@@ -154,7 +154,7 @@ public class BBCodeDataProvider {
 	public List<BBCodeAttributeMode> getAttributeModesByBBCode(Integer bbCodeId) {
 		BBCodeAttributeModeDboExample ex = new BBCodeAttributeModeDboExample();
 		ex.createCriteria().andBbCodeConfigIdEqualTo(bbCodeId);
-		List<BBCodeAttributeModeDbo> results = bbCodeAttributeModeDboMapper.selectByExample(ex);
+		List<BBCodeAttributeModeDbo> results = bbCodeAttributeModeDao.get(ex);
 
 		return results.stream().map(bbCodeAttributeModeMap::toModel).toList();
 	}
@@ -162,7 +162,7 @@ public class BBCodeDataProvider {
 	public List<BBCodeAttribute> getAttributesByMode(Integer modeId){
 		BBCodeAttributeDboExample ex = new BBCodeAttributeDboExample();
 		ex.createCriteria().andBbCodeAttributeModeIdEqualTo(modeId);
-		List<BBCodeAttributeDbo> results = bbCodeAttributeDboMapper.selectByExample(ex);
+		List<BBCodeAttributeDbo> results = bbCodeAttributeDao.get(ex);
 
 		return results.stream().map(bbCodeAttributeMap::toModel).collect(Collectors.toCollection(ArrayList::new));
 	}
@@ -170,8 +170,8 @@ public class BBCodeDataProvider {
 	public Map<AttributeDataType, AttributeValuePolicy> compileTheDeclaredValuePolicies() {
 		Map<AttributeDataType, Map<String, String>> mappings = theDeclaredValueMappings();
 		Map<AttributeDataType, AttributeValuePolicy> compiled = new HashMap<>();
-		for (AttributeDataTypeDbo declared : attributeDataTypeDboMapper
-				.selectByExample(new AttributeDataTypeDboExample())) {
+		for (AttributeDataTypeDbo declared : attributeDataTypeDao
+				.get(new AttributeDataTypeDboExample())) {
 			Optional<AttributeDataType> type = AttributeDataType.forCode(declared.getCode());
 			if (type.isEmpty()) {
 				LOGGER.error("attribute_data_type row '{}' names no known data type; known codes are {}",
@@ -213,8 +213,8 @@ public class BBCodeDataProvider {
 
 	private Map<AttributeDataType, Map<String, String>> theDeclaredValueMappings() {
 		Map<AttributeDataType, Map<String, String>> mappings = new HashMap<>();
-		for (AttributeValueMappingDbo declared : attributeValueMappingDboMapper
-				.selectByExample(new AttributeValueMappingDboExample()))
+		for (AttributeValueMappingDbo declared : attributeValueMappingDao
+				.get(new AttributeValueMappingDboExample()))
 			AttributeDataType.forCode(declared.getAttributeDataType())
 					.ifPresent(type -> mappings.computeIfAbsent(type, key -> new HashMap<>())
 							.put(declared.getFromValue(), declared.getToValue()));
@@ -223,7 +223,7 @@ public class BBCodeDataProvider {
 
 	public Map<String, Boolean> theDeclaredListStyleTypes() {
 		Map<String, Boolean> numbersItemsByCode = new LinkedHashMap<>();
-		for (ListStyleTypeDbo declared : listStyleTypeDboMapper.selectByExample(new ListStyleTypeDboExample()))
+		for (ListStyleTypeDbo declared : listStyleTypeDao.get(new ListStyleTypeDboExample()))
 			numbersItemsByCode.put(declared.getCode(), Boolean.TRUE.equals(declared.getNumbersItems()));
 		return Map.copyOf(numbersItemsByCode);
 	}

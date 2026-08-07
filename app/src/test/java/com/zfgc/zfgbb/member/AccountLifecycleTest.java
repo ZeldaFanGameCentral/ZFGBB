@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.services.users.AccountDeletionService;
-import com.zfgc.zfgbb.services.users.MailDispatcher;
+import com.zfgc.zfgbb.services.mail.MailDispatcher;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
 

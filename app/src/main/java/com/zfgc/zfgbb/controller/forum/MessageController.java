@@ -1,6 +1,6 @@
 package com.zfgc.zfgbb.controller.forum;
 
-import com.zfgc.zfgbb.config.security.AllowAnonymous;
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
 
 import java.util.List;
 

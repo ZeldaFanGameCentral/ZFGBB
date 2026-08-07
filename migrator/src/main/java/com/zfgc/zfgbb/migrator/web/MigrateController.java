@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.migrator.web;
 
+import lombok.RequiredArgsConstructor;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -43,6 +45,7 @@ import com.zfgc.zfgbb.wiki.WikiTitle;
 @RestController
 @RequestMapping("/admin/migrate")
 @PreAuthorize("hasRole('ROLE_ZFGC_SITE_ADMIN')")
+@RequiredArgsConstructor
 public class MigrateController {
 
 	private static final Logger logger = LoggerFactory.getLogger(MigrateController.class);
@@ -53,13 +56,6 @@ public class MigrateController {
 
 	@Value("${zfgbb.migrator.app-base-url:}")
 	private String appBaseUrl;
-
-	public MigrateController(JobService jobService, MigratorPermissionService permissionService,
-			QuoteStripOperations quoteStripOperations) {
-		this.jobService = jobService;
-		this.permissionService = permissionService;
-		this.quoteStripOperations = quoteStripOperations;
-	}
 
 	@PostMapping("/membergroups")
 	public List<SmfMemberGroupSummary> memberGroups(@RequestBody MigrateMemberGroupsRequest request) {
@@ -119,9 +115,8 @@ public class MigrateController {
 					"smfHost, smfDatabase, smfUser, and smfPassword are required");
 		}
 
-		int port = request.getSmfPort() != null ? request.getSmfPort() : 3306;
-		String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s",
-				request.getSmfHost(), port, request.getSmfDatabase());
+		String jdbcUrl = SmfConnectionParams.smfJdbcUrl(
+				request.getSmfHost(), request.getSmfPort(), request.getSmfDatabase());
 
 		String effectiveAppBaseUrl = request.getAppBaseUrl() != null && !request.getAppBaseUrl().isBlank()
 				? request.getAppBaseUrl()
