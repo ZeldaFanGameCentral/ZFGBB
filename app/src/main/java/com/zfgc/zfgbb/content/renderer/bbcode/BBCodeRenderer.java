@@ -38,15 +38,17 @@ public class BBCodeRenderer {
 		if (source == null)
 			return "";
 		String prepared = source.replace("\n", BBCodeText.LINE_BREAK_MARKUP);
-		BBCodeDocument document = BBCodeParser.parse(prepared, grammarHolder.current().configs());
+		BBCodeDocument document = BBCodeParser.parse(prepared, grammarHolder.current(scope).configs());
 		templateExpansion.expandTree(document, prepared, ContentFormat.BBCODE, scope, context,
-				this::theSubtreeParsedFrom);
+				(expansion, itsOwnInvocationsStillExpand) ->
+						theSubtreeParsedFrom(expansion, itsOwnInvocationsStillExpand, scope));
 		sourceReferenceService.resolveEverySourceReferenceIn(document, quotingCreatedTs);
 		return BBCodeToHtml(document);
 	}
 
-	private List<BBCodeNode> theSubtreeParsedFrom(String expansion, boolean itsOwnInvocationsStillExpand) {
-		Map<String, BBCodeConfig> grammar = grammarHolder.current().configs();
+	private List<BBCodeNode> theSubtreeParsedFrom(String expansion, boolean itsOwnInvocationsStillExpand,
+			ContentScope scope) {
+		Map<String, BBCodeConfig> grammar = grammarHolder.current(scope).configs();
 		if (!itsOwnInvocationsStillExpand) {
 			grammar = new HashMap<>(grammar);
 			grammar.remove(TemplateExpansion.TEMPLATE_INVOCATION_CODE);

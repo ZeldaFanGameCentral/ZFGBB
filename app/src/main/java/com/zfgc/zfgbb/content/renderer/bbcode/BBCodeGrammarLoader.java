@@ -1,6 +1,9 @@
 package com.zfgc.zfgbb.content.renderer.bbcode;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.Locale;
+import java.util.TreeSet;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -12,6 +15,7 @@ import java.util.TreeMap;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.ContentOutputSanitizer;
 import com.zfgc.zfgbb.content.renderer.RenderedTextEnricher;
 import com.zfgc.zfgbb.content.renderer.SourceReferenceService;
@@ -58,7 +62,7 @@ public class BBCodeGrammarLoader {
 	public void loadBBCodeConfig() {
 		LOGGER.info("Loading BBCode config...");
 
-		grammarHolder.publish(theGrammarPreparedFromTheDatabase());
+		publishTheGrammarEverySurfaceReads();
 
 		LOGGER.info("Finished loading BBCode config.");
 	}
@@ -80,15 +84,58 @@ public class BBCodeGrammarLoader {
 	public BBCodeDataProvider.BBCodeToggle setBBCodeEnabled(String code, boolean enabled) {
 		BBCodeDataProvider.BBCodeToggle toggled = bbCodeDataProvider.setBBCodeEnabled(code, enabled)
 				.orElseThrow(ZfgcNotFoundException::new);
-		grammarHolder.publish(theGrammarPreparedFromTheDatabase());
+		publishTheGrammarEverySurfaceReads();
 		return toggled;
 	}
 
-	private BBCodeGrammar theGrammarPreparedFromTheDatabase() {
-		return theGrammarPreparedFrom(bbCodeDataProvider.getBBCodeConfig(),
-				bbCodeDataProvider.theDeclaredListStyleTypes(),
-				bbCodeDataProvider.compileTheDeclaredValuePolicies()
-						.getOrDefault(AttributeDataType.LIST_TYPE, AttributeValuePolicy.rejectingEveryValue("")));
+	@Transactional
+	public BBCodeDataProvider.BBCodeToggle setBBCodeHonouredOn(String code, ContentScope surface, boolean honoured) {
+		BBCodeDataProvider.BBCodeToggle toggled = bbCodeDataProvider
+				.setTheSurfacesThatHonour(code, surface, honoured)
+				.orElseThrow(ZfgcNotFoundException::new);
+		publishTheGrammarEverySurfaceReads();
+		return toggled;
+	}
+
+	private void publishTheGrammarEverySurfaceReads() {
+		Map<String, BBCodeConfig> declared = bbCodeDataProvider.getBBCodeConfig();
+		Map<String, Boolean> listStyleTypes = bbCodeDataProvider.theDeclaredListStyleTypes();
+		AttributeValuePolicy listStyleValuePolicy = bbCodeDataProvider.compileTheDeclaredValuePolicies()
+				.getOrDefault(AttributeDataType.LIST_TYPE, AttributeValuePolicy.rejectingEveryValue(""));
+		Set<String> tooStructuralToScope = codesTooStructuralToScope(declared);
+		Map<ContentScope, BBCodeGrammar> bySurface = new EnumMap<>(ContentScope.class);
+		for (ContentScope surface : ContentScope.values()) {
+			if (!surface.itsASurfaceContentIsReadOn())
+				continue;
+			Map<String, BBCodeConfig> honoured = new TreeMap<>();
+			for (Map.Entry<String, BBCodeConfig> declaredCode : declared.entrySet())
+				if (tooStructuralToScope.contains(declaredCode.getKey())
+						|| declaredCode.getValue().isHonouredOn(surface))
+					honoured.put(declaredCode.getKey(), declaredCode.getValue());
+			bySurface.put(surface, theGrammarPreparedFrom(honoured, listStyleTypes, listStyleValuePolicy));
+		}
+		grammarHolder.publish(theGrammarPreparedFrom(declared, listStyleTypes, listStyleValuePolicy), bySurface);
+	}
+
+	public static Set<String> codesTooStructuralToScope(Map<String, BBCodeConfig> declared) {
+		Set<String> tooStructural = new TreeSet<>();
+		for (Map.Entry<String, BBCodeConfig> declaredCode : declared.entrySet()) {
+			BBCodeConfig config = declaredCode.getValue();
+			if (itSuppressesTheParsingOfItsOwnBody(config))
+				tooStructural.add(declaredCode.getKey());
+			config.declaredImplicitItemCode().ifPresent(itemCode -> {
+				tooStructural.add(declaredCode.getKey());
+				tooStructural.add(itemCode.toUpperCase(Locale.ROOT));
+			});
+		}
+		return Set.copyOf(tooStructural);
+	}
+
+	private static boolean itSuppressesTheParsingOfItsOwnBody(BBCodeConfig config) {
+		if (!Boolean.FALSE.equals(config.getProcessContentFlag()) || Boolean.TRUE.equals(config.getSelfClosingFlag()))
+			return false;
+		return config.getAttributeConfig().values().stream()
+				.anyMatch(mode -> !Boolean.TRUE.equals(mode.getContentIsAttributeFlag()));
 	}
 
 	private BBCodeGrammar theGrammarPreparedFrom(Map<String, BBCodeConfig> configs,

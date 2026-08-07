@@ -20,6 +20,11 @@
     <result column="markdown_canonical_flag" jdbcType="BIT" property="markdownCanonicalFlag" />
     <result column="implicit_item_marker" jdbcType="VARCHAR" property="implicitItemMarker" />
     <result column="implicit_item_code" jdbcType="VARCHAR" property="implicitItemCode" />
+    <result column="honoured_in_forum_flag" jdbcType="BIT" property="honouredInForumFlag" />
+    <result column="honoured_in_wiki_flag" jdbcType="BIT" property="honouredInWikiFlag" />
+    <result column="honoured_in_project_flag" jdbcType="BIT" property="honouredInProjectFlag" />
+    <result column="honoured_in_resource_flag" jdbcType="BIT" property="honouredInResourceFlag" />
+    <result column="honoured_in_signature_flag" jdbcType="BIT" property="honouredInSignatureFlag" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -94,7 +99,8 @@
     -->
     bb_code_config_id, code, end_tag, process_content_flag, created_ts, updated_ts, self_closing_flag, 
     enabled_flag, source_reference_attribute, source_reference_resolver, markdown_equivalent, 
-    markdown_canonical_flag, implicit_item_marker, implicit_item_code
+    markdown_canonical_flag, implicit_item_marker, implicit_item_code, honoured_in_forum_flag, 
+    honoured_in_wiki_flag, honoured_in_project_flag, honoured_in_resource_flag, honoured_in_signature_flag
   </sql>
   <select id="selectByExample" parameterType="com.zfgc.zfgbb.dbo.BBCodeConfigDboExample" resultMap="BaseResultMap">
     <!--
@@ -151,12 +157,16 @@
       self_closing_flag, enabled_flag, source_reference_attribute, 
       source_reference_resolver, markdown_equivalent, 
       markdown_canonical_flag, implicit_item_marker, 
-      implicit_item_code)
+      implicit_item_code, honoured_in_forum_flag, honoured_in_wiki_flag, 
+      honoured_in_project_flag, honoured_in_resource_flag, 
+      honoured_in_signature_flag)
     values (#{code,jdbcType=VARCHAR}, #{endTag,jdbcType=VARCHAR}, #{processContentFlag,jdbcType=BIT}, 
       #{selfClosingFlag,jdbcType=BIT}, #{enabledFlag,jdbcType=BIT}, #{sourceReferenceAttribute,jdbcType=VARCHAR}, 
       #{sourceReferenceResolver,jdbcType=VARCHAR}, #{markdownEquivalent,jdbcType=VARCHAR}, 
       #{markdownCanonicalFlag,jdbcType=BIT}, #{implicitItemMarker,jdbcType=VARCHAR}, 
-      #{implicitItemCode,jdbcType=VARCHAR})
+      #{implicitItemCode,jdbcType=VARCHAR}, #{honouredInForumFlag,jdbcType=BIT}, #{honouredInWikiFlag,jdbcType=BIT}, 
+      #{honouredInProjectFlag,jdbcType=BIT}, #{honouredInResourceFlag,jdbcType=BIT}, 
+      #{honouredInSignatureFlag,jdbcType=BIT})
   </insert>
   <insert id="insertSelective" keyColumn="bb_code_config_id" keyProperty="bbCodeConfigId" parameterType="com.zfgc.zfgbb.dbo.BBCodeConfigDbo" useGeneratedKeys="true">
     <!--
@@ -198,6 +208,21 @@
       <if test="implicitItemCode != null">
         implicit_item_code,
       </if>
+      <if test="honouredInForumFlag != null">
+        honoured_in_forum_flag,
+      </if>
+      <if test="honouredInWikiFlag != null">
+        honoured_in_wiki_flag,
+      </if>
+      <if test="honouredInProjectFlag != null">
+        honoured_in_project_flag,
+      </if>
+      <if test="honouredInResourceFlag != null">
+        honoured_in_resource_flag,
+      </if>
+      <if test="honouredInSignatureFlag != null">
+        honoured_in_signature_flag,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="code != null">
@@ -232,6 +257,21 @@
       </if>
       <if test="implicitItemCode != null">
         #{implicitItemCode,jdbcType=VARCHAR},
+      </if>
+      <if test="honouredInForumFlag != null">
+        #{honouredInForumFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInWikiFlag != null">
+        #{honouredInWikiFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInProjectFlag != null">
+        #{honouredInProjectFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInResourceFlag != null">
+        #{honouredInResourceFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInSignatureFlag != null">
+        #{honouredInSignatureFlag,jdbcType=BIT},
       </if>
     </trim>
   </insert>
@@ -288,6 +328,21 @@
       <if test="row.implicitItemCode != null">
         implicit_item_code = #{row.implicitItemCode,jdbcType=VARCHAR},
       </if>
+      <if test="row.honouredInForumFlag != null">
+        honoured_in_forum_flag = #{row.honouredInForumFlag,jdbcType=BIT},
+      </if>
+      <if test="row.honouredInWikiFlag != null">
+        honoured_in_wiki_flag = #{row.honouredInWikiFlag,jdbcType=BIT},
+      </if>
+      <if test="row.honouredInProjectFlag != null">
+        honoured_in_project_flag = #{row.honouredInProjectFlag,jdbcType=BIT},
+      </if>
+      <if test="row.honouredInResourceFlag != null">
+        honoured_in_resource_flag = #{row.honouredInResourceFlag,jdbcType=BIT},
+      </if>
+      <if test="row.honouredInSignatureFlag != null">
+        honoured_in_signature_flag = #{row.honouredInSignatureFlag,jdbcType=BIT},
+      </if>
     </set>
     <if test="example != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -310,7 +365,12 @@
       markdown_equivalent = #{row.markdownEquivalent,jdbcType=VARCHAR},
       markdown_canonical_flag = #{row.markdownCanonicalFlag,jdbcType=BIT},
       implicit_item_marker = #{row.implicitItemMarker,jdbcType=VARCHAR},
-      implicit_item_code = #{row.implicitItemCode,jdbcType=VARCHAR}
+      implicit_item_code = #{row.implicitItemCode,jdbcType=VARCHAR},
+      honoured_in_forum_flag = #{row.honouredInForumFlag,jdbcType=BIT},
+      honoured_in_wiki_flag = #{row.honouredInWikiFlag,jdbcType=BIT},
+      honoured_in_project_flag = #{row.honouredInProjectFlag,jdbcType=BIT},
+      honoured_in_resource_flag = #{row.honouredInResourceFlag,jdbcType=BIT},
+      honoured_in_signature_flag = #{row.honouredInSignatureFlag,jdbcType=BIT}
     <if test="example != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -355,6 +415,21 @@
       <if test="implicitItemCode != null">
         implicit_item_code = #{implicitItemCode,jdbcType=VARCHAR},
       </if>
+      <if test="honouredInForumFlag != null">
+        honoured_in_forum_flag = #{honouredInForumFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInWikiFlag != null">
+        honoured_in_wiki_flag = #{honouredInWikiFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInProjectFlag != null">
+        honoured_in_project_flag = #{honouredInProjectFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInResourceFlag != null">
+        honoured_in_resource_flag = #{honouredInResourceFlag,jdbcType=BIT},
+      </if>
+      <if test="honouredInSignatureFlag != null">
+        honoured_in_signature_flag = #{honouredInSignatureFlag,jdbcType=BIT},
+      </if>
     </set>
     where bb_code_config_id = #{bbCodeConfigId,jdbcType=INTEGER}
   </update>
@@ -374,7 +449,12 @@
       markdown_equivalent = #{markdownEquivalent,jdbcType=VARCHAR},
       markdown_canonical_flag = #{markdownCanonicalFlag,jdbcType=BIT},
       implicit_item_marker = #{implicitItemMarker,jdbcType=VARCHAR},
-      implicit_item_code = #{implicitItemCode,jdbcType=VARCHAR}
+      implicit_item_code = #{implicitItemCode,jdbcType=VARCHAR},
+      honoured_in_forum_flag = #{honouredInForumFlag,jdbcType=BIT},
+      honoured_in_wiki_flag = #{honouredInWikiFlag,jdbcType=BIT},
+      honoured_in_project_flag = #{honouredInProjectFlag,jdbcType=BIT},
+      honoured_in_resource_flag = #{honouredInResourceFlag,jdbcType=BIT},
+      honoured_in_signature_flag = #{honouredInSignatureFlag,jdbcType=BIT}
     where bb_code_config_id = #{bbCodeConfigId,jdbcType=INTEGER}
   </update>
   <select id="selectByExampleWithLimits" parameterType="com.zfgc.zfgbb.dbo.BBCodeConfigDboExample" resultMap="BaseResultMap">
@@ -417,7 +497,12 @@
       markdown_equivalent = #{markdownEquivalent,jdbcType=VARCHAR},
       markdown_canonical_flag = #{markdownCanonicalFlag,jdbcType=BIT},
       implicit_item_marker = #{implicitItemMarker,jdbcType=VARCHAR},
-      implicit_item_code = #{implicitItemCode,jdbcType=VARCHAR}
+      implicit_item_code = #{implicitItemCode,jdbcType=VARCHAR},
+      honoured_in_forum_flag = #{honouredInForumFlag,jdbcType=BIT},
+      honoured_in_wiki_flag = #{honouredInWikiFlag,jdbcType=BIT},
+      honoured_in_project_flag = #{honouredInProjectFlag,jdbcType=BIT},
+      honoured_in_resource_flag = #{honouredInResourceFlag,jdbcType=BIT},
+      honoured_in_signature_flag = #{honouredInSignatureFlag,jdbcType=BIT}
     where bb_code_config_id = #{bbCodeConfigId,jdbcType=INTEGER}
       and updated_ts = #{updatedTs,jdbcType=TIMESTAMP_WITH_TIMEZONE}
   </update>

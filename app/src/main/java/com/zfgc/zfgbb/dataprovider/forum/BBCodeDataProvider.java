@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +28,8 @@ import com.zfgc.zfgbb.dbo.BBCodeAttributeDbo;
 import com.zfgc.zfgbb.dbo.BBCodeAttributeDboExample;
 import com.zfgc.zfgbb.dbo.BBCodeAttributeModeDbo;
 import com.zfgc.zfgbb.dbo.BBCodeAttributeModeDboExample;
+import com.zfgc.zfgbb.content.ContentScope;
+import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader;
 import com.zfgc.zfgbb.dbo.BBCodeConfigDbo;
 import com.zfgc.zfgbb.dbo.BBCodeConfigDboExample;
 import com.zfgc.zfgbb.dbo.ListStyleTypeDbo;
@@ -78,24 +81,58 @@ public class BBCodeDataProvider {
 		return results.stream().map(bbCodeConfigMap::toModel).toList();
 	}
 
-	public record BBCodeToggle(String code, boolean enabled) {
+	public record BBCodeToggle(String code, boolean enabled, boolean honouredInForum, boolean honouredInWiki,
+			boolean honouredInProject, boolean honouredInResource, boolean honouredInSignature,
+			boolean scopable) {
 	}
 
 	public List<BBCodeToggle> getBBCodeToggles() {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.setOrderByClause("code");
+		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
 		return bbCodeConfigDao.get(ex).stream()
-				.map(dbo -> new BBCodeToggle(dbo.getCode(), Boolean.TRUE.equals(dbo.getEnabledFlag())))
+				.map(dbo -> theToggleFor(dbo, tooStructuralToScope))
 				.toList();
+	}
+
+	private static BBCodeToggle theToggleFor(BBCodeConfigDbo dbo, Set<String> tooStructuralToScope) {
+		return new BBCodeToggle(dbo.getCode(), Boolean.TRUE.equals(dbo.getEnabledFlag()),
+				!Boolean.FALSE.equals(dbo.getHonouredInForumFlag()),
+				!Boolean.FALSE.equals(dbo.getHonouredInWikiFlag()),
+				!Boolean.FALSE.equals(dbo.getHonouredInProjectFlag()),
+				!Boolean.FALSE.equals(dbo.getHonouredInResourceFlag()),
+				!Boolean.FALSE.equals(dbo.getHonouredInSignatureFlag()),
+				!tooStructuralToScope.contains(dbo.getCode().toUpperCase(Locale.ROOT)));
 	}
 
 	public Optional<BBCodeToggle> setBBCodeEnabled(String code, boolean enabled) {
 		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
 		ex.createCriteria().andCodeEqualTo(code);
+		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
 		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
 			dbo.setEnabledFlag(enabled);
 			bbCodeConfigDao.save(dbo);
-			return new BBCodeToggle(dbo.getCode(), enabled);
+			return theToggleFor(dbo, tooStructuralToScope);
+		});
+	}
+
+	public Optional<BBCodeToggle> setTheSurfacesThatHonour(String code, ContentScope surface, boolean honoured) {
+		BBCodeConfigDboExample ex = new BBCodeConfigDboExample();
+		ex.createCriteria().andCodeEqualTo(code);
+		Set<String> tooStructuralToScope = BBCodeGrammarLoader.codesTooStructuralToScope(getBBCodeConfig());
+		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
+			if (tooStructuralToScope.contains(dbo.getCode().toUpperCase(Locale.ROOT)))
+				throw new IllegalArgumentException("code " + dbo.getCode() + " is honoured on every surface: "
+						+ "its absence changes how neighbouring content parses");
+			String named = surface == null ? "" : surface.name();
+			if ("FORUM".equals(named)) dbo.setHonouredInForumFlag(honoured);
+			else if ("WIKI".equals(named)) dbo.setHonouredInWikiFlag(honoured);
+			else if ("PROJECT".equals(named)) dbo.setHonouredInProjectFlag(honoured);
+			else if ("RESOURCE".equals(named)) dbo.setHonouredInResourceFlag(honoured);
+			else if ("SIGNATURE".equals(named)) dbo.setHonouredInSignatureFlag(honoured);
+			else throw new IllegalArgumentException("not a surface content is read on: " + named);
+			bbCodeConfigDao.save(dbo);
+			return theToggleFor(dbo, tooStructuralToScope);
 		});
 	}
 

@@ -64,6 +64,22 @@ public class BBCodeConfig extends BaseModel {
     private Boolean markdownCanonicalFlag = false;
     private String implicitItemMarker;
     private String implicitItemCode;
+    public boolean isHonouredOn(com.zfgc.zfgbb.content.ContentScope surface) {
+        String named = surface == null ? "" : surface.name();
+        if ("FORUM".equals(named)) return !Boolean.FALSE.equals(honouredInForumFlag);
+        if ("WIKI".equals(named)) return !Boolean.FALSE.equals(honouredInWikiFlag);
+        if ("PROJECT".equals(named)) return !Boolean.FALSE.equals(honouredInProjectFlag);
+        if ("RESOURCE".equals(named)) return !Boolean.FALSE.equals(honouredInResourceFlag);
+        if ("SIGNATURE".equals(named)) return !Boolean.FALSE.equals(honouredInSignatureFlag);
+        return true;
+    }
+
+    private Boolean honouredInForumFlag = true;
+    private Boolean honouredInWikiFlag = true;
+    private Boolean honouredInProjectFlag = true;
+    private Boolean honouredInResourceFlag = true;
+    private Boolean honouredInSignatureFlag = true;
+
     private Map<String,BBCodeAttributeMode> attributeConfig = new HashMap<>();
     private Map<String,AttributeValuePolicy> valuePolicyByAttributeName = new HashMap<>();
 

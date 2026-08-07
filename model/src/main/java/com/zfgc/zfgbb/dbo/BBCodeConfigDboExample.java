@@ -1056,6 +1056,306 @@ public class BBCodeConfigDboExample {
             addCriterion("implicit_item_code not between", value1, value2, "implicitItemCode");
             return (Criteria) this;
         }
+
+        public Criteria andHonouredInForumFlagIsNull() {
+            addCriterion("honoured_in_forum_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagIsNotNull() {
+            addCriterion("honoured_in_forum_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag =", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag <>", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_forum_flag >", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag >=", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_forum_flag <", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag <=", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_forum_flag in", values, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_forum_flag not in", values, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_forum_flag between", value1, value2, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_forum_flag not between", value1, value2, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIsNull() {
+            addCriterion("honoured_in_wiki_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIsNotNull() {
+            addCriterion("honoured_in_wiki_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag =", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <>", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_wiki_flag >", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag >=", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <=", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_wiki_flag in", values, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_wiki_flag not in", values, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_wiki_flag between", value1, value2, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_wiki_flag not between", value1, value2, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIsNull() {
+            addCriterion("honoured_in_project_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIsNotNull() {
+            addCriterion("honoured_in_project_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag =", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag <>", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_project_flag >", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag >=", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_project_flag <", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag <=", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_project_flag in", values, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_project_flag not in", values, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_project_flag between", value1, value2, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_project_flag not between", value1, value2, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIsNull() {
+            addCriterion("honoured_in_resource_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIsNotNull() {
+            addCriterion("honoured_in_resource_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag =", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag <>", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_resource_flag >", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag >=", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_resource_flag <", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag <=", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_resource_flag in", values, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_resource_flag not in", values, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_resource_flag between", value1, value2, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_resource_flag not between", value1, value2, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIsNull() {
+            addCriterion("honoured_in_signature_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIsNotNull() {
+            addCriterion("honoured_in_signature_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag =", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag <>", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_signature_flag >", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag >=", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_signature_flag <", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag <=", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_signature_flag in", values, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_signature_flag not in", values, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_signature_flag between", value1, value2, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_signature_flag not between", value1, value2, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
     }
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="do_not_delete_during_merge")

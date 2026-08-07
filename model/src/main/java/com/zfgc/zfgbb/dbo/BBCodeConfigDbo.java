@@ -46,6 +46,21 @@ public class BBCodeConfigDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.implicit_item_code")
     private String implicitItemCode;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_forum_flag")
+    private Boolean honouredInForumFlag;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_wiki_flag")
+    private Boolean honouredInWikiFlag;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_project_flag")
+    private Boolean honouredInProjectFlag;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_resource_flag")
+    private Boolean honouredInResourceFlag;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_signature_flag")
+    private Boolean honouredInSignatureFlag;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.bb_code_config_id")
     public Integer getBbCodeConfigId() {
         return bbCodeConfigId;
@@ -184,6 +199,56 @@ public class BBCodeConfigDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.implicit_item_code")
     public void setImplicitItemCode(String implicitItemCode) {
         this.implicitItemCode = implicitItemCode;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_forum_flag")
+    public Boolean getHonouredInForumFlag() {
+        return honouredInForumFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_forum_flag")
+    public void setHonouredInForumFlag(Boolean honouredInForumFlag) {
+        this.honouredInForumFlag = honouredInForumFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_wiki_flag")
+    public Boolean getHonouredInWikiFlag() {
+        return honouredInWikiFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_wiki_flag")
+    public void setHonouredInWikiFlag(Boolean honouredInWikiFlag) {
+        this.honouredInWikiFlag = honouredInWikiFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_project_flag")
+    public Boolean getHonouredInProjectFlag() {
+        return honouredInProjectFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_project_flag")
+    public void setHonouredInProjectFlag(Boolean honouredInProjectFlag) {
+        this.honouredInProjectFlag = honouredInProjectFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_resource_flag")
+    public Boolean getHonouredInResourceFlag() {
+        return honouredInResourceFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_resource_flag")
+    public void setHonouredInResourceFlag(Boolean honouredInResourceFlag) {
+        this.honouredInResourceFlag = honouredInResourceFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_signature_flag")
+    public Boolean getHonouredInSignatureFlag() {
+        return honouredInSignatureFlag;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_config.honoured_in_signature_flag")
+    public void setHonouredInSignatureFlag(Boolean honouredInSignatureFlag) {
+        this.honouredInSignatureFlag = honouredInSignatureFlag;
     }
 
     @Override

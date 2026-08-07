@@ -69,15 +69,16 @@ drop function if exists zfgbb.create_bbcode_config(int, text, text, boolean);
 drop function if exists zfgbb.create_bbcode_config(int, text, text, boolean, boolean);
 drop function if exists zfgbb.create_bbcode_config(int, text, text, boolean, boolean, boolean);
 drop function if exists zfgbb.create_bbcode_config(int, text, text, boolean, boolean, boolean, text, text);
-create or replace function zfgbb.create_bbcode_config(p_bbcode_config_id int, p_bbcode text, p_end_tag text, p_process_content boolean, p_self_closing boolean default false, p_enabled boolean default true, p_source_reference_attribute text default null, p_source_reference_resolver text default null, p_markdown_equivalent text default null, p_markdown_canonical boolean default false, p_implicit_item_marker text default null, p_implicit_item_code text default null)
+drop function if exists zfgbb.create_bbcode_config(int, text, text, boolean, boolean, boolean, text, text, text, boolean, text, text);
+create or replace function zfgbb.create_bbcode_config(p_bbcode_config_id int, p_bbcode text, p_end_tag text, p_process_content boolean, p_self_closing boolean default false, p_enabled boolean default true, p_source_reference_attribute text default null, p_source_reference_resolver text default null, p_markdown_equivalent text default null, p_markdown_canonical boolean default false, p_implicit_item_marker text default null, p_implicit_item_code text default null, p_honoured_in_forum boolean default true, p_honoured_in_wiki boolean default true, p_honoured_in_project boolean default true, p_honoured_in_resource boolean default true, p_honoured_in_signature boolean default true)
 returns void
 language plpgsql
 as $$
 
 begin
 
-	insert into zfgbb.bb_code_config(bb_code_config_id, code, end_tag, process_content_flag, self_closing_flag, enabled_flag, source_reference_attribute, source_reference_resolver, markdown_equivalent, markdown_canonical_flag, implicit_item_marker, implicit_item_code)
-	values(p_bbcode_config_id, p_bbcode, p_end_tag, p_process_content, p_self_closing, p_enabled, p_source_reference_attribute, p_source_reference_resolver, p_markdown_equivalent, p_markdown_canonical, p_implicit_item_marker, p_implicit_item_code)
+	insert into zfgbb.bb_code_config(bb_code_config_id, code, end_tag, process_content_flag, self_closing_flag, enabled_flag, source_reference_attribute, source_reference_resolver, markdown_equivalent, markdown_canonical_flag, implicit_item_marker, implicit_item_code, honoured_in_forum_flag, honoured_in_wiki_flag, honoured_in_project_flag, honoured_in_resource_flag, honoured_in_signature_flag)
+	values(p_bbcode_config_id, p_bbcode, p_end_tag, p_process_content, p_self_closing, p_enabled, p_source_reference_attribute, p_source_reference_resolver, p_markdown_equivalent, p_markdown_canonical, p_implicit_item_marker, p_implicit_item_code, p_honoured_in_forum, p_honoured_in_wiki, p_honoured_in_project, p_honoured_in_resource, p_honoured_in_signature)
 	on conflict (bb_code_config_id)
 	do update set code = p_bbcode, end_tag = p_end_tag, process_content_flag = p_process_content, self_closing_flag = p_self_closing, source_reference_attribute = p_source_reference_attribute, source_reference_resolver = p_source_reference_resolver, markdown_equivalent = p_markdown_equivalent, markdown_canonical_flag = p_markdown_canonical, implicit_item_marker = p_implicit_item_marker, implicit_item_code = p_implicit_item_code, updated_ts = current_timestamp;
 

@@ -59,7 +59,7 @@ public class TemplateExpansion {
 		if (depth >= MAX_DEPTH || source.indexOf('[') < 0)
 			return source;
 		List<BBCodeTag> invocations = new ArrayList<>();
-		for (BBCodeNode node : BBCodeParser.parse(source, grammar.current().configs())
+		for (BBCodeNode node : BBCodeParser.parse(source, grammar.current(scope).configs())
 				.selfAndEveryDescendant())
 			if (node instanceof BBCodeTag tag && templates.isATemplateInvocation(tag))
 				invocations.add(tag);

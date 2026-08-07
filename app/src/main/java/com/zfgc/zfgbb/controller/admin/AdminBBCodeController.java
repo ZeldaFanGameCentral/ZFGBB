@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.controller.admin;
 import com.zfgc.zfgbb.controller.BaseController;
 
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader;
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.forum.BBCodeDataProvider;
 
 @Slf4j
@@ -36,6 +38,30 @@ public class AdminBBCodeController extends BaseController {
 	}
 
 	public record BBCodeEnabledRequest(Boolean enabled) {
+	}
+
+	public record BBCodeSurfaceRequest(String surface, Boolean honoured) {
+	}
+
+	@PutMapping("/{code}/surfaces")
+	public ResponseEntity<BBCodeDataProvider.BBCodeToggle> setHonouredOnSurface(
+			@PathVariable("code") String code, @RequestBody BBCodeSurfaceRequest request) {
+		if (request == null || request.surface() == null || request.honoured() == null)
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "surface and honoured are required");
+		ContentScope surface;
+		try {
+			surface = ContentScope.valueOf(request.surface().toUpperCase(Locale.ROOT));
+		} catch (IllegalArgumentException unknown) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "unknown surface " + request.surface());
+		}
+		if (!surface.itsASurfaceContentIsReadOn())
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"scope " + request.surface() + " is not a surface content is read on");
+		try {
+			return ResponseEntity.ok(grammarLoader.setBBCodeHonouredOn(code, surface, request.honoured()));
+		} catch (IllegalArgumentException tooStructural) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, tooStructural.getMessage());
+		}
 	}
 
 	@PutMapping("/{code}")

@@ -22,6 +22,7 @@ import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammar;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder;
 import com.zfgc.zfgbb.exception.InvalidBBCodeGrammarException;
@@ -104,16 +105,16 @@ public class ContentOutputSanitizer {
 				.removeProtocols("q", "cite", "http", "https");
 	}
 
-	public String sanitize(String html) {
+	public String sanitize(String html, ContentScope surface) {
 		if (html == null || html.isEmpty()) {
 			return html;
 		}
-		Element body = theCleanedBodyOf(html);
+		Element body = theCleanedBodyOf(html, surface);
 		enricher.enrichEveryTextNodeIn(body);
 		return body.html();
 	}
 
-	Element theCleanedBodyOf(String html) {
+	Element theCleanedBodyOf(String html, ContentScope surface) {
 		Document.OutputSettings settings = new Document.OutputSettings().prettyPrint(false);
 		Document clean = new Cleaner(SAFELIST).clean(Jsoup.parseBodyFragment(html));
 		clean.outputSettings(settings);
@@ -131,7 +132,7 @@ public class ContentOutputSanitizer {
 			stripIfNotAllowed(el, "src");
 			stripIfNotAllowed(el, "cite");
 			stripEveryClassTheRendererCannotEmit(el);
-			sanitizeStyle(el);
+			sanitizeStyle(el, surface);
 		}
 		return clean.body();
 	}
@@ -221,14 +222,14 @@ public class ContentOutputSanitizer {
 		}
 	}
 
-	private void sanitizeStyle(Element el) {
+	private void sanitizeStyle(Element el, ContentScope surface) {
 		if (!el.hasAttr("style")) {
 			return;
 		}
 		String cleaned = Arrays.stream(el.attr("style").split(";"))
 				.map(String::trim)
 				.filter(declaration -> !declaration.isEmpty())
-				.filter(this::isSafeStyleDeclaration)
+				.filter(declaration -> isSafeStyleDeclaration(declaration, surface))
 				.collect(Collectors.joining(";"));
 		if (cleaned.isEmpty()) {
 			el.removeAttr("style");
@@ -237,12 +238,12 @@ public class ContentOutputSanitizer {
 		}
 	}
 
-	private boolean isSafeStyleDeclaration(String declaration) {
+	private boolean isSafeStyleDeclaration(String declaration, ContentScope surface) {
 		int separator = declaration.indexOf(':');
 		if (separator <= 0) {
 			return false;
 		}
-		BBCodeGrammar.CustomPropertyBinding binding = grammarHolder.current().customProperties()
+		BBCodeGrammar.CustomPropertyBinding binding = grammarHolder.current(surface).customProperties()
 				.theBindingOfEachCustomProperty().get(declaration.substring(0, separator).trim());
 		return binding != null && binding.valuePolicy().admits(declaration.substring(separator + 1).trim());
 	}

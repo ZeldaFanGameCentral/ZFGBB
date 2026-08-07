@@ -100,17 +100,17 @@ public class ContentFormatConverter {
 			return new ConvertedContent(source == null ? "" : source, List.of());
 		if (from == ContentFormat.BBCODE)
 			return theClosestMarkdownThatStillReadsLikeTheBBCode(source, to, scope);
-		ConvertedContent converted = markdownSourceAsBBCodeSource(source);
+		ConvertedContent converted = markdownSourceAsBBCodeSource(source, scope);
 		return withANoteForWhateverTheFlipDoesNotCarry(source, from, converted, to, scope);
 	}
 
 	private ConvertedContent theClosestMarkdownThatStillReadsLikeTheBBCode(String source, ContentFormat to,
 			ContentScope scope) {
-		BBCodeDocument document = BBCodeParser.parse(source, grammarHolder.current().configs());
+		BBCodeDocument document = BBCodeParser.parse(source, grammarHolder.current(scope).configs());
 		int[] paragraphOfOffset = paragraphOfEveryOffsetIn(source);
 		Set<Integer> paragraphs = paragraphsThatKeepBlockLevelBBCode(source, paragraphOfOffset, document.children());
 		Set<BBCodeTag> keptAsBBCode = new LinkedHashSet<>();
-		MarkdownConversion firstAttempt = new MarkdownConversion(source, paragraphOfOffset, keptAsBBCode);
+		MarkdownConversion firstAttempt = new MarkdownConversion(source, paragraphOfOffset, keptAsBBCode, scope);
 		String converted = firstAttempt.write(document.children(), paragraphs);
 
 		String asTheSourceLaneShowsIt = withoutWhitespace(visibleTextOf(
@@ -121,11 +121,11 @@ public class ContentFormatConverter {
 		List<BBCodeTag> everyTagWrittenAsMarkdown = new ArrayList<>(firstAttempt.tagsWrittenAsMarkdown);
 		keptAsBBCode.addAll(everyTagWrittenAsMarkdown);
 		String withEveryTagKeptAsBBCode =
-				rewrite(source, paragraphOfOffset, paragraphs, keptAsBBCode, document);
+				rewrite(source, paragraphOfOffset, paragraphs, keptAsBBCode, document, scope);
 		if (everyTagWrittenAsMarkdown.isEmpty()
 				|| !theTargetLaneShowsTheSameText(withEveryTagKeptAsBBCode, asTheSourceLaneShowsIt, to, scope))
 			return new ConvertedContent(converted,
-					List.of(theCodeTheTargetLaneShowsAsPlainText(converted, asTheSourceLaneShowsIt,
+					List.of(theCodeTheTargetLaneShowsAsPlainText(converted, scope, asTheSourceLaneShowsIt,
 							withoutWhitespace(visibleTextOf(contentRenderingService
 									.renderWithTemplates(converted, to, scope, Map.of()))))
 							.map(code -> aCodeTheOtherFormatDoesNotCarry(code, to))
@@ -139,7 +139,7 @@ public class ContentFormatConverter {
 				break;
 			candidatesTried++;
 			keptAsBBCode.remove(candidate);
-			String withThisTagConverted = rewrite(source, paragraphOfOffset, paragraphs, keptAsBBCode, document);
+			String withThisTagConverted = rewrite(source, paragraphOfOffset, paragraphs, keptAsBBCode, document, scope);
 			if (theTargetLaneShowsTheSameText(withThisTagConverted, asTheSourceLaneShowsIt, to, scope))
 				verified = withThisTagConverted;
 			else
@@ -156,8 +156,8 @@ public class ContentFormatConverter {
 	}
 
 	private String rewrite(String source, int[] paragraphOfOffset, Set<Integer> paragraphs,
-			Set<BBCodeTag> keptAsBBCode, BBCodeDocument document) {
-		return new MarkdownConversion(source, paragraphOfOffset, keptAsBBCode)
+			Set<BBCodeTag> keptAsBBCode, BBCodeDocument document, ContentScope scope) {
+		return new MarkdownConversion(source, paragraphOfOffset, keptAsBBCode, scope)
 				.write(document.children(), paragraphs);
 	}
 
@@ -191,19 +191,20 @@ public class ContentFormatConverter {
 		if (asTheSourceLaneShowsIt.equals(asTheTargetLaneShowsIt))
 			return converted;
 		List<String> notes = new ArrayList<>(converted.notes());
-		notes.add(theCodeTheTargetLaneShowsAsPlainText(converted.content(), asTheSourceLaneShowsIt,
+		notes.add(theCodeTheTargetLaneShowsAsPlainText(converted.content(), scope, asTheSourceLaneShowsIt,
 				asTheTargetLaneShowsIt)
 				.map(code -> aCodeTheOtherFormatDoesNotCarry(code, to))
 				.orElseGet(() -> contentTheOtherFormatDoesNotCarry(to)));
 		return new ConvertedContent(converted.content(), List.copyOf(notes));
 	}
 
-	private Optional<String> theCodeTheTargetLaneShowsAsPlainText(String converted, String asTheSourceLaneShowsIt,
+	private Optional<String> theCodeTheTargetLaneShowsAsPlainText(String converted, ContentScope scope,
+			String asTheSourceLaneShowsIt,
 			String asTheTargetLaneShowsIt) {
 		Optional<String> leaked = Optional.empty();
 		int leakedAt = Integer.MAX_VALUE;
 		Deque<BBCodeNode> pending = new ArrayDeque<>(
-				BBCodeParser.parse(converted, grammarHolder.current().configs()).children());
+				BBCodeParser.parse(converted, grammarHolder.current(scope).configs()).children());
 		while (!pending.isEmpty()) {
 			BBCodeNode node = pending.pop();
 			if (node instanceof BBCodeTag tag && tag.authoredSource().startIndex() < leakedAt
@@ -359,7 +360,11 @@ public class ContentFormatConverter {
 
 		private final Deque<MarkdownWriter> writersLeftToFinish = new ArrayDeque<>();
 
-		private MarkdownConversion(String source, int[] paragraphOfOffset, Set<BBCodeTag> tagsToKeepAsBBCode) {
+		private final ContentScope scope;
+
+		private MarkdownConversion(String source, int[] paragraphOfOffset, Set<BBCodeTag> tagsToKeepAsBBCode,
+				ContentScope scope) {
+			this.scope = scope;
 			this.source = source;
 			this.paragraphOfOffset = paragraphOfOffset;
 			this.tagsToKeepAsBBCode = tagsToKeepAsBBCode;
@@ -554,7 +559,7 @@ public class ContentFormatConverter {
 					return;
 				}
 				String itemMarker = tag.valueWithRole(AttributeSemanticRole.LIST_STYLE)
-						.filter(grammarHolder.current()::listStyleTypeNumbersItsItems)
+						.filter(grammarHolder.current(scope)::listStyleTypeNumbersItsItems)
 						.isPresent() ? "1. " : "- ";
 				Set<Integer> paragraphsInsideTheList =
 						paragraphsThatKeepBlockLevelBBCode(source, paragraphOfOffset, tag.children());
@@ -752,14 +757,20 @@ public class ContentFormatConverter {
 		return longest;
 	}
 
-	private ConvertedContent markdownSourceAsBBCodeSource(String markdown) {
-		BBCodeWriter writer = new BBCodeWriter();
-		writer.write(markdownRenderer.theParserThatLeavesBBCodeBlocksAlone()
+	private ConvertedContent markdownSourceAsBBCodeSource(String markdown, ContentScope scope) {
+		BBCodeWriter writer = new BBCodeWriter(scope);
+		writer.write(markdownRenderer.theParserThatLeavesBBCodeBlocksAlone(scope)
 				.parse(markdown));
 		return new ConvertedContent(writer.finished(), List.copyOf(writer.notes));
 	}
 
 	private final class BBCodeWriter {
+
+		private final ContentScope scope;
+
+		private BBCodeWriter(ContentScope scope) {
+			this.scope = scope;
+		}
 
 		private final StringBuilder bbCode = new StringBuilder();
 
@@ -826,7 +837,7 @@ public class ContentFormatConverter {
 		}
 
 		private Optional<String> canonicalCodeFor(MarkdownEquivalent equivalent) {
-			Optional<String> code = grammarHolder.current().theCanonicalCodeFor(equivalent).map(BBCodeConfig::getCode);
+			Optional<String> code = grammarHolder.current(scope).theCanonicalCodeFor(equivalent).map(BBCodeConfig::getCode);
 			if (code.isEmpty())
 				notes.add(NO_ENABLED_BB_CODE_CARRIES_THIS_CONSTRUCT);
 			return code;
@@ -885,7 +896,7 @@ public class ContentFormatConverter {
 		}
 
 		private void writeHeading(Heading heading) {
-			Optional<String> code = grammarHolder.current().theCanonicalHeadingCodeForLevel(heading.getLevel())
+			Optional<String> code = grammarHolder.current(scope).theCanonicalHeadingCodeForLevel(heading.getLevel())
 					.map(BBCodeConfig::getCode);
 			if (code.isEmpty())
 				notes.add(NO_ENABLED_BB_CODE_CARRIES_THIS_CONSTRUCT);
@@ -925,7 +936,7 @@ public class ContentFormatConverter {
 		}
 
 		private void writeListItem(Node node) {
-			Optional<String> itemCode = grammarHolder.current().theCanonicalCodeFor(MarkdownEquivalent.LIST)
+			Optional<String> itemCode = grammarHolder.current(scope).theCanonicalCodeFor(MarkdownEquivalent.LIST)
 					.flatMap(BBCodeConfig::declaredImplicitItemCode);
 			itemCode.ifPresent(present -> bbCode.append('[').append(present).append(']'));
 			finishWith(() -> closeListItem(itemCode));

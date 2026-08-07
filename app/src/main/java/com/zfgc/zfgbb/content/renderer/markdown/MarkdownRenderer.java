@@ -10,6 +10,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -87,7 +88,7 @@ public class MarkdownRenderer {
 	private record ParsersBuiltForMarkers(List<String> markers, Parser thatOpensBBCodeBlocks,
 			Parser thatLeavesBBCodeBlocksAlone) {}
 
-	private volatile ParsersBuiltForMarkers parsers;
+	private final Map<ContentScope, ParsersBuiltForMarkers> parsersBySurface = new ConcurrentHashMap<>();
 
 	private final HtmlRenderer htmlRenderer;
 
@@ -110,28 +111,28 @@ public class MarkdownRenderer {
 				.toList();
 	}
 
-	private ParsersBuiltForMarkers parsers() {
-		List<String> markers = theImplicitItemMarkersDeclaredBy(grammarHolder.current());
-		ParsersBuiltForMarkers built = parsers;
+	private ParsersBuiltForMarkers parsers(ContentScope surface) {
+		List<String> markers = theImplicitItemMarkersDeclaredBy(grammarHolder.current(surface));
+		ParsersBuiltForMarkers built = parsersBySurface.get(surface);
 		if (built != null && built.markers().equals(markers))
 			return built;
 		ParsersBuiltForMarkers rebuilt = new ParsersBuiltForMarkers(markers,
 				Parser.builder()
-						.customBlockParserFactory(new BBCodeBlockParserFactory())
+						.customBlockParserFactory(new BBCodeBlockParserFactory(surface))
 						.customInlineContentParserFactory(new ImplicitItemMarkerFactory(markers))
 						.includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
 						.build(),
 				Parser.builder()
 						.customInlineContentParserFactory(new ImplicitItemMarkerFactory(markers))
 						.build());
-		parsers = rebuilt;
+		parsersBySurface.put(surface, rebuilt);
 		return rebuilt;
 	}
 
 
 
-	public Parser theParserThatLeavesBBCodeBlocksAlone() {
-		return parsers().thatLeavesBBCodeBlocksAlone();
+	public Parser theParserThatLeavesBBCodeBlocksAlone(ContentScope surface) {
+		return parsers(surface).thatLeavesBBCodeBlocksAlone();
 	}
 
 	public String render(String markdown, OffsetDateTime quotingCreatedTs, ContentScope scope,
@@ -140,11 +141,11 @@ public class MarkdownRenderer {
 			return "";
 		}
 		List<String> codesCommonmarkWouldEat = enricher.smileyCodesCommonmarkReadsAsBlockMarkers();
-		Node document = parsers().thatOpensBBCodeBlocks()
+		Node document = parsers(scope).thatOpensBBCodeBlocks()
 				.parse(maskLeadingSmileyCodes(markdown, codesCommonmarkWouldEat));
-		closeEveryBlockWhereItsAuthorWroteTheCloser(document);
+		closeEveryBlockWhereItsAuthorWroteTheCloser(document, scope);
 		expandTemplatesInMarkdownText(document, scope, context);
-		expandBBCodeInMarkdownText(document, quotingCreatedTs);
+		expandBBCodeInMarkdownText(document, quotingCreatedTs, scope);
 		return restoreMaskedSmileyCodes(htmlRenderer.render(document), codesCommonmarkWouldEat);
 	}
 
@@ -212,8 +213,8 @@ public class MarkdownRenderer {
 	private record TheCloserItsAuthorWroteInside(List<Node> run, BBCodeBlock block, Node hostBlock,
 			String beforeTheCloser, String afterTheCloser) {}
 
-	private void closeEveryBlockWhereItsAuthorWroteTheCloser(Node root) {
-		Map<String, BBCodeConfig> grammar = grammarHolder.current().configs();
+	private void closeEveryBlockWhereItsAuthorWroteTheCloser(Node root, ContentScope surface) {
+		Map<String, BBCodeConfig> grammar = grammarHolder.current(surface).configs();
 		List<List<Node>> runs = new ArrayList<>();
 		collectAdjacentTextRuns(root, runs);
 		for (List<Node> run : runs)
@@ -289,7 +290,7 @@ public class MarkdownRenderer {
 				ContentFormat.MARKDOWN, scope, context);
 		if (expanded == null || expanded.equals(literal))
 			return;
-		Node reparsed = parsers().thatOpensBBCodeBlocks().parse(expanded);
+		Node reparsed = parsers(scope).thatOpensBBCodeBlocks().parse(expanded);
 		spliceReparsedMarkdownOver(run, reparsed);
 	}
 
@@ -319,8 +320,8 @@ public class MarkdownRenderer {
 		enclosingBlock.unlink();
 	}
 
-	private void expandBBCodeInMarkdownText(Node root, OffsetDateTime quotingCreatedTs) {
-		Map<String, BBCodeConfig> grammar = grammarHolder.current().configs();
+	private void expandBBCodeInMarkdownText(Node root, OffsetDateTime quotingCreatedTs, ContentScope surface) {
+		Map<String, BBCodeConfig> grammar = grammarHolder.current(surface).configs();
 		List<List<Node>> runs = new ArrayList<>();
 		collectAdjacentTextRuns(root, runs);
 		for (List<Node> run : runs)
@@ -579,6 +580,12 @@ public class MarkdownRenderer {
 
 	private final class BBCodeBlockParserFactory implements BlockParserFactory {
 
+		private final ContentScope surface;
+
+		private BBCodeBlockParserFactory(ContentScope surface) {
+			this.surface = surface;
+		}
+
 		@Override
 		public BlockStart tryStart(ParserState state, MatchedBlockParser matchedBlockParser) {
 			if (state.getIndent() >= MARKDOWN_INDENTED_CODE_BLOCK_INDENT)
@@ -592,7 +599,7 @@ public class MarkdownRenderer {
 							.filter(written -> theRestOfTheLineIsBlank(line, written.endIndex()));
 			if (token.isEmpty())
 				return BlockStart.none();
-			BBCodeConfig config = grammarHolder.current().configs().get(token.get().code());
+			BBCodeConfig config = grammarHolder.current(surface).configs().get(token.get().code());
 			if (config == null || Boolean.TRUE.equals(config.getSelfClosingFlag()))
 				return BlockStart.none();
 			Optional<BBCodeParser.ExpandedOpener> expanded =

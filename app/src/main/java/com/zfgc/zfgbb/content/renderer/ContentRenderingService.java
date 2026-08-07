@@ -54,7 +54,7 @@ public class ContentRenderingService {
 		if (source == null) {
 			return "";
 		}
-		return outputSanitizer.sanitize(renderedByTheLaneThatReads(format, source, quotingCreatedTs, scope));
+		return outputSanitizer.sanitize(renderedByTheLaneThatReads(format, source, quotingCreatedTs, scope), scope);
 	}
 
 	public String renderWithTemplates(String source, ContentFormat format, ContentScope scope,
@@ -69,7 +69,7 @@ public class ContentRenderingService {
 		}
 		return outputSanitizer.sanitize(format == ContentFormat.MARKDOWN
 				? markdownRenderer.render(source, quotingCreatedTs, scope, context)
-				: bbCodeRenderer.render(source, quotingCreatedTs, scope, context));
+				: bbCodeRenderer.render(source, quotingCreatedTs, scope, context), scope);
 	}
 
 	private String renderedByTheLaneThatReads(ContentFormat format, String source,
