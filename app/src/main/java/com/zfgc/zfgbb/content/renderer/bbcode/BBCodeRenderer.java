@@ -33,10 +33,6 @@ public class BBCodeRenderer {
 		this.templateExpansion = templateExpansion;
 	}
 
-	public String render(String source, OffsetDateTime quotingCreatedTs) {
-		return render(source, quotingCreatedTs, ContentScope.ALL, Map.of());
-	}
-
 	public String render(String source, OffsetDateTime quotingCreatedTs, ContentScope scope,
 			Map<String, String> context) {
 		if (source == null)

@@ -292,7 +292,7 @@ class RenderingTest {
 		void theBBCodeParserEmitsUnsanitizedHtmlSoOnlyTheChokepointCleansIt() {
 			String source = "[b]<script>alert(1)</script>[/b]";
 
-			assertTrue(bbCodeRenderer.render(source, null).contains("<script"),
+			assertTrue(bbCodeRenderer.render(source, null, ContentScope.FORUM, Map.of()).contains("<script"),
 					"the parser appends author text verbatim; if it also sanitized there would be two sanitize "
 							+ "points and no single place that every render path provably crosses");
 			assertFalse(renderer.render(source).contains("<script"),
@@ -1310,7 +1310,7 @@ class RenderingTest {
 			List<String> sourceBodiesHandedToTheRenderer = new ArrayList<>();
 			handler.registerSourceBodyRenderer((rawBody, contentFormat, quotingCreatedTs) -> {
 				sourceBodiesHandedToTheRenderer.add(rawBody);
-				return bbCodeRenderer.render(rawBody, quotingCreatedTs);
+				return bbCodeRenderer.render(rawBody, quotingCreatedTs, ContentScope.FORUM, Map.of());
 			});
 			SourceReferenceService.ScopeRestore restore = handler.openScope(List.of(
 					new ContentRenderingService.QuotingPost(duplicateQuotingPosts, QUOTING_TS),
@@ -1539,7 +1539,8 @@ class RenderingTest {
 			SourceReferenceService.ScopeRestore restore = handler.openScope(List.of(new ContentRenderingService.QuotingPost(post, QUOTING_TS)), VISIBLE_BOARDS);
 			String result;
 			try {
-				result = renderer.contentRenderingService().render(post, ContentFormat.MARKDOWN, QUOTING_TS);
+				result = renderer.contentRenderingService().render(post, ContentFormat.MARKDOWN, ContentScope.FORUM,
+						QUOTING_TS);
 			} finally {
 				handler.closeScope(restore);
 			}
@@ -1618,7 +1619,8 @@ class RenderingTest {
 			SourceReferenceService.ScopeRestore restore = handler.openScope(List.of(new ContentRenderingService.QuotingPost(post, QUOTING_TS)), VISIBLE_BOARDS);
 			String result;
 			try {
-				result = renderer.contentRenderingService().render(post, ContentFormat.MARKDOWN, QUOTING_TS);
+				result = renderer.contentRenderingService().render(post, ContentFormat.MARKDOWN, ContentScope.FORUM,
+						QUOTING_TS);
 			} finally {
 				handler.closeScope(restore);
 			}
@@ -3028,7 +3030,8 @@ class RenderingTest {
 
 		@Test
 		void theMarkdownRendererItselfEmitsUnsanitizedHtmlSoOnlyTheChokepointCleansIt() {
-			assertTrue(renderer.markdownRenderer().render("Hello\n\n<script>alert(1)</script>", null).contains("<script"),
+			assertTrue(renderer.markdownRenderer().render("Hello\n\n<script>alert(1)</script>", null,
+					ContentScope.FORUM, Map.of()).contains("<script"),
 					"MarkdownRenderer must hand raw commonmark output to ContentRenderingService; if it sanitizes on its "
 							+ "own the engine has two sanitize points again and the chokepoint stops being one");
 		}
@@ -4037,7 +4040,7 @@ class RenderingTest {
 		}
 
 		private String parse(String source) {
-			return bbCodeRenderer.render(source, null);
+			return bbCodeRenderer.render(source, null, ContentScope.FORUM, Map.of());
 		}
 
 		@ParameterizedTest(name = "{0}")
@@ -6505,15 +6508,16 @@ class RenderingTest {
 		}
 
 		String render(String source) {
-			return contentRenderingService.render(source, ContentFormat.BBCODE);
+			return contentRenderingService.render(source, ContentFormat.BBCODE, ContentScope.FORUM);
 		}
 
 		String render(String source, OffsetDateTime quotingCreatedTs) {
-			return contentRenderingService.render(source, ContentFormat.BBCODE, quotingCreatedTs);
+			return contentRenderingService.render(source, ContentFormat.BBCODE, ContentScope.FORUM,
+					quotingCreatedTs);
 		}
 
 		String renderMarkdown(String source) {
-			return contentRenderingService.render(source, ContentFormat.MARKDOWN);
+			return contentRenderingService.render(source, ContentFormat.MARKDOWN, ContentScope.FORUM);
 		}
 	}
 
@@ -6576,8 +6580,8 @@ class RenderingTest {
 	static void registerTheLaneDispatcherOf(Renderer built) {
 		built.handler().registerSourceBodyRenderer((rawBody, contentFormat, quotingCreatedTs) ->
 				contentFormat == ContentFormat.MARKDOWN
-						? built.markdownRenderer().render(rawBody, quotingCreatedTs)
-						: built.bbCodeRenderer().render(rawBody, quotingCreatedTs));
+						? built.markdownRenderer().render(rawBody, quotingCreatedTs, ContentScope.FORUM, Map.of())
+						: built.bbCodeRenderer().render(rawBody, quotingCreatedTs, ContentScope.FORUM, Map.of()));
 	}
 
 	static TemplateExpansion templateExpansion(BBCodeGrammarHolder grammarHolder) {

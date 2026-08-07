@@ -26,6 +26,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.zfgc.zfgbb.content.ContentFormat;
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
 import com.zfgc.zfgbb.dataprovider.core.IpDataProvider;
 import com.zfgc.zfgbb.dataprovider.forum.ForumDataProvider;
@@ -460,6 +461,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 						message.getCurrentMessage().getMessageText(),
 						ContentFormat.parse(message.getCurrentMessage().getContentFormat())
 								.orElse(ContentFormat.BBCODE),
+						ContentScope.FORUM,
 						quotingTsByMessageId.get(message.getMessageId())));
 		}
 		return messages;

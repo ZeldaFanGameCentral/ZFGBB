@@ -1,6 +1,7 @@
 package com.zfgc.zfgbb.wiki;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -418,6 +419,29 @@ class WikiModeratorTest extends PostgresIntegrationTest {
 						+ "the same in both lanes. Both sides of the check have to be rendered the same way for "
 						+ "that to come out clean: rendering the page one way and its conversion another turns "
 						+ "every templated page into a warning: " + inTheWiki.get("notes"));
+	}
+
+	@Test
+	void aPreviewRendersUnderTheSurfaceItNamesRatherThanFallingBackToTheWiki() throws Exception {
+		String wikiScopedTemplate = "[template=Stub][/template]";
+
+		String inTheWiki = previewed(wikiScopedTemplate, "WIKI");
+		String inAProject = previewed(wikiScopedTemplate, "PROJECT");
+
+		assertNotEquals(inTheWiki, inAProject,
+				"Stub is wiki-scoped, so it expands on the wiki and nowhere else; a preview that named PROJECT "
+						+ "and still rendered the wiki's expansion would be showing the author content the saved "
+						+ "project page will not have, because ProjectService renders under PROJECT");
+	}
+
+	private String previewed(String content, String scope) throws Exception {
+		MvcResult result = mockMvc.perform(post("/content/preview")
+				.header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"content\": \"" + content + "\", \"scope\": \"" + scope + "\"}"))
+				.andExpect(status().isOk())
+				.andReturn();
+		return json.readTree(result.getResponse().getContentAsString()).get("contentParsed").asString();
 	}
 
 	private JsonNode convertedWithNoScope(String content) throws Exception {

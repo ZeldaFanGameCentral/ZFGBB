@@ -5,5 +5,10 @@ public enum ContentScope {
 	WIKI,
 	FORUM,
 	PROJECT,
-	RESOURCE;
+	RESOURCE,
+	SIGNATURE;
+
+	public boolean itsASurfaceContentIsReadOn() {
+		return this != ALL;
+	}
 }

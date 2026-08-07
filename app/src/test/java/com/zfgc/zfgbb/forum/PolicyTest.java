@@ -77,7 +77,9 @@ import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.content.renderer.ContentOutputSanitizer;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
 import com.zfgc.zfgbb.content.renderer.RenderedTextEnricher;
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder;
+import com.zfgc.zfgbb.content.renderer.templates.ContentTemplateCatalog;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeRenderer;
 import com.zfgc.zfgbb.content.renderer.markdown.MarkdownRenderer;
 import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
@@ -155,6 +157,23 @@ class PolicyTest {
 					.because("BBCodeRenderer.render returns unsanitized HTML and the grammar holder exposes raw "
 							+ "grammar state; both are safe only behind the front door's sanitize chokepoint and "
 							+ "quote scope, so a caller wiring them directly bypasses the sanitizer")
+					.check(productionClasses);
+		}
+
+		@Test
+		void productionCodeNeverRendersWithoutNamingTheSurfaceItRendersFor() {
+			JavaClasses productionClasses = new ClassFileImporter()
+					.withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+					.importPackages("com.zfgc.zfgbb");
+
+			noClasses().that().doNotBelongToAnyOf(ContentScope.class, ContentTemplateCatalog.class)
+					.should().accessField(ContentScope.class, "ALL")
+					.as("production code never renders without naming the surface it renders for")
+					.because("ContentScope.ALL is a wildcard a template row stores rather than a surface anything "
+							+ "renders on; a caller that reaches it resolves every surface-scoped template to "
+							+ "nothing and, once codes carry per-surface flags, silently escapes scoping "
+							+ "altogether. ContentTemplateCatalog is exempt because comparing a stored scope "
+							+ "against the wildcard is what the wildcard is for")
 					.check(productionClasses);
 		}
 

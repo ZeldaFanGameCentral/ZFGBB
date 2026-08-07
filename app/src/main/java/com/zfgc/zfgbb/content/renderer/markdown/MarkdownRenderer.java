@@ -134,10 +134,6 @@ public class MarkdownRenderer {
 		return parsers().thatLeavesBBCodeBlocksAlone();
 	}
 
-	public String render(String markdown, OffsetDateTime quotingCreatedTs) {
-		return render(markdown, quotingCreatedTs, ContentScope.ALL, Map.of());
-	}
-
 	public String render(String markdown, OffsetDateTime quotingCreatedTs, ContentScope scope,
 			Map<String, String> context) {
 		if (markdown == null || markdown.isBlank()) {

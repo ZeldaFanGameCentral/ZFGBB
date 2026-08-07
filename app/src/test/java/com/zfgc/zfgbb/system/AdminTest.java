@@ -39,6 +39,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.zfgc.zfgbb.content.ContentFormat;
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.bbcode.AuthoredOpener;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader;
 import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarHolder;
@@ -747,7 +748,8 @@ class AdminTest extends PostgresIntegrationTest {
 				assertDoesNotThrow(() -> grammarLoader.loadBBCodeConfig(),
 						"a grammar row an administrator can edit must not be able to stop the engine loading; "
 								+ "boot happens before anyone can fix the row, so a throw here is an outage");
-				assertFalse(contentRenderingService.render("[img width=10]a.png[/img]", ContentFormat.BBCODE)
+				assertFalse(contentRenderingService
+						.render("[img width=10]a.png[/img]", ContentFormat.BBCODE, ContentScope.FORUM)
 						.contains("width=\"10\""),
 						"there is no Java pattern left to fall back to, so a row nobody can compile has to mean "
 								+ "the type accepts nothing -- silently accepting everything would let an "

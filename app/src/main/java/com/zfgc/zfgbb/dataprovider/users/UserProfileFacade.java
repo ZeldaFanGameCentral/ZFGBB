@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
 import com.zfgc.zfgbb.config.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.content.ContentFormat;
+import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.ContentRenderingService;
 import com.zfgc.zfgbb.dbo.AwardDbo;
 import com.zfgc.zfgbb.dbo.AwardDboExample;
@@ -138,7 +139,8 @@ public class UserProfileFacade {
                 bioInfo = userBioInfoMap.toModel(agg.getBio())
                         .toBuilder()
                         .postCount(postCountByOwnerId.getOrDefault(userId, 0))
-                        .signatureParsed(contentRenderingService.render(agg.getBio().getSignature(), ContentFormat.BBCODE))
+                        .signatureParsed(contentRenderingService.render(agg.getBio().getSignature(),
+                                        ContentFormat.BBCODE, ContentScope.SIGNATURE))
                         .avatar(agg.getAvatar() != null && loadOptions.loadAvatar() ? avatarMap.toModel(agg.getAvatar()) : null)
                         .build();
             }

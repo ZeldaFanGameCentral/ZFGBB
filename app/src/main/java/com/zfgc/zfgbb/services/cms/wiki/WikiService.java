@@ -38,13 +38,13 @@ public class WikiService implements TemplateDataService {
 
 	private final WikiAccessRules wikiAccessRules;
 
-	public String previewContent(String slug, String content, ContentFormat contentFormat) {
+	public String previewContent(String slug, String content, ContentFormat contentFormat, ContentScope scope) {
 		WikiTitle canonical = slug == null || slug.isBlank() ? null : namespaceData.resolve(slug);
 		WikiPage rendered = cmsPageRenderer.previewPage(
 				canonical == null ? null : canonical.namespace(),
 				canonical == null ? null : canonical.title(),
 				canonical == null ? null : canonical.path(),
-				content, contentFormat.name(), ContentScope.WIKI);
+				content, contentFormat.name(), scope);
 		return rendered.getContentParsed() == null ? "" : rendered.getContentParsed();
 	}
 

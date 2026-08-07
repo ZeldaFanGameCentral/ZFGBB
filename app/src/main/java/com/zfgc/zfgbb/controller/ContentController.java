@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,7 +64,19 @@ public class ContentController extends BaseController {
 	public record ConvertRequest(String content, String scope, String fromContentFormat, String toContentFormat) {}
 
 	private static ContentScope authoringScope(String requestedScope) {
-		return "WIKI".equalsIgnoreCase(requestedScope) ? ContentScope.WIKI : ContentScope.FORUM;
+		if (requestedScope == null || requestedScope.isBlank())
+			return ContentScope.FORUM;
+		ContentScope requested;
+		try {
+			requested = ContentScope.valueOf(requestedScope.toUpperCase(Locale.ROOT));
+		} catch (IllegalArgumentException unknown) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"unknown scope " + requestedScope);
+		}
+		if (!requested.itsASurfaceContentIsReadOn())
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"scope " + requestedScope + " is not a surface content is read on");
+		return requested;
 	}
 
 	@GetMapping("bbcodes")
@@ -97,7 +110,7 @@ public class ContentController extends BaseController {
 					previewForumContent(request.content(), contentFormat)));
 		}
 		return ResponseEntity.ok(Map.of("contentParsed",
-				wikiService.previewContent(request.slug(), request.content(), contentFormat)));
+				wikiService.previewContent(request.slug(), request.content(), contentFormat, scope)));
 	}
 
 	@PostMapping("convert")

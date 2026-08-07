@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ContentRenderingService {
 
+	static final ContentScope THE_SURFACE_A_QUOTED_BODY_WAS_WRITTEN_ON = ContentScope.FORUM;
+
 	private final BBCodeRenderer bbCodeRenderer;
 	private final MarkdownRenderer markdownRenderer;
 	private final ContentOutputSanitizer outputSanitizer;
@@ -27,7 +29,8 @@ public class ContentRenderingService {
 		this.sourceReferenceService = sourceReferenceService;
 		sourceReferenceService.registerSourceBodyRenderer(
 				(rawBody, contentFormat, quotingCreatedTs) ->
-						renderedByTheLaneThatReads(contentFormat, rawBody, quotingCreatedTs));
+						renderedByTheLaneThatReads(contentFormat, rawBody, quotingCreatedTs,
+								THE_SURFACE_A_QUOTED_BODY_WAS_WRITTEN_ON));
 	}
 
 	public record QuotingPost(String rawText, OffsetDateTime createdTs) {}
@@ -42,15 +45,16 @@ public class ContentRenderingService {
 		return () -> sourceReferenceService.closeScope(restore);
 	}
 
-	public String render(String source, ContentFormat format) {
-		return render(source, format, null);
+	public String render(String source, ContentFormat format, ContentScope scope) {
+		return render(source, format, scope, null);
 	}
 
-	public String render(String source, ContentFormat format, OffsetDateTime quotingCreatedTs) {
+	public String render(String source, ContentFormat format, ContentScope scope,
+			OffsetDateTime quotingCreatedTs) {
 		if (source == null) {
 			return "";
 		}
-		return outputSanitizer.sanitize(renderedByTheLaneThatReads(format, source, quotingCreatedTs));
+		return outputSanitizer.sanitize(renderedByTheLaneThatReads(format, source, quotingCreatedTs, scope));
 	}
 
 	public String renderWithTemplates(String source, ContentFormat format, ContentScope scope,
@@ -69,10 +73,10 @@ public class ContentRenderingService {
 	}
 
 	private String renderedByTheLaneThatReads(ContentFormat format, String source,
-			OffsetDateTime quotingCreatedTs) {
+			OffsetDateTime quotingCreatedTs, ContentScope scope) {
 		return format == ContentFormat.MARKDOWN
-				? markdownRenderer.render(source, quotingCreatedTs)
-				: bbCodeRenderer.render(source, quotingCreatedTs);
+				? markdownRenderer.render(source, quotingCreatedTs, scope, Map.of())
+				: bbCodeRenderer.render(source, quotingCreatedTs, scope, Map.of());
 	}
 
 }
