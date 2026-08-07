@@ -194,7 +194,6 @@ select zfgbb.create_bbcode_config(9, 'youtube', '</span>', false);
 select zfgbb.create_bbcode_config(10, 'spoiler', '</span>', true);
 select zfgbb.create_bbcode_config(11, 'img', '</span>', false, p_markdown_equivalent => 'IMAGE', p_markdown_canonical => true);
 select zfgbb.create_bbcode_config(12, 'url', '</a></span>', true, p_markdown_equivalent => 'LINK', p_markdown_canonical => true);
-select zfgbb.create_bbcode_config(13, 'email', '</span>', false);
 select zfgbb.create_bbcode_config(15, 'move', '</marquee>', true);
 select zfgbb.create_bbcode_config(18, 'quote', '</div></div>', true, false, true, 'msg', 'MESSAGE', 'BLOCK_QUOTE', true);
 select zfgbb.create_bbcode_config(19, 'code', '</pre>', false, p_markdown_equivalent => 'FENCED_CODE', p_markdown_canonical => true);
@@ -232,10 +231,6 @@ select zfgbb.create_bbcode_attr(45, 0, 90, 'height', 'INTEGER', 'HEIGHT');
 select zfgbb.create_bbcode_attr_mode(11,'url','<span class="bb-code-url"><a href="{{0}}">','</a></span>',false,true);
 select zfgbb.create_bbcode_attr(7, 0, 11, 'NAMELESS', 'URL', 'DESTINATION');
 select zfgbb.create_bbcode_attr_mode(85,'url','<span class="bb-code-url"><a href="{{c}}">','</a></span>',true,true,'DESTINATION');
-
-select zfgbb.create_bbcode_attr_mode(12,'email','<span class="bb-code-email"><a href="mailto:{{0}}">','</a></span>',false,false);
-select zfgbb.create_bbcode_attr(3, 0, 12, 'NAMELESS', 'TEXT');
-select zfgbb.create_bbcode_attr_mode(86,'email','<span class="bb-code-email"><a href="mailto:{{c}}">','</a></span>',true,true);
 
 select zfgbb.create_bbcode_attr_mode(14,'move','<marquee>','</marquee>',false,false);
 
@@ -381,9 +376,6 @@ select zfgbb.create_bbcode_config(56, 'project', '</a>', true);
 select zfgbb.create_bbcode_attr_mode(76, 'project', '<a class="bb-resource-link" href="/content/projects/{{0}}" data-resource="project" data-project-id="{{0}}">', '</a>', false, true);
 select zfgbb.create_bbcode_attr(38, 0, 76, 'NAMELESS', 'INTEGER');
 
-select zfgbb.create_bbcode_config(57, 'screenshot', '</span>', false);
-select zfgbb.create_bbcode_attr_mode(77, 'screenshot', '<span class="bb-code-screenshot"><img src="/content/{{c}}"/>', '</span>', true, false);
-
 select zfgbb.create_bbcode_config(58, 'template', '</div>', false);
 select zfgbb.create_bbcode_attr_mode(78, 'template', '<div class="bb-code-template" data-resource="template" data-template-name="{{0}}">', '</div>', false, true);
 select zfgbb.create_bbcode_attr(39, 0, 78, 'NAMELESS', 'TEXT');
@@ -396,7 +388,7 @@ select zfgbb.create_bbcode_config(63, 'grid', '</div>', true);
 select zfgbb.create_bbcode_attr_mode(91, 'grid', '<div class="bb-code-grid bb-grid-{{0}}">', '</div>', false, false);
 select zfgbb.create_bbcode_attr(46, 0, 91, 'NAMELESS', 'INTEGER');
 
-select zfgbb.create_bbcode_config(64, 'widget', '</div>', true);
+select zfgbb.create_bbcode_config(64, 'widget', '</div>', true, p_honoured_in_forum => false, p_honoured_in_signature => false);
 select zfgbb.create_bbcode_attr_mode(92, 'widget', '<div class="bb-code-widget" data-widget-title="{{0}}">', '</div>', false, false);
 select zfgbb.create_bbcode_attr(47, 0, 92, 'NAMELESS', 'TEXT');
 select zfgbb.create_bbcode_attr_mode(93, 'widget', '<div class="bb-code-widget">', '</div>', false, false);

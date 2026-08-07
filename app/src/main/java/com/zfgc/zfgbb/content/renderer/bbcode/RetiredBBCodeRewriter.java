@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.springframework.stereotype.Component;
 
@@ -18,14 +19,34 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RetiredBBCodeRewriter implements LegacyMarkupRewriter {
 
-	private record Replacement(String opener, String closer) {}
+	private record AuthoredTag(String opener, String attributeText, String body) {}
+
+	private record Replacement(Function<AuthoredTag, String> opener, String closer) {}
+
+	private static Replacement rewrittenAs(String opener, String closer) {
+		return new Replacement(authored -> opener, closer);
+	}
 
 	private static final Map<String, Replacement> RETIRED_CODES = Map.of(
-			"left", new Replacement("[align=left]", "[/align]"),
-			"center", new Replacement("[align=center]", "[/align]"),
-			"right", new Replacement("[align=right]", "[/align]"),
-			"iurl", new Replacement(null, "[/url]"),
-			"ftp", new Replacement(null, "[/url]"));
+			"left", rewrittenAs("[align=left]", "[/align]"),
+			"center", rewrittenAs("[align=center]", "[/align]"),
+			"right", rewrittenAs("[align=right]", "[/align]"),
+			"iurl", new Replacement(RetiredBBCodeRewriter::theSameLinkUnderTheUrlCode, "[/url]"),
+			"ftp", new Replacement(RetiredBBCodeRewriter::theSameLinkUnderTheUrlCode, "[/url]"),
+			"email", new Replacement(RetiredBBCodeRewriter::theSameAddressAsAMailtoLink, "[/url]"),
+			"screenshot", rewrittenAs("[img]/content/", "[/img]"));
+
+	private static String theSameLinkUnderTheUrlCode(AuthoredTag authored) {
+		return authored.opener().replaceFirst("(?i)^\\[(?:iurl|ftp)", "[url");
+	}
+
+	private static String theSameAddressAsAMailtoLink(AuthoredTag authored) {
+		String written = authored.attributeText() == null ? "" : authored.attributeText().trim();
+		if (written.startsWith("="))
+			written = written.substring(1).trim();
+		String address = written.isBlank() ? authored.body() : written;
+		return "[url=mailto:" + address + "]";
+	}
 
 	private record Splice(int startIndex, int endIndex, String text) {}
 
@@ -44,8 +65,11 @@ public class RetiredBBCodeRewriter implements LegacyMarkupRewriter {
 			if (replacement == null)
 				continue;
 			AuthoredSource authored = tag.authoredSource();
-			splices.add(new Splice(authored.startIndex(), authored.bodyStartIndex(),
-					openerFor(replacement, authored.textIn(body).substring(0, authored.openerLength()))));
+			String authoredOpener = body.substring(authored.startIndex(), authored.bodyStartIndex());
+			String authoredBody = body.substring(authored.bodyStartIndex(),
+					Math.min(authored.bodyEndIndex(), body.length()));
+			splices.add(new Splice(authored.startIndex(), authored.bodyStartIndex(), replacement.opener()
+					.apply(new AuthoredTag(authoredOpener, authored.attributeText(), authoredBody))));
 			if (authored.itsAuthorWroteACloser())
 				splices.add(new Splice(authored.bodyEndIndex(), authored.endIndex(), replacement.closer()));
 		}
@@ -58,23 +82,20 @@ public class RetiredBBCodeRewriter implements LegacyMarkupRewriter {
 		return rewritten.toString();
 	}
 
-	private static String openerFor(Replacement replacement, String authoredOpener) {
-		if (replacement.opener() != null)
-			return replacement.opener();
-		return authoredOpener.replaceFirst("(?i)^\\[(?:iurl|ftp)", "[url");
-	}
+	private static final Map<String, String> THE_CODE_EACH_RETIREMENT_IS_SHAPED_LIKE = Map.of(
+			"left", "QUOTE", "center", "QUOTE", "right", "QUOTE",
+			"iurl", "URL", "ftp", "URL", "email", "URL",
+			"screenshot", "IMG");
 
 	private Map<String, BBCodeConfig> theGrammarThatAlsoReadsRetiredCodes() {
 		Map<String, BBCodeConfig> grammar = new HashMap<>(grammarHolder.current().configs());
-		BBCodeConfig blockTemplate = grammar.get("QUOTE");
-		BBCodeConfig linkTemplate = grammar.get("URL");
-		if (blockTemplate == null || linkTemplate == null)
-			throw new IllegalStateException("retired-code parsing borrows the modes of quote and url, and the "
-					+ "seeded grammar no longer declares both: " + grammar.keySet());
-		for (String code : List.of("left", "center", "right"))
-			grammar.put(code.toUpperCase(Locale.ROOT), legacyCodeShapedLike(blockTemplate, code));
-		for (String code : List.of("iurl", "ftp"))
-			grammar.put(code.toUpperCase(Locale.ROOT), legacyCodeShapedLike(linkTemplate, code));
+		for (Map.Entry<String, String> retired : THE_CODE_EACH_RETIREMENT_IS_SHAPED_LIKE.entrySet()) {
+			BBCodeConfig template = grammar.get(retired.getValue());
+			if (template == null)
+				throw new IllegalStateException("missing bbcode: " + retired.getValue());
+			grammar.put(retired.getKey().toUpperCase(Locale.ROOT),
+					legacyCodeShapedLike(template, retired.getKey()));
+		}
 		return grammar;
 	}
 

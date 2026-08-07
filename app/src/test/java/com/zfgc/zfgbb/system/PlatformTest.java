@@ -26,6 +26,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import java.sql.Connection;
 import java.time.Duration;
+import com.zfgc.zfgbb.services.system.InstallTokenGate;
+import java.time.ZoneOffset;
+import java.time.ZoneId;
+import java.time.Instant;
+import java.time.Clock;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -572,6 +577,61 @@ class PlatformTest {
 			assertEquals("Subject line", dispatcher.sentMessages().get(0).subject());
 			dispatcher.clear();
 			assertTrue(dispatcher.sentMessages().isEmpty());
+		}
+	}
+
+	@Nested
+	class InstallTokenGuard {
+
+		private Instant now = Instant.parse("2026-08-07T12:00:00Z");
+
+		private final Clock steppingClock = new Clock() {
+			@Override
+			public Instant instant() {
+				return now;
+			}
+
+			@Override
+			public ZoneId getZone() {
+				return ZoneOffset.UTC;
+			}
+
+			@Override
+			public Clock withZone(ZoneId zone) {
+				return this;
+			}
+		};
+
+		private final InstallTokenGate gate = new InstallTokenGate(steppingClock);
+
+		@Test
+		void failuresUnderTheLimitLeaveTheInstallerReachable() {
+			for (int attempt = 0; attempt < InstallTokenGate.FAILURES_TOLERATED - 1; attempt++)
+				gate.recordFailure();
+			assertFalse(gate.isLocked(),
+					"an operator mistyping the token must not lock themselves out before the limit");
+		}
+
+		@Test
+		void reachingTheLimitLocksEvenACorrectTokenUntilTheCooldownPasses() {
+			for (int attempt = 0; attempt < InstallTokenGate.FAILURES_TOLERATED; attempt++)
+				gate.recordFailure();
+			assertTrue(gate.isLocked(),
+					"the lock has to hold before the token is even compared, or the window it creates is "
+							+ "free guesses");
+
+			now = now.plus(InstallTokenGate.COOLDOWN).plusSeconds(1);
+			assertFalse(gate.isLocked());
+		}
+
+		@Test
+		void aSuccessfulTokenResetsTheFailureCount() {
+			for (int attempt = 0; attempt < InstallTokenGate.FAILURES_TOLERATED - 1; attempt++)
+				gate.recordFailure();
+			gate.recordSuccess();
+			for (int attempt = 0; attempt < InstallTokenGate.FAILURES_TOLERATED - 1; attempt++)
+				gate.recordFailure();
+			assertFalse(gate.isLocked());
 		}
 	}
 

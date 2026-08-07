@@ -158,7 +158,7 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.siteName").value("Restored Site"))
-				.andExpect(jsonPath("$.state").value("INSTALLED"));
+				.andExpect(jsonPath("$.state").doesNotExist());
 		mockMvc.perform(get("/users/loggedInUser"))
 				.andExpect(status().isOk());
 

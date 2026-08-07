@@ -36,9 +36,7 @@ public class ContentTemplateCatalog {
 
 	public Lookup lookup(String code, ContentFormat format, ContentScope context) {
 		if (context == null || !context.itsASurfaceContentIsReadOn())
-			throw new IllegalArgumentException("ALL is a wildcard a template row stores, not a surface content "
-					+ "renders on; a caller that passes it silently resolves every surface-scoped template to "
-					+ "nothing: " + context);
+			throw new IllegalArgumentException("render context is not a surface: " + context);
 		String prefix = namespaceData.templateNamespace() + ":";
 		String path = code.regionMatches(true, 0, prefix, 0, prefix.length()) ? code : prefix + code;
 		WikiTitle title = namespaceData.resolve(path);

@@ -102,7 +102,7 @@ class SystemInstallContentPackTest extends AbstractSystemInstallTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
 				.andExpect(jsonPath("$.siteName").value("Installer Site Name"))
-				.andExpect(jsonPath("$.state").value("INSTALLED"));
+				.andExpect(jsonPath("$.state").doesNotExist());
 		assertInstalledWithStrategy("ARCHIVE");
 
 		int anchorAdministratorId = shipped.installerAnchorAdministratorId();

@@ -246,6 +246,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
+          <skip>false</skip>
           <profiles>local</profiles>
           <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
           <systemPropertyVariables>

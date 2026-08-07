@@ -2,7 +2,6 @@ package com.zfgc.zfgbb.controller.cms;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,12 +19,10 @@ import com.zfgc.zfgbb.services.cms.catalog.ProjectService;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @RestController
 @RequestMapping("/projects")
 @RequiredArgsConstructor
 public class ProjectController extends BaseController {
-
 	private final ProjectService projectService;
 
 	@GetMapping
@@ -44,7 +41,6 @@ public class ProjectController extends BaseController {
 	@GetMapping("/facets")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, List<Map<String, Object>>>> getFacets() {
-     log.info("Executing getFacets");
 		Map<String, List<Map.Entry<String, Long>>> facets = projectService.getFacets();
 		return ResponseEntity.ok(Map.of(
 				"languages", toFacet(facets.get("languages")),
@@ -54,14 +50,12 @@ public class ProjectController extends BaseController {
 	@GetMapping("/showcase")
 	@AllowAnonymous
 	public ResponseEntity<ProjectShowcase> getShowcase() {
-     log.info("Executing getShowcase");
 		return ResponseEntity.ok(projectService.getProjectShowcase());
 	}
 
 	@GetMapping("/card")
 	@AllowAnonymous
 	public ResponseEntity<Map<String, Object>> getProjectCard(@RequestParam(name = "slug", required = false) String slug) {
-     log.info("Executing getProjectCard");
 		return ResponseEntity.ok(projectService.getProjectCard(slug));
 	}
 
@@ -75,13 +69,11 @@ public class ProjectController extends BaseController {
 	@GetMapping("/{slug}")
 	@AllowAnonymous
 	public ResponseEntity<Project> getProject(@PathVariable("slug") String slug) {
-     log.info("Executing getProject");
 		return ResponseEntity.ok(projectService.getProject(slug));
 	}
 
 	@PostMapping("/{slug}/discussion")
 	public ResponseEntity<Project> startDiscussion(@PathVariable("slug") String slug) {
-     log.info("Executing startDiscussion");
 		return ResponseEntity.ok(projectService.startProjectDiscussion(slug, super.zfgcUser()));
 	}
 }

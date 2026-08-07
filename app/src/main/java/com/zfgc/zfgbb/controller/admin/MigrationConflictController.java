@@ -1,7 +1,6 @@
 package com.zfgc.zfgbb.controller.admin;
 
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -18,13 +17,11 @@ import lombok.RequiredArgsConstructor;
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.services.cms.merge.MigrationConflictService;
 
-@Slf4j
 @RestController
 @RequestMapping("/admin/migrate/conflicts")
 @PreAuthorize("hasRole('ROLE_ZFGC_SITE_ADMIN')")
 @RequiredArgsConstructor
 public class MigrationConflictController extends BaseController {
-
 	private final MigrationConflictService conflictService;
 
 	@GetMapping
@@ -35,7 +32,6 @@ public class MigrationConflictController extends BaseController {
 
 	@PostMapping("/scan")
 	public ResponseEntity<Map<String, Object>> scan() {
-     log.info("Executing scan");
 		int detected = conflictService.scan();
 		return ResponseEntity.ok(Map.of("detected", detected));
 	}
@@ -49,7 +45,6 @@ public class MigrationConflictController extends BaseController {
 
 	@PostMapping("/{id}/dismiss")
 	public ResponseEntity<MigrationConflictService.ConflictView> dismiss(@PathVariable Integer id) {
-     log.info("Executing dismiss with id={}", id);
 		return ResponseEntity.ok(conflictService.dismiss(id, super.zfgcUser().getUserId()));
 	}
 }

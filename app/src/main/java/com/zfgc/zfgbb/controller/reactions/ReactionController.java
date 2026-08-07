@@ -1,7 +1,6 @@
 package com.zfgc.zfgbb.controller.reactions;
 
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,18 +19,15 @@ import com.zfgc.zfgbb.model.reactions.ReactionType;
 import com.zfgc.zfgbb.services.reactions.ReactionService;
 import lombok.RequiredArgsConstructor;
 
-@Slf4j
 @RestController
 @RequestMapping("/reactions")
 @RequiredArgsConstructor
 public class ReactionController extends BaseController {
-
 	private final ReactionService reactionService;
 
 	@GetMapping("/types")
 	@AllowAnonymous
 	public ResponseEntity<List<ReactionType>> getReactionTypes() {
-     log.info("Executing getReactionTypes");
 		return ResponseEntity.ok(reactionService.getReactionTypes());
 	}
 
@@ -53,8 +49,6 @@ public class ReactionController extends BaseController {
 
 	@PostMapping
 	public ResponseEntity<ContentReactionSummary> toggle(@RequestBody ReactionRequest request) {
-		log.info("Executing toggle");
-		log.debug("Executing toggle with request={}", request);
 		return ResponseEntity.ok(reactionService.toggle(request, zfgcUser()));
 	}
 

@@ -1,7 +1,6 @@
 package com.zfgc.zfgbb.controller.forum;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -33,12 +32,10 @@ import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 
-@Slf4j
 @RestController
 @RequestMapping("/message")
 @RequiredArgsConstructor
 public class MessageController extends BaseController {
-
 	private final ForumService forumService;
 
 	private final ForumModerationOrchestrator forumModerationOrchestrator;
@@ -46,7 +43,6 @@ public class MessageController extends BaseController {
 	@GetMapping("/template")
 	@AllowAnonymous
 	public ResponseEntity<MessageResponse> getMessageTemplate(@RequestParam("threadId") Integer threadId) {
-     log.info("Executing getMessageTemplate");
 		Message template = forumService.getMessageTemplate(threadId, super.zfgcUser());
 		return ResponseEntity.ok(new MessageResponse(template));
 	}
@@ -54,8 +50,6 @@ public class MessageController extends BaseController {
 	@PostMapping("/{threadId}")
 	@PreAuthorize("hasPermission(#threadId, 'THREAD', 'thread.reply')")
 	public ResponseEntity<MessageResponse> addMessageToThread(@PathVariable Integer threadId, @Valid @RequestBody MessagePostRequest request) {
-		log.info("Executing addMessageToThread with threadId={}", threadId);
-		log.debug("Executing addMessageToThread with request={}", request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse(forumService.saveMessage(threadId,
 				request.body(), request.contentFormat(), super.zfgcUser())));
 	}
@@ -73,7 +67,6 @@ public class MessageController extends BaseController {
 	@GetMapping("/{messageId}/allowed-actions")
 	@AllowAnonymous
 	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable Integer messageId) {
-     log.info("Executing getAllowedActions with messageId={}", messageId);
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
 				.body(forumService.messageAllowedActions(messageId, super.zfgcUser()));
 	}
@@ -81,14 +74,12 @@ public class MessageController extends BaseController {
 	@DeleteMapping("/{messageId}")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.delete')")
 	public ResponseEntity<MessageDeletionResponse> deleteMessage(@PathVariable Integer messageId) {
-     log.info("Executing deleteMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.deleteMessage(messageId, super.zfgcUser()));
 	}
 
 	@PutMapping("/{messageId}/restore")
 	@PreAuthorize("hasPermission(#messageId, 'MESSAGE', 'message.restore')")
 	public ResponseEntity<RestoreResponse> restoreMessage(@PathVariable Integer messageId) {
-     log.info("Executing restoreMessage with messageId={}", messageId);
 		return ResponseEntity.ok(forumModerationOrchestrator.restoreMessage(messageId, super.zfgcUser()));
 	}
 

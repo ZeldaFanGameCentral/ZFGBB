@@ -4266,8 +4266,8 @@ class RenderingTest {
 
 			assertEquals(Map.of(), mixed, "a mixing code has no single place in a document tree");
 			assertEquals(21, counts.get(ContentLevel.BLOCK));
-			assertEquals(28, counts.get(ContentLevel.INLINE));
-			assertEquals(49, grammar.size());
+			assertEquals(26, counts.get(ContentLevel.INLINE));
+			assertEquals(47, grammar.size());
 		}
 
 		@Test
@@ -4370,32 +4370,32 @@ class RenderingTest {
 		static final int LENS_CALIBRATION_INPUTS = 2000;
 
 		static final Map<DivergenceFamily, Integer> SMOKE_WIDE_FAMILIES = Map.of(
-				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 17,
-				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 30,
-				DivergenceFamily.ELEMENT_STRUCTURE_ONLY, 1,
-				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 1);
+				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 2,
+				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 29,
+				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 1);
 
 		static final Map<DivergenceFamily, Integer> SMOKE_HOSTILE_FAMILIES = Map.of(
-				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 11,
-				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 52,
-				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 1);
+				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 3,
+				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 66,
+				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 2);
 
 		static final Map<DivergenceFamily, Integer> SWEEP_WIDE_FAMILIES = Map.of(
-				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 4142,
-				DivergenceFamily.LINE_BREAK_ONLY, 9,
-				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 11478,
-				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 305,
-				DivergenceFamily.ELEMENT_STRUCTURE_ONLY, 111,
-				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 215);
+				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 950,
+				DivergenceFamily.LINE_BREAK_ONLY, 5,
+				DivergenceFamily.WHITESPACE_POSITION_ONLY, 1,
+				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 8817,
+				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 379,
+				DivergenceFamily.ELEMENT_STRUCTURE_ONLY, 77,
+				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 234);
 
 		static final Map<DivergenceFamily, Integer> SWEEP_HOSTILE_FAMILIES = Map.of(
-				DivergenceFamily.LITERAL_CONTENT_PLACEHOLDER_HIJACK, 1,
-				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 3951,
-				DivergenceFamily.LINE_BREAK_ONLY, 9,
-				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 17405,
-				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 254,
-				DivergenceFamily.ELEMENT_STRUCTURE_ONLY, 166,
-				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 173);
+				DivergenceFamily.LITERAL_CONTENT_PLACEHOLDER_HIJACK, 3,
+				DivergenceFamily.CONTENT_ATTRIBUTE_BODY_BRACKET_LEAK, 964,
+				DivergenceFamily.LINE_BREAK_ONLY, 5,
+				DivergenceFamily.UNATTRIBUTED_VISIBLE_TEXT_CHANGE, 15988,
+				DivergenceFamily.ATTRIBUTE_VALUE_ONLY, 265,
+				DivergenceFamily.ELEMENT_STRUCTURE_ONLY, 132,
+				DivergenceFamily.ESCAPING_OR_ORDERING_ONLY, 199);
 
 		static Map<String, BBCodeConfig> grammar;
 		static List<SmileyToken> smilies;
@@ -4634,8 +4634,8 @@ class RenderingTest {
 					"[list][*]watch [youtube]dQw4w9WgXcQ[/youtube][*]next[/list]");
 			cases.put(IMPLICIT_ITEM_STRADDLE_CASE_PREFIX + "list-item-holding-a-code-sample",
 					"[list][*]run [code]a[*]b[/code][*]next[/list]");
-			cases.put(IMPLICIT_ITEM_STRADDLE_CASE_PREFIX + "list-item-holding-an-email-address",
-					"[list][*]write [email]a@zfgc.com[/email][*]next[/list]");
+			cases.put(IMPLICIT_ITEM_STRADDLE_CASE_PREFIX + "list-item-holding-a-mail-link",
+					"[list][*]write [url=mailto:a@zfgc.com]a@zfgc.com[/url][*]next[/list]");
 			cases.put(IMPLICIT_ITEM_STRADDLE_CASE_PREFIX + "list-opened-after-a-code-sample",
 					"[code]x[/code][list][*]one[*]two[/list]");
 			cases.put(IMPLICIT_ITEM_STRADDLE_CASE_PREFIX + "list-closed-before-a-code-sample",
@@ -5017,7 +5017,7 @@ class RenderingTest {
 
 		@Test
 		void theSeededGrammarLoadsEveryEnabledCodeThroughTheRealDataProvider() {
-			assertEquals(49, grammar.size(),
+			assertEquals(47, grammar.size(),
 					"the harness measures the real seeded grammar; if R__03_bbcodes.sql gains or loses a code the "
 							+ "fuzz coverage claim in CONTRIBUTING.md is stale: " + new TreeMap<>(grammar).keySet());
 			assertEquals(18, smilies.size(),
@@ -6123,7 +6123,7 @@ class RenderingTest {
 				"base.emit.list", "attackB.B11.list.bbcode", "d10.special-path-in-body-text",
 				"shape.S5.cool.in.quote", "shape.S7.cool.in.bbcode.code",
 				"d11.list-item-holding-an-image", "d11.list-item-holding-a-youtube-embed",
-				"d11.list-item-holding-a-code-sample", "d11.list-item-holding-an-email-address");
+				"d11.list-item-holding-a-code-sample", "d11.list-item-holding-a-mail-link");
 
 		static final int GOLDEN_ROWS_THE_MARKDOWN_LANE_CANNOT_RENDER_LIKE_THE_BBCODE_LANE = 123;
 
@@ -6567,6 +6567,23 @@ class RenderingTest {
 		}
 
 		@Test
+		void aRetiredMailLinkKeepsTheAddressItsAuthorTyped() {
+			assertEquals("[url=mailto:steve@zfgc.com]write in[/url]",
+					rewriter.rewriteRetiredCodes("[email=steve@zfgc.com]write in[/email]"));
+			assertEquals("[url=mailto:steve@zfgc.com]steve@zfgc.com[/url]",
+					rewriter.rewriteRetiredCodes("[email]steve@zfgc.com[/email]"),
+					"the content form showed the address as its own label, so the address has to be lifted into "
+							+ "the attribute and left in the body");
+		}
+
+		@Test
+		void aRetiredScreenshotBecomesAnImageOfTheSameContentResource() {
+			assertEquals("[img]/content/1234[/img]", rewriter.rewriteRetiredCodes("[screenshot]1234[/screenshot]"),
+					"screenshot was [img] with the content route spelled for you, so the route moves into the "
+							+ "body rather than the reader losing the picture");
+		}
+
+		@Test
 		void aRetiredCodeInsideAVerbatimBlockIsLeftExactlyAsItsAuthorTypedIt() {
 			String documenting = "[code][center]centered[/center][/code]";
 
@@ -6583,7 +6600,7 @@ class RenderingTest {
 
 		@Test
 		void theCodesTooStructuralToScopeAreTheOnesWhoseAbsenceChangesHowTheirNeighboursParse() {
-			assertEquals(java.util.Set.of("CODE", "EMAIL", "LI", "LIST", "PRE", "TEMPLATE"),
+			assertEquals(java.util.Set.of("CODE", "LI", "LIST", "PRE", "TEMPLATE"),
 					BBCodeGrammarLoader.codesTooStructuralToScope(seededBBCodeGrammar()),
 					"a verbatim container that leaves a scope stops suppressing its body, so [code][b]x[/b][/code] "
 							+ "would start rendering bold instead of showing the markup an author was documenting; "

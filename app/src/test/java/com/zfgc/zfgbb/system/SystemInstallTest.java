@@ -126,7 +126,9 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 		mockMvc.perform(get("/system/install/status"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.siteName").value("ZFGC Test"));
+				.andExpect(jsonPath("$.siteName").value("ZFGC Test"))
+				.andExpect(jsonPath("$.state").doesNotExist())
+				.andExpect(jsonPath("$.lastError").doesNotExist());
 
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
@@ -273,7 +275,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 		mockMvc.perform(get("/system/install/status"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.state").value("INSTALLED"));
+				.andExpect(jsonPath("$.state").doesNotExist());
 	}
 
 	@Test

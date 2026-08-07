@@ -2,7 +2,6 @@ package com.zfgc.zfgbb.controller.forum;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,25 +13,21 @@ import org.springframework.web.bind.annotation.RestController;
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.services.forum.ForumService;
 
-@Slf4j
 @RestController
 @RequestMapping("/board")
 @RequiredArgsConstructor
 public class BoardController extends BaseController {
-
 	private final ForumService forumService;
 	
 	@GetMapping("/{boardId}")
 	@AllowAnonymous
 	public ResponseEntity getBoard(@PathVariable("boardId") Integer boardId, @RequestParam(name="page",required=false) Integer page) {
-     log.info("Executing getBoard");
 		return ResponseEntity.ok(forumService.getBoard(boardId, page, super.zfgcUser()));
 	}
 	
 	@GetMapping("/forum")
 	@AllowAnonymous
 	public ResponseEntity getForum() {
-     log.info("Executing getForum");
 		return ResponseEntity.ok(forumService.getForum(super.zfgcUser()));
 	}
 

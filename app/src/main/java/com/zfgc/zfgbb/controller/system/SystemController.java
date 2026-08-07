@@ -23,7 +23,10 @@ import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
 import com.zfgc.zfgbb.services.system.InstallService;
 import com.zfgc.zfgbb.services.system.InstallRunRepository;
+import com.zfgc.zfgbb.services.system.InstallTokenGate;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import java.nio.charset.StandardCharsets;
@@ -32,47 +35,41 @@ import java.security.MessageDigest;
 @RestController
 @RequestMapping("/system/install")
 @AllowAnonymous
+@RequiredArgsConstructor
 public class SystemController {
 
 	private final InstallService installService;
 	private final SystemConfigService systemConfigService;
 	private final AuthService authService;
 	private final AuthCookieService cookieService;
+	@Value("${zfgbb.install.token:}")
 	private final String installToken;
 	private final InstallRunRepository installRun;
-
-	public SystemController(InstallService installService,
-			SystemConfigService systemConfigService,
-			AuthService authService,
-			AuthCookieService cookieService,
-			@Value("${zfgbb.install.token:}") String installToken, InstallRunRepository installRun) {
-		this.installService = installService;
-		this.systemConfigService = systemConfigService;
-		this.authService = authService;
-		this.cookieService = cookieService;
-		this.installToken = installToken;
-		this.installRun = installRun;
-	}
+	private final InstallTokenGate tokenGate;
 
 	@GetMapping("/status")
 	public ResponseEntity<InstallStatusResponse> status() {
-		boolean installed = systemConfigService.isInstalled();
-		String siteName = installed ? systemConfigService.get(SystemConfigService.Keys.SITE_NAME) : null;
+		if (systemConfigService.isInstalled()) {
+			return ResponseEntity.ok(new InstallStatusResponse(true,
+					systemConfigService.get(SystemConfigService.Keys.SITE_NAME), null, null));
+		}
 		InstallRunRepository.Run run = installRun.get();
-		return ResponseEntity.ok(new InstallStatusResponse(installed, siteName, run.state(), run.lastError()));
+		return ResponseEntity.ok(new InstallStatusResponse(false, null, run.state(), run.lastError()));
 	}
 
 	@PostMapping
 	public ResponseEntity<InstallResponse> install(
 			@Valid @RequestBody InstallRequest request,
 			@RequestHeader(value = "X-Install-Token", required = false) String presentedToken) {
-		if (StringUtils.isBlank(installToken)) {
+		if (StringUtils.isBlank(installToken) || tokenGate.isLocked()) {
 			throw notFound();
 		}
 
 		if (!constantTimeEquals(presentedToken, installToken)) {
+			tokenGate.recordFailure();
 			throw notFound();
 		}
+		tokenGate.recordSuccess();
 		InstallResult result;
 		try {
 			result = installService.install(request);

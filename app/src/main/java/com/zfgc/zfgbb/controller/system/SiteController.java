@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.controller.system;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,25 +19,22 @@ import com.zfgc.zfgbb.services.system.SystemConfigService;
 @RestController
 @RequestMapping("/system/site")
 @AllowAnonymous
+@RequiredArgsConstructor
 public class SiteController {
 
 	private final SystemConfigService systemConfigService;
-	private final boolean registrationEnabled;
-	private final Optional<String> buildVersion;
 
-	public SiteController(SystemConfigService systemConfigService,
-			@Value("${zfgbb.registration.enabled:false}") boolean registrationEnabled,
-			@Value("${zfgbb.build.version:}") String buildVersion) {
-		this.systemConfigService = systemConfigService;
-		this.registrationEnabled = registrationEnabled;
-		this.buildVersion = buildVersion.isBlank() ? Optional.empty() : Optional.of(buildVersion);
-	}
+	@Value("${zfgbb.registration.enabled:false}")
+	private final boolean registrationEnabled;
+
+	@Value("${zfgbb.build.version:}")
+	private final String buildVersion;
 
 	@GetMapping
 	public ResponseEntity<SiteInfo> site() {
 		String siteName = systemConfigService.get(SystemConfigService.Keys.SITE_NAME);
 		return ResponseEntity.ok(new SiteInfo(siteName, registrationEnabled,
 				systemConfigService.authoringDefaultContentFormat().name(), ContentFormat.authorableCodes(),
-				buildVersion));
+				buildVersion.isBlank() ? Optional.empty() : Optional.of(buildVersion)));
 	}
 }

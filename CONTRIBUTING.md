@@ -393,7 +393,7 @@ This project uses [Lombok](https://projectlombok.org/) for generated getters, se
 From the repository root, run the application in development mode with:
 
 ```bash
-mvn -pl app spring-boot:run
+mvn -pl app -am compile spring-boot:run
 ```
 
 The Maven run configuration explicitly activates the `local` profile and starts

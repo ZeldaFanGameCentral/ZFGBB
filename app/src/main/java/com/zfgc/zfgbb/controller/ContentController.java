@@ -1,7 +1,6 @@
 package com.zfgc.zfgbb.controller;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
-import lombok.extern.slf4j.Slf4j;
 
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
@@ -44,12 +43,10 @@ import com.zfgc.zfgbb.services.contentstore.ContentService;
 import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.system.AuthoringContentFormat;
 
-@Slf4j
 @RestController
 @RequestMapping("/content")
 @RequiredArgsConstructor
 public class ContentController extends BaseController {
-
 	private static final int MAX_PREVIEW_LENGTH = 100_000;
 
 	private final ContentService contentService;
@@ -76,7 +73,7 @@ public class ContentController extends BaseController {
 		}
 		if (!requested.itsASurfaceContentIsReadOn())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-					"scope " + requestedScope + " is not a surface content is read on");
+					"scope is not a surface: " + requestedScope);
 		return requested;
 	}
 
@@ -84,7 +81,6 @@ public class ContentController extends BaseController {
 	@AllowAnonymous
 	public ResponseEntity<List<? extends Map<String, ?>>> getBBCodes(
 			@RequestParam(name = "scope", required = false) String requestedScope) {
-     log.info("Executing getBBCodes");
 		return ResponseEntity.ok(grammarLoader.theConfigsHonouredOn(authoringScope(requestedScope)).stream()
 				.map(config -> Map.of(
 						"code", config.getCode(),
@@ -95,8 +91,6 @@ public class ContentController extends BaseController {
 
 	@PostMapping("preview")
 	public ResponseEntity<Map<String, String>> preview(@RequestBody PreviewRequest request) {
-		log.debug("Executing preview with request={}", request);
-
 		if (request == null || request.content() == null) {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST, "content is required");
@@ -117,8 +111,6 @@ public class ContentController extends BaseController {
 
 	@PostMapping("convert")
 	public ResponseEntity<ContentFormatConverter.ConvertedContent> convert(@RequestBody ConvertRequest request) {
-		log.debug("Executing convert with request={}", request);
-
 		if (request == null || request.content() == null) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "content is required");
 		}
@@ -145,7 +137,6 @@ public class ContentController extends BaseController {
 	@GetMapping("archive/{resourceId}")
 	@AllowAnonymous
 	public ResponseEntity<List<ContentService.ArchiveEntry>> getArchiveEntries(@PathVariable("resourceId") Integer resourceId) {
-     log.info("Executing getArchiveEntries");
 		contentService.authorizeAccess(resourceId, zfgcUser());
 		return ResponseEntity.ok(contentService.getArchiveEntries(resourceId));
 	}

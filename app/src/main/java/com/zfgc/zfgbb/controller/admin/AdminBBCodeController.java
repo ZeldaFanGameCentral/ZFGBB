@@ -5,7 +5,6 @@ import com.zfgc.zfgbb.controller.BaseController;
 import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,18 +21,15 @@ import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeGrammarLoader;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.dataprovider.forum.BBCodeDataProvider;
 
-@Slf4j
 @RestController
 @RequestMapping("/admin/bbcodes")
 @PreAuthorize("hasRole('ROLE_ZFGC_SITE_ADMIN')")
 @RequiredArgsConstructor
 public class AdminBBCodeController extends BaseController {
-
 	private final BBCodeGrammarLoader grammarLoader;
 
 	@GetMapping
 	public ResponseEntity<List<BBCodeDataProvider.BBCodeToggle>> listBBCodes() {
-     log.info("Executing listBBCodes");
 		return ResponseEntity.ok(grammarLoader.listBBCodes());
 	}
 
@@ -56,7 +52,7 @@ public class AdminBBCodeController extends BaseController {
 		}
 		if (!surface.itsASurfaceContentIsReadOn())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-					"scope " + request.surface() + " is not a surface content is read on");
+					"scope is not a surface: " + request.surface());
 		try {
 			return ResponseEntity.ok(grammarLoader.setBBCodeHonouredOn(code, surface, request.honoured()));
 		} catch (IllegalArgumentException tooStructural) {

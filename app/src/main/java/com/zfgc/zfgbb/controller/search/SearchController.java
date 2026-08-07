@@ -3,7 +3,6 @@ package com.zfgc.zfgbb.controller.search;
 import com.zfgc.zfgbb.controller.BaseController;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
@@ -16,12 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.zfgc.zfgbb.services.search.SearchService;
 import lombok.RequiredArgsConstructor;
 
-@Slf4j
 @RestController
 @RequestMapping("/search")
 @RequiredArgsConstructor
 public class SearchController extends BaseController {
-
 	private final SearchService searchService;
 
 	@GetMapping
@@ -34,7 +31,6 @@ public class SearchController extends BaseController {
 	@GetMapping("/realms")
 	@AllowAnonymous
 	public ResponseEntity realms() {
-     log.info("Executing realms");
 		return ResponseEntity.ok(searchService.getRealms());
 	}
 }

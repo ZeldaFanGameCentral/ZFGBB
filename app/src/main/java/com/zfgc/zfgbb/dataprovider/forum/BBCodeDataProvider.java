@@ -137,8 +137,7 @@ public class BBCodeDataProvider {
 		Set<String> tooStructuralToScope = codesTooStructuralToScope();
 		return bbCodeConfigDao.get(ex).stream().findFirst().map(dbo -> {
 			if (tooStructuralToScope.contains(dbo.getCode().toUpperCase(Locale.ROOT)))
-				throw new IllegalArgumentException("code " + dbo.getCode() + " is honoured on every surface: "
-						+ "its absence changes how neighbouring content parses");
+				throw new IllegalArgumentException("code is not scopable: " + dbo.getCode());
 			switch (surface) {
 				case FORUM -> dbo.setHonouredInForumFlag(honoured);
 				case WIKI -> dbo.setHonouredInWikiFlag(honoured);

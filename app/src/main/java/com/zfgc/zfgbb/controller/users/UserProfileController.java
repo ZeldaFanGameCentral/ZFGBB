@@ -1,7 +1,6 @@
 package com.zfgc.zfgbb.controller.users;
 
 import com.zfgc.zfgbb.config.security.AllowAnonymous;
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;
@@ -21,25 +20,21 @@ import com.zfgc.zfgbb.model.users.UpdateUserProfileRequest;
 import com.zfgc.zfgbb.services.users.UserService;
 import java.util.Set;
 
-@Slf4j
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserProfileController extends BaseController {
-
 	private final UserService userService;
 	
 	@GetMapping("/{userId}")
 	@AllowAnonymous
 	public ResponseEntity getUserProfile(@PathVariable("userId") Integer userId) {
-     log.info("Executing getUserProfile");
 		return ResponseEntity.ok(userService.loadUser(userId, zfgcUser()));
 	}
 
 	@GetMapping("/{userId}/allowed-actions")
 	@AllowAnonymous
 	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable("userId") Integer userId) {
-     log.info("Executing getAllowedActions");
 		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
 				.body(userService.profileAllowedActions(userId, zfgcUser()));
 	}
@@ -61,7 +56,6 @@ public class UserProfileController extends BaseController {
 	@GetMapping("/awards/catalog")
 	@AllowAnonymous
 	public ResponseEntity getAwardCatalog() {
-     log.info("Executing getAwardCatalog");
 		return ResponseEntity.ok(userService.getAwardCatalog());
 	}
 
