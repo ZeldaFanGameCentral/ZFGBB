@@ -651,6 +651,11 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		ex.createCriteria().andWikiPageIdEqualTo(wikiPageId).andContentFormatEqualTo("BBCODE");
 		ContentTemplateDbo existing = contentTemplateMapper.selectByExample(ex).stream().findFirst().orElse(null);
 		if (existing == null) {
+			if (anEngineTemplateAlreadyOwns(code)) {
+				logger.info("template '{}' is engine-owned; keeping the engine body and leaving the wiki page unlinked",
+						code);
+				return;
+			}
 			String body = migratedBody != null ? migratedBody : currentRevisionContent(wikiPageId);
 			ContentTemplateDbo row = new ContentTemplateDbo();
 			row.setCode(code);
@@ -672,6 +677,14 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		if (changed) {
 			contentTemplateMapper.updateByPrimaryKey(existing);
 		}
+	}
+
+	private boolean anEngineTemplateAlreadyOwns(String code) {
+		ContentTemplateDboExample engineOwned = new ContentTemplateDboExample();
+		engineOwned.createCriteria().andWikiPageIdIsNull();
+		return contentTemplateMapper.selectByExample(engineOwned).stream()
+				.map(ContentTemplateDbo::getCode)
+				.anyMatch(existing -> existing != null && existing.equalsIgnoreCase(code));
 	}
 
 	private String currentRevisionContent(Integer wikiPageId) {

@@ -34,6 +34,7 @@ import org.springframework.dao.DataAccessException;
 
 import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
 import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
+import com.zfgc.zfgbb.migrator.web.SmfBoardSummary;
 import com.zfgc.zfgbb.migrator.web.SmfMemberGroupSummary;
 import com.zfgc.zfgbb.operations.maintenance.MutationLeaseProvider;
 import com.zfgc.zfgbb.wiki.WikiTitle;
@@ -270,6 +271,28 @@ public class JobService {
 	private void validateConnection(SmfConnectionParams params) {
 		DataSource dataSource = buildDataSource(params.jdbcUrl(), params.username(), params.password());
 		try (Connection conn = dataSource.getConnection()) {
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Cannot connect to SMF database: " + e.getMessage(), e);
+		} finally {
+			closeDataSource(dataSource);
+		}
+	}
+
+	public List<SmfBoardSummary> listBoards(String host, Integer port, String database,
+			String user, String password, String tablePrefix) {
+		String prefix = (tablePrefix == null || tablePrefix.isBlank()) ? "smf_" : tablePrefix;
+		if (!prefix.matches("^[A-Za-z0-9_]*$")) {
+			throw new IllegalArgumentException("Invalid table prefix.");
+		}
+		String jdbcUrl = SmfConnectionParams.smfJdbcUrl(host, port, database)
+				+ "?useSSL=false&allowPublicKeyRetrieval=true";
+		DataSource dataSource = buildDataSource(jdbcUrl, user, password);
+		try {
+			JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+			return jdbc.query(
+					"SELECT id_board, name, num_topics, num_posts FROM " + prefix + "boards ORDER BY name",
+					(rs, rowNum) -> new SmfBoardSummary(rs.getInt("id_board"), rs.getString("name"),
+							rs.getInt("num_topics"), rs.getInt("num_posts")));
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Cannot connect to SMF database: " + e.getMessage(), e);
 		} finally {

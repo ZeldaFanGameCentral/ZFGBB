@@ -82,8 +82,12 @@ public class CommentsConverter extends AbstractConverter<Void> {
 				.collect(Collectors.toMap(IpAddressDbo::getIp,
 						IpAddressDbo::getIpAddressId, (firstId, duplicateId) -> firstId));
 		convertGameComments(boardId);
-		Integer resourcesBoardId = idMap.lookupOrNull(LegacyEntityType.BOARD,
-				JobContextHolder.getResourcesBoardId());
+		Integer legacyResourcesBoardId = JobContextHolder.getResourcesBoardId();
+		Integer resourcesBoardId = idMap.lookupOrNull(LegacyEntityType.BOARD, legacyResourcesBoardId);
+		if (legacyResourcesBoardId != null && resourcesBoardId == null) {
+			throw new IllegalStateException("resourcesBoardId " + legacyResourcesBoardId
+					+ " is not a migrated legacy board id");
+		}
 		convertResourceComments(resourcesBoardId != null ? resourcesBoardId : boardId);
 		return null;
 	}
@@ -95,7 +99,8 @@ public class CommentsConverter extends AbstractConverter<Void> {
 		}
 		Integer boardId = idMap.lookupOrNull(LegacyEntityType.BOARD, legacyBoardId);
 		if (boardId == null) {
-			logger.warn("discussionBoardId {} does not resolve to a migrated board", legacyBoardId);
+			throw new IllegalStateException("discussionBoardId " + legacyBoardId
+					+ " is not a migrated legacy board id");
 		}
 		return boardId;
 	}

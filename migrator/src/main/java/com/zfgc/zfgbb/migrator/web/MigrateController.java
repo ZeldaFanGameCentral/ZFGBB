@@ -75,6 +75,21 @@ public class MigrateController {
 		}
 	}
 
+	@PostMapping("/boards")
+	public List<SmfBoardSummary> boards(@RequestBody MigrateMemberGroupsRequest request) {
+		if (request == null || isBlank(request.smfHost()) || isBlank(request.smfDatabase())
+				|| isBlank(request.smfUser()) || request.smfPassword() == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"smfHost, smfDatabase, smfUser, and smfPassword are required");
+		}
+		try {
+			return jobService.listBoards(request.smfHost(), request.smfPort(), request.smfDatabase(),
+					request.smfUser(), request.smfPassword(), request.smfTablePrefix());
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+		}
+	}
+
 	@GetMapping("/permission-codes")
 	public List<PermissionCodeSummary> permissionCodes() {
 		return permissionService.listPermissionCodes();
