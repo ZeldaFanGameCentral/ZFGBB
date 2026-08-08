@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.model.forum;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
@@ -26,6 +27,8 @@ public class Thread extends BaseModel implements Securable {
     private Integer recycledFromBoardId;
     private Integer recycledFromThreadId;
     private Boolean recycleBinEnabled;
+
+    private Set<String> allowedActions = Set.of();
 
     private User createdUser;
     private Integer postCount;

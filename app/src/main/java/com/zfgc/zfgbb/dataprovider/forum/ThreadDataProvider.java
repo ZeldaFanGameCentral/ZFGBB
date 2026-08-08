@@ -37,6 +37,7 @@ import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.Poll;
+import com.zfgc.zfgbb.model.forum.ForumPagination;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -49,7 +50,7 @@ public class ThreadDataProvider {
 
 	private static final int MAX_MESSAGES_PER_PAGE = 100;
 
-	public static final int DEFAULT_MESSAGES_PER_PAGE = 10;
+	public static final int DEFAULT_MESSAGES_PER_PAGE = ForumPagination.MESSAGES_PER_THREAD_PAGE;
 
 	private final ThreadDao threadDao;
 
@@ -121,7 +122,7 @@ public class ThreadDataProvider {
 						  }).orElse(null);
 	}
 	
-	public List<Thread> getThreadsByBoardId(Integer boardId, Integer pageNumber, Integer pageSize, Boolean sticky){
+	public List<Thread> getThreadsByBoardId(Integer boardId, Integer pageNumber, Integer pageSize){
 		LatestMessageInThreadViewDboExample latestMessageEx = new LatestMessageInThreadViewDboExample();
 		if(pageNumber != null && pageSize != null) {
 			int safePageSize = Math.min(Math.max(pageSize, 1), MAX_MESSAGES_PER_PAGE);
@@ -132,8 +133,8 @@ public class ThreadDataProvider {
 			latestMessageEx.setLimit(safePageSize);
 			latestMessageEx.setOffset((int) zeroBasedOffset);
 		}
-		latestMessageEx.setOrderByClause("last_post_ts desc");
-		latestMessageEx.createCriteria().andBoardIdEqualTo(boardId).andPinnedFlagEqualTo(sticky);
+		latestMessageEx.setOrderByClause("pinned_flag desc, last_post_ts desc");
+		latestMessageEx.createCriteria().andBoardIdEqualTo(boardId);
 
 		List<LatestMessageInThreadViewDbo> latestMessages = latestMessageInThreadViewDao.get(latestMessageEx);
 		List<Thread> result = latestMessages.stream().map(threadMap::toThread).collect(Collectors.toList());

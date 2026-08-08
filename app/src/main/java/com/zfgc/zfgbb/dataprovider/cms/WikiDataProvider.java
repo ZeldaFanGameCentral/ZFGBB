@@ -251,16 +251,19 @@ public class WikiDataProvider {
 	}
 
 	public Map<String, Object> getWikiStatistics() {
-		List<WikiPageDbo> pages = visiblePages();
-		Map<String, Long> byNamespace = pages.stream().collect(Collectors.groupingBy(
-				WikiPageDbo::getNamespace, TreeMap::new, Collectors.counting()));
-		long categories = wikiPageCategoryDao.get(new WikiPageCategoryDboExample()).stream()
-				.map(WikiPageCategoryDbo::getCategoryName).distinct().count();
+		Map<String, Long> byNamespace = new TreeMap<>();
+		long totalPages = 0;
+		long redirects = 0;
+		for (NamespacePageCount count : wikiNamespaceDao.countVisiblePagesByNamespace(hiddenNamespaces())) {
+			byNamespace.put(count.getNamespace(), count.getPageCount());
+			totalPages += count.getPageCount();
+			redirects += count.getRedirectCount();
+		}
 		return Map.of(
-				"totalPages", pages.size(),
+				"totalPages", totalPages,
 				"byNamespace", byNamespace,
-				"categories", categories,
-				"redirects", pages.stream().filter(p -> p.getRedirectTo() != null).count());
+				"categories", wikiNamespaceDao.countDistinctCategories(),
+				"redirects", redirects);
 	}
 
 	public List<WikiPageRef> getCategoryMembers(String categoryName) {

@@ -32,9 +32,10 @@ public class SiteController {
 
 	@GetMapping
 	public ResponseEntity<SiteInfo> site() {
-		String siteName = systemConfigService.get(SystemConfigService.Keys.SITE_NAME);
+		boolean installed = systemConfigService.isInstalled();
+		String siteName = installed ? systemConfigService.get(SystemConfigService.Keys.SITE_NAME) : null;
 		return ResponseEntity.ok(new SiteInfo(siteName, registrationEnabled,
 				systemConfigService.authoringDefaultContentFormat().name(), ContentFormat.authorableCodes(),
-				buildVersion.isBlank() ? Optional.empty() : Optional.of(buildVersion)));
+				buildVersion.isBlank() ? Optional.empty() : Optional.of(buildVersion), installed));
 	}
 }

@@ -37,7 +37,7 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 		String path = !contextPath.isEmpty() && requestUri.startsWith(contextPath)
 				? requestUri.substring(contextPath.length())
 				: requestUri;
-		return path.equals("/system/install") || path.equals("/system/install/status");
+		return path.equals("/system/install") || path.equals("/system/site");
 	}
 
 	@Override

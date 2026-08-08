@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.model.forum;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
@@ -30,6 +31,9 @@ public class Message extends BaseModel {
 	private Integer postInThread;
 	
 	private User createdUser;
+
+	@Builder.Default
+	private Set<String> allowedActions = Set.of();
 
 	@Builder.Default
 	private List<FileAttachment> fileAttachments = new ArrayList<>();

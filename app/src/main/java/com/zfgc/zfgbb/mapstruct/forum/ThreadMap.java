@@ -12,6 +12,7 @@ import com.zfgc.zfgbb.model.forum.LatestMessage;
 
 @Mapper(config=BBMapperConfig.class, builder=@Builder(disableBuilder=true))
 public interface ThreadMap {
+	@Mapping(target="allowedActions", ignore=true)
 	@Mapping(target="id", ignore=true)
 	@Mapping(target="boardName", ignore=true)
 	@Mapping(target="createdUser", ignore=true)
@@ -25,6 +26,7 @@ public interface ThreadMap {
 	@Mapping(target="recycleBinEnabled", ignore=true)
 	Thread toModel(ThreadDbo dbo);
 
+	@Mapping(target="allowedActions", ignore=true)
 	@Mapping(target="id", ignore=true)
 	@Mapping(target="boardName", ignore=true)
 	@Mapping(target="createdUser", ignore=true)

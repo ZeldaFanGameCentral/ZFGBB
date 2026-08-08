@@ -296,23 +296,39 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdIn(new ArrayList<>(members.values()));
 		int seeded = 0;
+		int adoptedMemberPages = 0;
 		for (UserDbo user : userMapper.selectByExample(ex)) {
 			String name = user.getDisplayName();
 			if (name == null || name.isBlank()) {
 				continue;
 			}
 			String slug = "User:" + name.trim().replace(' ', '_');
-			Integer pageId = existingPagesByUserId.get(user.getUserId());
+			Integer generatedPageId = existingPagesByUserId.get(user.getUserId());
+			Integer pageId = generatedPageId;
+			if (pageId == null) {
+				pageId = wikiPages.findPageId("User", name, slug);
+			}
+			String loginName = user.getUserName();
+			if (pageId == null && loginName != null && !loginName.isBlank()) {
+				pageId = wikiPages.findPageId("User", loginName,
+						"User:" + loginName.trim().replace(' ', '_'));
+			}
 			if (pageId == null) {
 				pageId = wikiPages.ensurePage("User", name, slug);
 			}
-			wikiPages.upsertCurrentRevision(pageId,
-					"[template=UserProfile]\nuserid=" + user.getUserId() + "\n[/template]",
-					user.getCreatedTs());
+			boolean generatedPage = generatedPageId != null
+					|| wikiPages.isGeneratedEntityPage(pageId, "User", slug);
+			if (generatedPage) {
+				wikiPages.upsertCurrentRevision(pageId,
+						"[template=UserProfile]\nuserid=" + user.getUserId() + "\n[/template]",
+						user.getCreatedTs());
+			} else {
+				adoptedMemberPages++;
+			}
 			wikiPages.ensureCategory(pageId, "Members");
 			seeded++;
 		}
-		logger.info("Seeded {} member wiki page(s)", seeded);
+		logger.info("Seeded {} member wiki page(s); left {} imported page(s) as authored", seeded, adoptedMemberPages);
 	}
 
 	private void convertTalkPages(RunContext runContext) {

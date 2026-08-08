@@ -9,7 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
 import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
+import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
+import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
 import com.zfgc.zfgbb.mappers.MessageHistoryDboMapper;
+import com.zfgc.zfgbb.mappers.UserBioInfoDboMapper;
 import com.zfgc.zfgbb.migrator.jobs.JobContextHolder;
 import com.zfgc.zfgbb.migrator.jobs.JobType;
 import com.zfgc.zfgbb.migrator.jobs.LegacyEntityType;
@@ -23,6 +26,8 @@ public class BBCodePostprocessConverter extends AbstractConverter<Void> {
 	private static final Logger logger = LoggerFactory.getLogger(BBCodePostprocessConverter.class);
 
 	private final MessageHistoryDboMapper messageHistoryMapper;
+
+	private final UserBioInfoDboMapper userBioInfoMapper;
 
 	private final MigratorIdMapService idMap;
 
@@ -66,6 +71,28 @@ public class BBCodePostprocessConverter extends AbstractConverter<Void> {
 		if (rewritten > 0) {
 			logger.info("Rewrote BBCode references in {} message_history rows", rewritten);
 		}
+		rewriteSignatures(rewriter, maps);
 		return null;
+	}
+
+	private void rewriteSignatures(LegacyUrlRewriter rewriter, LegacyIdMaps maps) {
+		List<UserBioInfoDbo> bios = userBioInfoMapper.selectByExample(new UserBioInfoDboExample());
+		int rewritten = 0;
+		for (UserBioInfoDbo bio : bios) {
+			Cancellable.check();
+			String signature = bio.getSignature();
+			if (signature == null) {
+				continue;
+			}
+			String updated = legacyMarkupRewriter.rewriteRetiredCodes(rewriter.rewriteBody(signature, maps));
+			if (!updated.equals(signature)) {
+				bio.setSignature(updated);
+				userBioInfoMapper.updateByPrimaryKey(bio);
+				rewritten++;
+			}
+		}
+		if (rewritten > 0) {
+			logger.info("Rewrote BBCode references in {} signature(s)", rewritten);
+		}
 	}
 }

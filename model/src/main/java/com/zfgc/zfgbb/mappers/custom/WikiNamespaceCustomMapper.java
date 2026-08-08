@@ -42,16 +42,20 @@ public interface WikiNamespaceCustomMapper {
 	public static class NamespacePageCount {
 		private String namespace;
 		private long pageCount;
+		private long redirectCount;
 
 		public String getNamespace() { return namespace; }
 		public void setNamespace(String namespace) { this.namespace = namespace; }
 		public long getPageCount() { return pageCount; }
 		public void setPageCount(long pageCount) { this.pageCount = pageCount; }
+		public long getRedirectCount() { return redirectCount; }
+		public void setRedirectCount(long redirectCount) { this.redirectCount = redirectCount; }
 	}
 
 	@Select("""
 			<script>
-			select p.namespace as namespace, count(*) as pageCount
+			select p.namespace as namespace, count(*) as pageCount,
+			       count(*) filter (where p.redirect_to is not null) as redirectCount
 			  from zfgbb.wiki_page p
 			 where (p.redirect_to is not null
 			        or exists (select 1 from zfgbb.wiki_revision_ref r
@@ -67,10 +71,14 @@ public interface WikiNamespaceCustomMapper {
 			""")
 	@Results({
 			@Result(property = "namespace", column = "namespace"),
-			@Result(property = "pageCount", column = "pageCount")
+			@Result(property = "pageCount", column = "pageCount"),
+			@Result(property = "redirectCount", column = "redirectCount")
 	})
 	List<NamespacePageCount> countVisiblePagesByNamespace(
 			@Param("hiddenNamespaces") List<String> hiddenNamespaces);
+
+	@Select("select count(distinct category_name) from zfgbb.wiki_page_category")
+	long countDistinctCategories();
 
 	@Select("select case_mode from zfgbb.wiki_namespace where lower(name)=lower(#{namespace})")
 	List<String> findCaseModeByName(@Param("namespace") String namespace);

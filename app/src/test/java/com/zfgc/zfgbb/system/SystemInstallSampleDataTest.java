@@ -98,11 +98,10 @@ class SystemInstallSampleDataTest extends AbstractSystemInstallTest {
 				.andExpect(jsonPath("$.operationId").doesNotExist())
 				.andExpect(jsonPath("$.restartCommand").doesNotExist());
 
-		mockMvc.perform(get("/system/install/status"))
+		mockMvc.perform(get("/system/site"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.siteName").value("Installer Site Name"))
-				.andExpect(jsonPath("$.state").doesNotExist());
+				.andExpect(jsonPath("$.siteName").value("Installer Site Name"));
 		assertInstalledWithStrategy("ARCHIVE");
 
 		int anchorAdministratorId = shipped.installerAnchorAdministratorId();

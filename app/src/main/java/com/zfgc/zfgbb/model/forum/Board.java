@@ -50,6 +50,6 @@ public class Board extends BaseModel implements Securable {
 		if(threadCount == null) {
 			return 1L;
 		}
-		return (long) Math.ceil(threadCount.doubleValue() / 10.0);
+		return (long) Math.ceil(threadCount.doubleValue() / (double) ForumPagination.THREADS_PER_BOARD_PAGE);
 	}
 }

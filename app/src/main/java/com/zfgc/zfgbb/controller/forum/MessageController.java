@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.CacheControl;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +28,6 @@ import com.zfgc.zfgbb.model.forum.MessageResponse;
 import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -62,13 +60,6 @@ public class MessageController extends BaseController {
 			@Valid @RequestBody MessagePostRequest request) {
 		return ResponseEntity.ok(new MessageResponse(forumService.editMessage(messageId, request.body(),
 				request.contentFormat(), super.zfgcUser())));
-	}
-
-	@GetMapping("/{messageId}/allowed-actions")
-	@AllowAnonymous
-	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable Integer messageId) {
-		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
-				.body(forumService.messageAllowedActions(messageId, super.zfgcUser()));
 	}
 
 	@DeleteMapping("/{messageId}")

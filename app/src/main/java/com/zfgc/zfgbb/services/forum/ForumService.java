@@ -50,6 +50,7 @@ import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
 import com.zfgc.zfgbb.authorization.AuthorityTiers;
 import com.zfgc.zfgbb.authorization.access.ForumAccessRules;
 import com.zfgc.zfgbb.authorization.access.ForumAccessRules.MessageState;
+import com.zfgc.zfgbb.authorization.access.ForumAccessRules.ThreadState;
 import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.forum.RecentActivityViewDao;
 import com.zfgc.zfgbb.model.users.User;
@@ -58,6 +59,7 @@ import com.zfgc.zfgbb.model.forum.Category;
 import com.zfgc.zfgbb.model.forum.CreateThreadRequest;
 import com.zfgc.zfgbb.model.forum.BoardSummary;
 import com.zfgc.zfgbb.model.forum.Forum;
+import com.zfgc.zfgbb.model.forum.ForumPagination;
 import com.zfgc.zfgbb.mapstruct.forum.BoardMap;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
@@ -266,7 +268,7 @@ public class ForumService extends AbstractService implements TemplateDataService
 	}
 
 	public Board getBoard(Integer boardId, Integer page, User zfgcUser) {
-		Board board = forumDataProvider.getBoard(boardId, page, 10);
+		Board board = forumDataProvider.getBoard(boardId, page, ForumPagination.THREADS_PER_BOARD_PAGE);
 		if (!zfgcUser.canAccess(board))
 			throw new ZfgcNotFoundException();
 		Set<Integer> readableBoardIds = visibleBoardIds(zfgcUser);
@@ -350,22 +352,17 @@ public class ForumService extends AbstractService implements TemplateDataService
 		thread.setRecycleBinEnabled(resolveRecycleBoardId(false).isPresent());
 
 		renderMessageBodiesWithinQuoteScope(thread.getMessages(), visibleBoardIds(zfgcUser));
+		inlineAllowedActions(thread, zfgcUser);
 
 		return thread;
 	}
 
-	public Set<String> threadAllowedActions(Integer threadId, User user) {
-		Thread thread = threadDataProvider.getThread(threadId);
-		requireReadableThreadElseNotFound(thread, user);
-		return forumAccessRules.permittedThreadActions(user, forumAccessStateLoader.toThreadState(thread));
-	}
-
-	public Set<String> messageAllowedActions(Integer messageId, User user) {
-		MessagePosition message = findMessagePosition(messageId).orElseThrow(ZfgcNotFoundException::new);
-		Thread thread = threadDataProvider.getThread(message.threadId());
-		requireReadableThreadElseNotFound(thread, user);
-		return forumAccessRules.permittedMessageActions(user, new MessageState(messageId, message.ownerId(),
-				forumAccessStateLoader.toThreadState(thread)));
+	private void inlineAllowedActions(Thread thread, User zfgcUser) {
+		ThreadState threadState = forumAccessStateLoader.toThreadState(thread);
+		thread.setAllowedActions(forumAccessRules.permittedThreadActions(zfgcUser, threadState));
+		for (Message message : thread.getMessages())
+			message.setAllowedActions(forumAccessRules.permittedMessageActions(zfgcUser,
+					new MessageState(message.getMessageId(), message.getOwnerId(), threadState)));
 	}
 
 	private void requireReadableThreadElseNotFound(Thread thread, User zfgcUser) {

@@ -137,8 +137,8 @@ class PlatformTest {
 			return Stream.of(
 					arguments("uninstalledStateStillAllowsAllowlistedPaths install",
 							"PROVISIONING", "GET", "", "/system/install", true),
-					arguments("uninstalledStateStillAllowsAllowlistedPaths installStatus",
-							"PROVISIONING", "GET", "", "/system/install/status", true),
+					arguments("uninstalledStateStillAllowsAllowlistedPaths siteInfo",
+							"PROVISIONING", "GET", "", "/system/site", true),
 					arguments("uninstalledStateStillAllowsAllowlistedPaths actuatorHealth",
 							"PROVISIONING", "GET", "", "/actuator/health", true),
 					arguments("uninstalledStateStillAllowsAllowlistedPaths actuatorHealthLiveness",

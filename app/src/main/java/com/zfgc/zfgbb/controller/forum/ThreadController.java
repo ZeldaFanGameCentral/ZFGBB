@@ -4,7 +4,6 @@ import com.zfgc.zfgbb.authorization.AllowAnonymous;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.CacheControl;
 
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,7 +26,6 @@ import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
 import lombok.RequiredArgsConstructor;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/thread")
@@ -54,17 +52,11 @@ public class ThreadController extends BaseController {
 	
 	@GetMapping("/{threadId}")
 	@AllowAnonymous
-	public ResponseEntity<Thread> getThread(@PathVariable("threadId") Integer threadId, @RequestParam("pageSize") Integer pageSize, @RequestParam("page") Integer page) {
+	public ResponseEntity<Thread> getThread(@PathVariable("threadId") Integer threadId,
+			@RequestParam(name = "pageSize", required = false) Integer pageSize, @RequestParam("page") Integer page) {
 		return ResponseEntity.ok(forumService.getThread(threadId, page, pageSize, super.zfgcUser()));
 	}
 
-	@GetMapping("/{threadId}/allowed-actions")
-	@AllowAnonymous
-	public ResponseEntity<Set<String>> getAllowedActions(@PathVariable("threadId") Integer threadId) {
-		return ResponseEntity.ok().cacheControl(CacheControl.noStore().cachePrivate())
-				.body(forumService.threadAllowedActions(threadId, super.zfgcUser()));
-	}
-	
 	@DeleteMapping("/{threadId}")
 	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
 	public ResponseEntity<ThreadDeletionResponse> deleteThread(@PathVariable("threadId") Integer threadId) {

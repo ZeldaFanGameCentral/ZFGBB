@@ -13,18 +13,21 @@ import org.mapstruct.Mapping;
 public interface MessageMap {
 
 	
+	@Mapping(target = "allowedActions", ignore = true)
 	@Mapping(target = "currentMessage", ignore = true)
 	@Mapping(target = "fileAttachments", ignore = true)
 	@Mapping(target="createdTs", source="dbo.createdTs")
 	@Mapping(target="updatedTs", source="dbo.updatedTs")
 	Message toModel(MessageDbo dbo, User createdUser);
 
+	@Mapping(target = "allowedActions", ignore = true)
 	@Mapping(target = "currentMessage", ignore = true)
 	@Mapping(target = "fileAttachments", ignore = true)
 	@Mapping(target="createdTs", source="dbo.createdTs")
 	@Mapping(target="updatedTs", source="dbo.updatedTs")
 	Message toModel(CurrentMessageDbo dbo, User createdUser);
 
+	@Mapping(target = "allowedActions", ignore = true)
 	@Mapping(target = "currentMessage", ignore = true)
 	@Mapping(target = "fileAttachments", ignore = true)
 	@Mapping(target = "createdUser", ignore = true)

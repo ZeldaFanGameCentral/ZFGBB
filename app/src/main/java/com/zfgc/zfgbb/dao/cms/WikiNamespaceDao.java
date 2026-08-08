@@ -45,6 +45,10 @@ public class WikiNamespaceDao extends KeyedDao<WikiNamespaceDbo, WikiNamespaceDb
 		return wikiNamespaceCustomMapper.countVisiblePagesByNamespace(hiddenNamespaces);
 	}
 
+	public long countDistinctCategories() {
+		return wikiNamespaceCustomMapper.countDistinctCategories();
+	}
+
 	public int assignEngineRole(String name, String role) {
 		return wikiNamespaceCustomMapper.assignEngineRole(name, role);
 	}

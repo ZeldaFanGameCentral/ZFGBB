@@ -33,10 +33,7 @@ public class WikiPageStore {
 		return content == null ? 0 : content.getBytes(StandardCharsets.UTF_8).length;
 	}
 
-	public Integer ensurePage(String namespace, String title, String slug) {
-		WikiTitle canonical = WikiTitle.of(namespace, title, JobContextHolder.getWikiNamespaceCaseMode(namespace));
-		namespace = canonical.namespace();
-		title = canonical.title();
+	private WikiPageDbo findExisting(String namespace, String title, String slug) {
 		WikiPageDboExample ex = new WikiPageDboExample();
 		ex.createCriteria().andNamespaceEqualTo(namespace).andTitleEqualTo(title);
 		WikiPageDbo existing = pageMapper.selectByExample(ex).stream().findFirst().orElse(null);
@@ -45,6 +42,20 @@ public class WikiPageStore {
 			exSlug.createCriteria().andNamespaceEqualTo(namespace).andSlugEqualTo(slug);
 			existing = pageMapper.selectByExample(exSlug).stream().findFirst().orElse(null);
 		}
+		return existing;
+	}
+
+	public Integer findPageId(String namespace, String title, String slug) {
+		WikiTitle canonical = WikiTitle.of(namespace, title, JobContextHolder.getWikiNamespaceCaseMode(namespace));
+		WikiPageDbo existing = findExisting(canonical.namespace(), canonical.title(), slug);
+		return existing == null ? null : existing.getWikiPageId();
+	}
+
+	public Integer ensurePage(String namespace, String title, String slug) {
+		WikiTitle canonical = WikiTitle.of(namespace, title, JobContextHolder.getWikiNamespaceCaseMode(namespace));
+		namespace = canonical.namespace();
+		title = canonical.title();
+		WikiPageDbo existing = findExisting(namespace, title, slug);
 		if (existing != null) {
 			if (!Objects.equals(existing.getTitle(), title)) {
 				existing.setTitle(title);
@@ -59,6 +70,12 @@ public class WikiPageStore {
 		page.setMigrationHash(MigrationHasher.hash("entitypage" + namespace + slug));
 		pageMapper.insert(page);
 		return page.getWikiPageId();
+	}
+
+	public boolean isGeneratedEntityPage(Integer wikiPageId, String namespace, String slug) {
+		WikiPageDbo page = pageMapper.selectByPrimaryKey(wikiPageId);
+		return page != null
+				&& MigrationHasher.hash("entitypage" + namespace + slug).equals(page.getMigrationHash());
 	}
 
 	public void ensureCategory(Integer wikiPageId, String categoryName) {

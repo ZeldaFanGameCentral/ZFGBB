@@ -17,7 +17,6 @@ import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.model.system.InstallRequest;
 import com.zfgc.zfgbb.model.system.InstallResponse;
 import com.zfgc.zfgbb.model.system.InstallResult;
-import com.zfgc.zfgbb.model.system.InstallStatusResponse;
 import com.zfgc.zfgbb.model.users.LoginResponse;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
@@ -46,16 +45,6 @@ public class SystemController {
 	private final String installToken;
 	private final InstallRunRepository installRun;
 	private final InstallTokenGate tokenGate;
-
-	@GetMapping("/status")
-	public ResponseEntity<InstallStatusResponse> status() {
-		if (systemConfigService.isInstalled()) {
-			return ResponseEntity.ok(new InstallStatusResponse(true,
-					systemConfigService.get(SystemConfigService.Keys.SITE_NAME), null, null));
-		}
-		InstallRunRepository.Run run = installRun.get();
-		return ResponseEntity.ok(new InstallStatusResponse(false, null, run.state(), run.lastError()));
-	}
 
 	@PostMapping
 	public ResponseEntity<InstallResponse> install(

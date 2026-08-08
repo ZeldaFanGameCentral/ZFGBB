@@ -399,7 +399,7 @@ class TokenTest {
 
 			assertSame(install, installChain.getRequest());
 
-			MockHttpServletRequest status = new MockHttpServletRequest("GET", "/zfgbb/system/install/status");
+			MockHttpServletRequest status = new MockHttpServletRequest("GET", "/zfgbb/system/site");
 			status.setContextPath("/zfgbb");
 			MockFilterChain statusChain = new MockFilterChain();
 

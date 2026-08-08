@@ -73,8 +73,8 @@ class FixtureProvenanceTest extends MigrationE2E {
 		assertEquals(4, personalMessageDboMapper.countByExample(null));
 		assertEquals(1, userWarningDboMapper.countByExample(null));
 		assertEquals(2, moderationLogDboMapper.countByExample(null));
-		assertEquals(314, migratorIdMapDboMapper.countByExample(null),
-				"285 original legacy identities plus the 29 imported corpus wiki articles");
+		assertEquals(315, migratorIdMapDboMapper.countByExample(null),
+				"285 original legacy identities plus the 30 imported corpus wiki articles");
 		UserAwardDboExample grantedByAdministrator = new UserAwardDboExample();
 		grantedByAdministrator.createCriteria().andGrantedByUserIdEqualTo(1);
 		assertEquals(2, userAwardDboMapper.countByExample(grantedByAdministrator));

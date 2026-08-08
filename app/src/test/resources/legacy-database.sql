@@ -2783,3 +2783,11 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed
+
+--
+-- fixture: a MediaWiki User: page whose title matches a migrated member, so the
+-- member-page generator has something of its own to collide with
+--
+INSERT INTO `zfgc_wikipage` VALUES (974,2,'mgzero','',0,0,0.444,_binary '20150801120000',3304,105,NULL,NULL,NULL);
+INSERT INTO `zfgc_wikirevision` VALUES (3304,974,3404,'',2,'mgzero',_binary '20150801120000',0,0,105,0,_binary 'mgzerouserns2fixture1234',NULL,NULL);
+INSERT INTO `zfgc_wikitext` VALUES (3404,_binary '== Who I am ==\nmgzero is the only power ranger.\n\n== Projects ==\nThe first HD Zelda game ever in existence',_binary 'utf-8');

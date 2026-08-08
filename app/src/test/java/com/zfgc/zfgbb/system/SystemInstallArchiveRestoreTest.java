@@ -158,11 +158,10 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 				"installation must cut off pre-install tokens for every restored user");
 		assertRecycleBinProvisioned();
 
-		mockMvc.perform(get("/system/install/status"))
+		mockMvc.perform(get("/system/site"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.siteName").value("Restored Site"))
-				.andExpect(jsonPath("$.state").doesNotExist());
+				.andExpect(jsonPath("$.siteName").value("Restored Site"));
 		mockMvc.perform(get("/users/loggedInUser"))
 				.andExpect(status().isOk());
 

@@ -29,6 +29,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
@@ -623,7 +624,6 @@ class MemberTest extends PostgresIntegrationTest {
 			grantBoardPermission(hiddenBoardId, permissionIdOf("ZFGC_SITE_ADMIN"));
 			int hiddenThreadId = insertThread("Hidden thread " + suffix, hiddenBoardId, owner.id());
 			insertMessage(owner.id(), hiddenThreadId, hiddenBoardId);
-			int hiddenMessageId = messageIdAt(hiddenThreadId, 1);
 
 			int missingThreadId = 2_000_000_000;
 
@@ -631,14 +631,10 @@ class MemberTest extends PostgresIntegrationTest {
 					.andExpect(status().isNotFound());
 			mockMvc.perform(get("/thread/" + missingThreadId).param("page", "1").param("pageSize", "10"))
 					.andExpect(status().isNotFound());
-			mockMvc.perform(get("/thread/" + hiddenThreadId + "/allowed-actions"))
-					.andExpect(status().isNotFound());
-			mockMvc.perform(get("/message/" + hiddenMessageId + "/allowed-actions"))
-					.andExpect(status().isNotFound());
 
 			int visibleThreadId = insertThread("Visible thread " + suffix, VISIBLE_BOARD_ID, owner.id());
 			insertMessage(owner.id(), visibleThreadId, VISIBLE_BOARD_ID);
-			mockMvc.perform(get("/thread/" + visibleThreadId + "/allowed-actions"))
+			mockMvc.perform(get("/thread/" + visibleThreadId).param("page", "1").param("pageSize", "10"))
 					.andExpect(status().isOk());
 		}
 
@@ -933,9 +929,9 @@ class MemberTest extends PostgresIntegrationTest {
 			int threadId = postThread(author.token(), "Allowed actions " + suffix, "Original body");
 			int messageId = messageIdAt(threadId, 1);
 
-			assertTrue(allowedMessageActions(author.token(), messageId).contains("message.edit"),
+			assertTrue(allowedMessageActions(author.token(), threadId, messageId).contains("message.edit"),
 					"the author of an open post must be offered the edit action");
-			assertFalse(allowedMessageActions(bystander.token(), messageId).contains("message.edit"),
+			assertFalse(allowedMessageActions(bystander.token(), threadId, messageId).contains("message.edit"),
 					"a member who neither wrote the post nor moderates must not be offered the edit action");
 
 			String bodyBeforeTheRefusedEdit = currentBodyOf(messageId);
@@ -943,6 +939,90 @@ class MemberTest extends PostgresIntegrationTest {
 					.andExpect(status().isForbidden());
 			assertEquals(bodyBeforeTheRefusedEdit, currentBodyOf(messageId),
 					"a member must not be able to rewrite a post they did not write");
+		}
+
+		@Test
+		void aThreadPageHoldsTwentyPostsWithNoPageSizeAskedForSoPageNumbersMatchTheOldForum() throws Exception {
+			TestUser author = createUser("pgsize_" + suffix);
+
+			int threadId = postThread(author.token(), "Pagination " + suffix, "post 1");
+			for (int post = 2; post <= 21; post++)
+				mockMvc.perform(post("/message/" + threadId)
+						.header("Authorization", "Bearer " + author.token())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"body\": \"post " + post + "\"}"))
+						.andExpect(status().isCreated());
+
+			JsonNode firstPage = threadDocument(get("/thread/" + threadId).param("page", "1"));
+			assertEquals(20, firstPage.get("messages").size(),
+					"a thread page must hold 20 posts when the caller names no page size, matching the old "
+							+ "forum, or every migrated permalink lands on the wrong page");
+			assertEquals(2, firstPage.get("pageCount").asInt(), "21 posts is 2 pages at 20 per page");
+
+			assertEquals(1, threadDocument(get("/thread/" + threadId).param("page", "2")).get("messages").size(),
+					"the last page carries the remainder");
+
+			assertEquals(10, threadDocument(threadRead(threadId)).get("messages").size(),
+					"a caller that does name a page size still gets it");
+		}
+
+		@Test
+		void aBoardPageHoldsTwentyThreadsWithPinnedOnesCountedInsideThatTwenty() throws Exception {
+			TestUser author = createUser("bdsize_" + suffix);
+			int boardId = insertBoard("Board pagination " + suffix);
+			grantBoardPermission(boardId, permissionIdOf("ZFGC_GUEST"));
+			forumService.evictUnfilteredForumCache();
+
+			for (int thread = 1; thread <= 21; thread++) {
+				int threadId = insertThread("Thread " + thread + " " + suffix, boardId, author.id());
+				insertMessage(author.id(), threadId, boardId);
+				if (thread <= 3)
+					pinThread(threadId);
+			}
+
+			JsonNode firstPage = boardDocument(boardId, 1);
+			assertEquals(21, firstPage.get("threadCount").asInt(),
+					"pinned threads must count toward the board's thread count the way the old forum counts them");
+			assertEquals(2, firstPage.get("pageCount").asInt(), "21 threads is 2 pages at 20 per page");
+			assertEquals(3, firstPage.get("stickyThreads").size(),
+					"pinned threads lead page one");
+			assertEquals(17, firstPage.get("unStickyThreads").size(),
+					"pinned threads occupy slots inside the twenty, they are not added on top of it");
+
+			JsonNode secondPage = boardDocument(boardId, 2);
+			assertEquals(0, secondPage.get("stickyThreads").size(),
+					"pinned threads belong to page one only, matching the old forum");
+			assertEquals(1, secondPage.get("unStickyThreads").size(),
+					"the last page carries the remainder");
+		}
+
+		@Test
+		void readingAThreadCarriesTheActionsForTheThreadAndForEveryPostOnThePage() throws Exception {
+			TestUser author = createUser("actinl_" + suffix);
+
+			int threadId = postThread(author.token(), "Inlined actions " + suffix, "First post");
+			mockMvc.perform(post("/message/" + threadId)
+					.header("Authorization", "Bearer " + author.token())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"body\": \"Second post\"}"))
+					.andExpect(status().isCreated());
+
+			JsonNode authorView = threadDocument(threadRead(threadId)
+					.header("Authorization", "Bearer " + author.token()));
+			assertTrue(actionNames(authorView.get("allowedActions")).contains("thread.reply"),
+					"the thread read must carry the thread's own actions, or the client has to ask again");
+			assertEquals(2, authorView.get("messages").size());
+			for (JsonNode message : authorView.get("messages"))
+				assertTrue(actionNames(message.get("allowedActions")).contains("message.edit"),
+						"every post on the page must carry its own actions in the same response, or the "
+								+ "client falls back to one request per post");
+
+			JsonNode guestView = threadDocument(threadRead(threadId));
+			assertTrue(actionNames(guestView.get("allowedActions")).isEmpty(),
+					"inlining the actions must not start offering a guest actions they cannot take");
+			for (JsonNode message : guestView.get("messages"))
+				assertTrue(actionNames(message.get("allowedActions")).isEmpty(),
+						"a guest reading the same thread must see no post actions");
 		}
 
 		@Test
@@ -1379,12 +1459,40 @@ class MemberTest extends PostgresIntegrationTest {
 					.get(0).getContentFormat();
 		}
 
-		private JsonNode threadMessages(int threadId) throws Exception {
-			MvcResult result = mockMvc.perform(get("/thread/" + threadId)
-					.param("page", "1").param("pageSize", "10"))
+		private MockHttpServletRequestBuilder threadRead(int threadId) {
+			return get("/thread/" + threadId).param("page", "1").param("pageSize", "10");
+		}
+
+		private JsonNode boardDocument(int boardId, int page) throws Exception {
+			MvcResult result = mockMvc.perform(get("/board/" + boardId).param("page", String.valueOf(page)))
 					.andExpect(status().isOk())
 					.andReturn();
-			return json.readTree(result.getResponse().getContentAsString()).get("messages");
+			return json.readTree(result.getResponse().getContentAsString());
+		}
+
+		private void pinThread(int threadId) {
+			ThreadDbo pinned = new ThreadDbo();
+			pinned.setThreadId(threadId);
+			pinned.setPinnedFlag(true);
+			threadDboMapper.updateByPrimaryKeySelective(pinned);
+		}
+
+		private JsonNode threadDocument(MockHttpServletRequestBuilder request) throws Exception {
+			MvcResult result = mockMvc.perform(request)
+					.andExpect(status().isOk())
+					.andReturn();
+			return json.readTree(result.getResponse().getContentAsString());
+		}
+
+		private JsonNode threadMessages(int threadId) throws Exception {
+			return threadDocument(threadRead(threadId)).get("messages");
+		}
+
+		private Set<String> actionNames(JsonNode allowedActions) {
+			Set<String> actions = new HashSet<>();
+			for (JsonNode action : allowedActions)
+				actions.add(action.asString());
+			return actions;
 		}
 
 		private String renderedBodyOfPost(JsonNode messages, int postInThread) {
@@ -1394,15 +1502,12 @@ class MemberTest extends PostgresIntegrationTest {
 			throw new AssertionError("post " + postInThread + " is not in the thread response");
 		}
 
-		private Set<String> allowedMessageActions(String token, int messageId) throws Exception {
-			MvcResult result = mockMvc.perform(get("/message/" + messageId + "/allowed-actions")
-					.header("Authorization", "Bearer " + token))
-					.andExpect(status().isOk())
-					.andReturn();
-			Set<String> actions = new HashSet<>();
-			for (JsonNode action : json.readTree(result.getResponse().getContentAsString()))
-				actions.add(action.asString());
-			return actions;
+		private Set<String> allowedMessageActions(String token, int threadId, int messageId) throws Exception {
+			JsonNode thread = threadDocument(threadRead(threadId).header("Authorization", "Bearer " + token));
+			for (JsonNode message : thread.get("messages"))
+				if (message.get("id").asInt() == messageId)
+					return actionNames(message.get("allowedActions"));
+			throw new AssertionError("post " + messageId + " is not in the thread response");
 		}
 
 		private String currentBodyOf(int messageId) {

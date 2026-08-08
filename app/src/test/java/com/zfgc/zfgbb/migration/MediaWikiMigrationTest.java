@@ -158,7 +158,8 @@ class MediaWikiMigrationTest extends MigrationE2E {
 		assertTrue(wikiService.getWikiCategories().stream().anyMatch(entry -> "KOT Items".equals(entry.getKey())),
 				"the category index should list migrated categories");
 		Map<String, Object> wikiStats = wikiService.getWikiStatistics();
-		assertTrue((int) wikiStats.get("totalPages") >= 14, "statistics should count all pages: " + wikiStats);
+		assertTrue(((Number) wikiStats.get("totalPages")).longValue() >= 14,
+				"statistics should count all pages: " + wikiStats);
 		assertTrue(((Map<?, ?>) wikiStats.get("byNamespace")).containsKey("MAIN"),
 				"statistics should break pages down by namespace: " + wikiStats);
 	}
@@ -257,6 +258,19 @@ class MediaWikiMigrationTest extends MigrationE2E {
 				"toc flag follows the marker/threshold rule; the markers are element classes, so restating the "
 						+ "rule as a substring search over the whole page would re-bless the defect page "
 						+ "assembly just stopped exhibiting");
+	}
+
+	@Test
+	@Order(4)
+	void generatingMemberPagesLeavesAnAuthoredUserPageAlone() {
+		WikiPage authored = wikiService.getWikiPage("User:mgzero", null, true);
+		assertTrue(authored.getContent().contains("mgzero is the only power ranger"),
+				"the member-page generator must not overwrite a User page the wiki already had; "
+						+ "it currently reads: " + authored.getContent());
+		assertFalse(authored.getContent().trim().startsWith("[template=UserProfile]"),
+				"the generated profile stub must not become the current revision of an authored page");
+		assertTrue(authored.getCategories().contains("Members"),
+				"an adopted member page still joins the Members category, since that is additive");
 	}
 
 	@Test

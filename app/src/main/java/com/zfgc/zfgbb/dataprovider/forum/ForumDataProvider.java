@@ -63,14 +63,15 @@ public class ForumDataProvider {
 		Optional<BoardDbo> boardDbo = boardDao.find(boardId);
 		Board board = boardDbo.map(boardMap::toModel).orElseThrow(() -> new ZfgcNotFoundException());
 		
-		List<Thread> unstickyThreads = threadDataProvider.getThreadsByBoardId(boardId, pageNumber, pageSize, false);
-		List<Thread> stickyThreads = threadDataProvider.getThreadsByBoardId(boardId, null, null, true);
-		
-		board.setStickyThreads(stickyThreads);
-		board.setUnStickyThreads(unstickyThreads);
-		
+		List<Thread> threadsOnThisPage = threadDataProvider.getThreadsByBoardId(boardId, pageNumber, pageSize);
+
+		board.setStickyThreads(threadsOnThisPage.stream()
+				.filter(thread -> Boolean.TRUE.equals(thread.getPinnedFlag())).toList());
+		board.setUnStickyThreads(threadsOnThisPage.stream()
+				.filter(thread -> !Boolean.TRUE.equals(thread.getPinnedFlag())).toList());
+
 		ThreadDboExample threadEx = new ThreadDboExample();
-		threadEx.createCriteria().andBoardIdEqualTo(boardId).andPinnedFlagEqualTo(false);
+		threadEx.createCriteria().andBoardIdEqualTo(boardId);
 		Long threadCount = threadDao.count(threadEx);
 		board.setThreadCount(threadCount);
 

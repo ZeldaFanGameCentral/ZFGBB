@@ -76,7 +76,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 	@Test
 	@Order(1)
 	void installRequiresTheToken() throws Exception {
-		mockMvc.perform(get("/system/install/status")
+		mockMvc.perform(get("/system/site")
 				.cookie(new Cookie(AuthCookieService.ACCESS_COOKIE_NAME, "malformed-jwt")))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(false));
@@ -123,12 +123,10 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 				.andExpect(cookie().value(AuthCookieService.REFRESH_COOKIE_NAME, ""))
 				.andExpect(cookie().maxAge(AuthCookieService.REFRESH_COOKIE_NAME, 0));
 
-		mockMvc.perform(get("/system/install/status"))
+		mockMvc.perform(get("/system/site"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.siteName").value("ZFGC Test"))
-				.andExpect(jsonPath("$.state").doesNotExist())
-				.andExpect(jsonPath("$.lastError").doesNotExist());
+				.andExpect(jsonPath("$.siteName").value("ZFGC Test"));
 
 		mockMvc.perform(post("/system/install")
 				.header("X-Install-Token", INSTALL_TOKEN)
@@ -243,7 +241,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 		installRunDboMapper.updateByPrimaryKeySelective(interruptedRun);
 		systemConfigDboMapper.deleteByExample(where(new SystemConfigDboExample(),
 				example -> example.createCriteria().andConfigKeyEqualTo("installed")));
-		mockMvc.perform(get("/system/install/status"))
+		mockMvc.perform(get("/system/site"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.installed").value(false));
 
@@ -272,10 +270,9 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 				example -> example.createCriteria().andBoardNameEqualTo("Recycle Bin"))),
 				"resuming must not duplicate the recycle board");
 		assertRecycleBinProvisioned();
-		mockMvc.perform(get("/system/install/status"))
+		mockMvc.perform(get("/system/site"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.installed").value(true))
-				.andExpect(jsonPath("$.state").doesNotExist());
+				.andExpect(jsonPath("$.installed").value(true));
 	}
 
 	@Test

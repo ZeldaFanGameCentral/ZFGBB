@@ -41,7 +41,7 @@ class ComposeSmokeTest {
 
 	@Test
 	void freshStackBootsUninstalled() throws Exception {
-		String url = "http://localhost:" + API_PORT + "/zfgbb/system/install/status";
+		String url = "http://localhost:" + API_PORT + "/zfgbb/system/site";
 		HttpClient client = HttpClient.newHttpClient();
 		HttpResponse<String> response = null;
 		for (int attempt = 0; attempt < 30; attempt++) {

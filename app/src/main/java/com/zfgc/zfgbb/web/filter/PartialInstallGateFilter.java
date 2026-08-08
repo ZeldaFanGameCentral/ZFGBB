@@ -27,7 +27,7 @@ public class PartialInstallGateFilter extends OncePerRequestFilter {
 		String state = installs.get().state();
 		String path = request.getRequestURI().substring(request.getContextPath().length());
 		boolean allowed = request.getMethod().equals("OPTIONS") || path.equals("/system/install")
-				|| path.equals("/system/install/status") || path.equals("/actuator/health")
+				|| path.equals("/system/site") || path.equals("/actuator/health")
 				|| path.startsWith("/actuator/health/") || path.equals("/error");
 		if (!state.equals("INSTALLED") && !allowed) {
 			response.sendError(HttpStatus.SERVICE_UNAVAILABLE.value(), "Installation recovery is in progress.");

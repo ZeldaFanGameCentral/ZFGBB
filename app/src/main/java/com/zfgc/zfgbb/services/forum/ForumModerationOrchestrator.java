@@ -308,7 +308,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 						+ " board_id=" + originBoardId + " post " + restoredPostInThread + " from wrapper thread_id="
 						+ wrapperThreadId);
 		forumService.evictUnfilteredForumCache();
-		return new RestoreResponse(RESTORE_MODE_MERGED_INTO_ORIGIN, originThreadId, originBoardId,
+		return RestoreResponse.mergedIntoOrigin(RESTORE_MODE_MERGED_INTO_ORIGIN, originThreadId, originBoardId,
 				restoredPostInThread);
 	}
 
@@ -349,7 +349,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		writeModerationLog(ACTION_THREAD_RESTORED, user, thread.getCreatedUserId(), recycleBoardId.get(), threadId,
 				null, "thread_id=" + threadId + " restored to board_id=" + originBoardId);
 		forumService.evictUnfilteredForumCache();
-		return new RestoreResponse(RESTORE_MODE_THREAD_RESTORED, threadId, originBoardId, null);
+		return RestoreResponse.threadRestored(RESTORE_MODE_THREAD_RESTORED, threadId, originBoardId);
 	}
 
 	private void writeModerationLog(String action, User actor, Integer targetUserId, Integer boardId, Integer threadId,
