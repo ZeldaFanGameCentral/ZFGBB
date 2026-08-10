@@ -23,9 +23,8 @@ public class WikiNamespaceRegistry {
 		List<ImportNamespaceRecord> configured =
 				wikiNamespaceDao.listImportNamespaces();
 		for (ImportNamespaceRecord row : configured) {
-			String holder = namespaceData.nameForRole(WikiNamespaceRole.ofMediaWikiNamespaceId(row.getSourceNamespaceId()));
-			if (holder != null)
-				row.setNamespaceName(holder);
+			namespaceData.nameForRole(WikiNamespaceRole.ofMediaWikiNamespaceId(row.getSourceNamespaceId()))
+					.ifPresent(row::setNamespaceName);
 		}
 		return configured;
 	}
@@ -40,11 +39,11 @@ public class WikiNamespaceRegistry {
 					"namespaceName must be non-blank, at most 100 characters and must not contain ':'");
 		WikiNamespaceRole role = WikiNamespaceRole.ofMediaWikiNamespaceId(sourceNamespaceId);
 		if (role != null) {
-			String roleHolder = namespaceData.nameForRole(role);
+			String roleHolder = namespaceData.nameForRole(role).orElse(null);
 			if (roleHolder != null && !roleHolder.equalsIgnoreCase(name))
 				throw new IllegalArgumentException("MediaWiki namespace " + sourceNamespaceId
 						+ " is the " + role.name() + " namespace, already named '" + roleHolder + "'");
-			WikiNamespaceRole heldByName = namespaceData.roleOf(name);
+			WikiNamespaceRole heldByName = namespaceData.roleOf(name).orElse(null);
 			if (heldByName != null && heldByName != role)
 				throw new IllegalArgumentException("Namespace '" + name + "' already serves as this wiki's "
 						+ heldByName.name() + " namespace, so it cannot also be MediaWiki namespace "

@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
@@ -37,7 +36,7 @@ public class UserRegistrationService {
 
 	private final ZfgcPasswordEncoder passwordEncoder;
 
-	private final PlatformTransactionManager transactionManager;
+	private final TransactionTemplate transactionTemplate;
 
 	public User createNewUser(RegistrationRequest req) {
 		validateRegistration(req);
@@ -50,8 +49,7 @@ public class UserRegistrationService {
 		}
 
 		EncodedPassword hashed = passwordEncoder.hash(req.password());
-		return new TransactionTemplate(transactionManager)
-				.execute(status -> userDataProvider.createUser(identity(req, hashed)));
+		return transactionTemplate.execute(status -> userDataProvider.createUser(identity(req, hashed)));
 	}
 
 	public User reassignUserIdentity(RegistrationRequest req, int userId) {
@@ -59,8 +57,7 @@ public class UserRegistrationService {
 		requireIdentityAvailableOutsideOf(req, userId);
 
 		EncodedPassword hashed = passwordEncoder.hash(req.password());
-		return new TransactionTemplate(transactionManager)
-				.execute(status -> userDataProvider.replaceUserIdentity(identity(req, hashed), userId));
+		return transactionTemplate.execute(status -> userDataProvider.replaceUserIdentity(identity(req, hashed), userId));
 	}
 
 	private void requireIdentityAvailableOutsideOf(RegistrationRequest req, int userId) {

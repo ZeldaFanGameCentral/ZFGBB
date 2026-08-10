@@ -128,13 +128,11 @@ public class WikiConfigService {
 	}
 
 	private String sidebarSlug() {
-		String name = namespaceData.nameForRole(WikiNamespaceRole.MEDIAWIKI);
-		return (name == null ? "MediaWiki" : name) + ":Sidebar";
+		return namespaceData.nameForRole(WikiNamespaceRole.MEDIAWIKI).orElse("MediaWiki") + ":Sidebar";
 	}
 
 	private String metaNamespace() {
-		String name = namespaceData.nameForRole(WikiNamespaceRole.META);
-		return name == null ? "Meta" : name;
+		return namespaceData.nameForRole(WikiNamespaceRole.META).orElse("Meta");
 	}
 
 	private record LegacyHostCache(String host, Pattern pattern) {

@@ -19,14 +19,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
-/**
- * Extracts only entries already approved by {@link BackupArchiveValidator}.
- *
- * The caller supplies a new, empty staging directory. No archive path is ever
- * resolved directly: database.dump has one fixed destination and content paths
- * are resolved relative to the staging content directory after confinement
- * checks.
- */
 public final class BackupArchiveExtractor {
 
 	private final BackupArchiveValidator validator;
@@ -121,5 +113,6 @@ public final class BackupArchiveExtractor {
 		}
 	}
 
-	public record ExtractedBackup(ValidatedBackup validated, Path databaseDump, Path contentRoot) {}
+	public record ExtractedBackup(ValidatedBackup validated, Path databaseDump, Path contentRoot) {
+	}
 }

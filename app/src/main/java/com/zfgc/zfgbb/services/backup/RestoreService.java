@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.backup;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
 import com.zfgc.zfgbb.services.contentstore.ContentRoot;
@@ -26,8 +27,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.flywaydb.core.Flyway;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.config.BackupRestoreProperties;
@@ -39,10 +38,10 @@ import com.zfgc.zfgbb.operations.postgres.PostgresBackupTool;
 
 import jakarta.annotation.PostConstruct;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestoreService {
-	private static final Logger LOG = LoggerFactory.getLogger(RestoreService.class);
 	private static final String INCOMING_PREFIX = ".incoming-";
 	private static final String PRE_RESTORE_PREFIX = ".pre-restore-";
 	private static final String JOURNAL_SUFFIX = ".journal";
@@ -61,7 +60,7 @@ public class RestoreService {
 		try {
 			reconcileInterruptedContentSwaps(content.activeContentRoot());
 		} catch (IOException | RuntimeException unreconciled) {
-			LOG.error("interrupted content restore could not be reconciled; restores are blocked",
+			log.error("interrupted content restore could not be reconciled; restores are blocked",
 					unreconciled);
 		}
 	}
@@ -127,7 +126,7 @@ public class RestoreService {
 			return true;
 		Optional<SwapOwnership> ownership = SwapOwnership.tryAcquire(live);
 		if (ownership.isEmpty()) {
-			LOG.warn("content swap owner lock held, leaving the live content root alone: {}",
+			log.warn("content swap owner lock held, leaving the live content root alone: {}",
 					live.resolve(OWNER_LOCK_NAME));
 			return false;
 		}
@@ -146,14 +145,14 @@ public class RestoreService {
 			try {
 				reconcile(journal);
 			} catch (IOException unreconciled) {
-				LOG.error("swap recorded by {} not reconciled; pre-restore content kept at {}", journal.file(),
+				log.error("swap recorded by {} not reconciled; pre-restore content kept at {}", journal.file(),
 						journal.saved(), unreconciled);
 			}
 		}
 		for (Path debris : swapArtifacts(live, INCOMING_PREFIX, "")) {
 			if (journalled(live, debris, INCOMING_PREFIX))
 				continue;
-			LOG.warn("Removing {}, an unjournaled copy of restored content left inside the live "
+			log.warn("Removing {}, an unjournaled copy of restored content left inside the live "
 					+ "content root.", debris);
 			removeContentTree(debris);
 		}
@@ -161,7 +160,7 @@ public class RestoreService {
 			Files.deleteIfExists(draft);
 		for (Path stranded : preRestoreDirectories(live))
 			if (!journalled(live, stranded, PRE_RESTORE_PREFIX))
-				LOG.error("unjournaled pre-restore content at {}; restores are blocked until it is returned to {}",
+				log.error("unjournaled pre-restore content at {}; restores are blocked until it is returned to {}",
 						stranded, live);
 	}
 
@@ -173,7 +172,7 @@ public class RestoreService {
 	private void reconcile(SwapJournal journal) throws IOException {
 		Optional<SwapPhase> phase = journal.phase();
 		if (phase.isEmpty()) {
-			LOG.error("content swap journal {} is unreadable; pre-restore content kept at {}", journal.file(),
+			log.error("content swap journal {} is unreadable; pre-restore content kept at {}", journal.file(),
 					journal.saved());
 			return;
 		}
@@ -181,7 +180,7 @@ public class RestoreService {
 			case STAGING, DRAINING_ORIGINALS -> returnOriginals(journal);
 			case PUBLISHING -> {
 				if (!Files.isDirectory(journal.saved(), LinkOption.NOFOLLOW_LINKS)) {
-					LOG.error("journal {} records a half-published swap and the pre-restore content at {} is gone; keeping the published children",
+					log.error("journal {} records a half-published swap and the pre-restore content at {} is gone; keeping the published children",
 							journal.file(), journal.saved());
 					return;
 				}
@@ -201,7 +200,7 @@ public class RestoreService {
 		try {
 			reconcile(journal);
 		} catch (IOException unreconciled) {
-			LOG.error("swap recorded by {} not finished; pre-restore content at {}, retried next startup",
+			log.error("swap recorded by {} not finished; pre-restore content at {}, retried next startup",
 					journal.file(), journal.saved(), unreconciled);
 		}
 	}
@@ -281,7 +280,7 @@ public class RestoreService {
 				try {
 					journal.write(SwapPhase.DATABASE_RESTORED);
 				} catch (IOException unrecordable) {
-					LOG.error("restore not recorded as committed: journal {} not advanced; pre-restore content kept at {}",
+					log.error("restore not recorded as committed: journal {} not advanced; pre-restore content kept at {}",
 							journal.file(), journal.saved(), unrecordable);
 					return;
 				}
@@ -376,7 +375,7 @@ public class RestoreService {
 			try (FileChannel released = channel) {
 				Files.deleteIfExists(marker);
 			} catch (IOException unreleasable) {
-				LOG.warn("unable to remove the content swap owner lock {}", marker, unreleasable);
+				log.warn("unable to remove the content swap owner lock {}", marker, unreleasable);
 			}
 		}
 
@@ -384,7 +383,7 @@ public class RestoreService {
 			try {
 				channel.close();
 			} catch (IOException unclosable) {
-				LOG.warn("Unable to close the content swap owner lock {}", marker, unclosable);
+				log.warn("Unable to close the content swap owner lock {}", marker, unclosable);
 			}
 		}
 	}
@@ -400,7 +399,7 @@ public class RestoreService {
 		try (FileChannel entries = FileChannel.open(directory, StandardOpenOption.READ)) {
 			entries.force(true);
 		} catch (IOException | RuntimeException unflushable) {
-			LOG.warn("unable to flush the directory entries of {}",
+			log.warn("unable to flush the directory entries of {}",
 					directory, unflushable);
 		}
 	}
@@ -492,7 +491,7 @@ public class RestoreService {
 		try {
 			Files.deleteIfExists(file);
 		} catch (IOException undeletable) {
-			LOG.warn("Unable to remove the pre-restore safety dump {}", file, undeletable);
+			log.warn("Unable to remove the pre-restore safety dump {}", file, undeletable);
 		}
 	}
 
@@ -500,7 +499,7 @@ public class RestoreService {
 		try {
 			deleteTree(root);
 		} catch (IOException undeletable) {
-			LOG.warn("Unable to remove restore staging directory {}", root, undeletable);
+			log.warn("Unable to remove restore staging directory {}", root, undeletable);
 		}
 	}
 }

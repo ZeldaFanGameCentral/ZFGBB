@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.operations.postgres;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.io.ByteArrayOutputStream;
@@ -29,8 +30,6 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationInfoService;
 import org.flywaydb.core.api.MigrationVersion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -41,11 +40,11 @@ import com.zfgc.zfgbb.config.BackupRestoreProperties;
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.operations.archive.InvalidBackupException;
 
+@Slf4j
 @Component
 @RawSqlAccess("pg_dump and pg_restore orchestration")
 @RequiredArgsConstructor
 public class PostgresBackupTool {
-	private static final Logger LOG = LoggerFactory.getLogger(PostgresBackupTool.class);
 	private static final Pattern MAJOR = Pattern.compile("(\\d+)(?:\\.\\d+)?");
 	private static final int MAX_DIAGNOSTIC_BYTES = 64 * 1024;
 	private static final int MAX_TOC_ENTRY_BYTES = 512;
@@ -215,13 +214,13 @@ public class PostgresBackupTool {
 	private void retirePooledConnections() throws IOException {
 		try {
 			if (!dataSource.isWrapperFor(HikariDataSource.class)) {
-				LOG.warn("DataSource {} is not Hikari; pooled connections were not retired after the restore",
+				log.warn("DataSource {} is not Hikari; pooled connections were not retired after the restore",
 						dataSource.getClass().getName());
 				return;
 			}
 			HikariPoolMXBean pool = dataSource.unwrap(HikariDataSource.class).getHikariPoolMXBean();
 			if (pool == null)
-				LOG.warn("Hikari pool not registered; pooled connections were not retired after the restore");
+				log.warn("Hikari pool not registered; pooled connections were not retired after the restore");
 			else
 				pool.softEvictConnections();
 		} catch (SQLException unreachable) {

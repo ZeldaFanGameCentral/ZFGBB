@@ -125,6 +125,7 @@ import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
 import com.zfgc.zfgbb.dao.users.UserPermissionViewDao;
 import com.zfgc.zfgbb.dao.users.UserReactionSummaryViewDao;
 import com.zfgc.zfgbb.dao.users.UserSettingsDao;
+import com.zfgc.zfgbb.mapstruct.users.ReactionSummaryMap;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
@@ -796,6 +797,9 @@ class PolicyTest {
 					mock(UserContactInfoMap.class),
 					mock(AvatarMap.class),
 					mock(PermissionMap.class),
+					mock(AwardMap.class),
+					mock(UserSettingsMap.class),
+					mock(ReactionSummaryMap.class),
 					mock(UserReactionSummaryViewDao.class),
 					mock(UserAwardDao.class),
 					mock(AwardDao.class),
@@ -930,6 +934,9 @@ class PolicyTest {
 					mock(UserContactInfoMap.class),
 					avatarMap,
 					permissionMap,
+					mock(AwardMap.class),
+					mock(UserSettingsMap.class),
+					mock(ReactionSummaryMap.class),
 					reactionSummaryDao,
 					mock(UserAwardDao.class),
 					mock(AwardDao.class),

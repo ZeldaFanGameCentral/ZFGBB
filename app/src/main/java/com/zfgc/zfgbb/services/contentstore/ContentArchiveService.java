@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.contentstore;
 
+import lombok.extern.slf4j.Slf4j;
 import static com.zfgc.zfgbb.operations.archive.OperationFiles.deleteTree;
 import static com.zfgc.zfgbb.services.backup.OperationStorageService.setPrivateDirectory;
 import static com.zfgc.zfgbb.services.backup.OperationStorageService.setPrivateFile;
@@ -13,8 +14,6 @@ import java.nio.file.StandardOpenOption;
 
 import lombok.RequiredArgsConstructor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -22,11 +21,11 @@ import org.springframework.stereotype.Service;
 
 import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContentArchiveService {
 
-	private static final Logger LOG = LoggerFactory.getLogger(ContentArchiveService.class);
 	private static final String ARCHIVE_FILE_NAME = "backup.tar.gz";
 
 	private final ResourceLoader resources;
@@ -76,7 +75,7 @@ public class ContentArchiveService {
 		try {
 			deleteTree(staging);
 		} catch (IOException undeletable) {
-			LOG.warn("unable to remove the materialized sample data directory {}", staging, undeletable);
+			log.warn("unable to remove the materialized sample data directory {}", staging, undeletable);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.backup;
 
+import lombok.extern.slf4j.Slf4j;
 import com.zfgc.zfgbb.dataprovider.system.BackupJobDataProvider;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
@@ -32,8 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -51,9 +50,9 @@ import com.zfgc.zfgbb.operations.postgres.PostgresBackupTool;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
+@Slf4j
 @Service
 public class BackupRestoreService {
-	private static final Logger LOG = LoggerFactory.getLogger(BackupRestoreService.class);
 	private static final Set<State> TERMINAL = EnumSet.of(
 			State.CONSUMED, State.EXPIRED, State.FAILED);
 	private static final int COPY_BUFFER = 64 * 1024;
@@ -119,7 +118,7 @@ public class BackupRestoreService {
 					deletePayload(current.id());
 				}
 			} catch (IOException | RuntimeException failure) {
-				LOG.warn("Unable to recover backup {}", job.id(), failure);
+				log.warn("Unable to recover backup {}", job.id(), failure);
 			}
 		}
 		cleanupExpiredArtifacts();
@@ -132,7 +131,7 @@ public class BackupRestoreService {
 			try {
 				cleanupBackup(job);
 			} catch (IOException | RuntimeException failure) {
-				LOG.warn("Unable to clean expired backup {}", job.id(), failure);
+				log.warn("Unable to clean expired backup {}", job.id(), failure);
 			}
 		}
 		cleanupOrphanDirectories();
@@ -251,7 +250,7 @@ public class BackupRestoreService {
 					validated.archiveSha256(), classification.compatible(),
 					classification.anchorAdministratorId());
 		} catch (Exception failure) {
-			LOG.error("Backup creation failed for job {}", id, failure);
+			log.error("Backup creation failed for job {}", id, failure);
 			try {
 				BackupJob current = jobs.require(id);
 				if (current.state() == State.CREATING)
@@ -382,7 +381,7 @@ public class BackupRestoreService {
 			for (Path dump : storage.abandonedSafetyDumps(noRestoreStillHoldsItBefore))
 				Files.deleteIfExists(dump);
 		} catch (IOException | RuntimeException failure) {
-			LOG.warn("Unable to clean orphaned backup artifacts", failure);
+			log.warn("Unable to clean orphaned backup artifacts", failure);
 		}
 	}
 
@@ -464,7 +463,7 @@ public class BackupRestoreService {
 			verifyContentResourcesOnDisk(contentRoot);
 			return ArchiveInstallability.installable(anchor);
 		} catch (IOException | RuntimeException unprovable) {
-			LOG.warn("archive installability proof failed", unprovable);
+			log.warn("archive installability proof failed", unprovable);
 			return ArchiveInstallability.notInstallable("installability proof failed");
 		}
 	}

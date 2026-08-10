@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.content.renderer.templates;
 
+import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -7,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.content.ContentFormat;
@@ -27,6 +26,7 @@ import com.zfgc.zfgbb.content.renderer.bbcode.BBCodeText;
 
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TemplateExpansion {
@@ -34,8 +34,6 @@ public class TemplateExpansion {
 	public static final int MAX_DEPTH = 3;
 
 	static final int MAX_INVOCATIONS_PER_DOCUMENT = 200;
-
-	private final Logger logger = LoggerFactory.getLogger(TemplateExpansion.class);
 
 	private final TemplateExpander templates;
 
@@ -191,7 +189,7 @@ public class TemplateExpansion {
 	private boolean theBudgetIsSpent(int[] invocationsSoFar) {
 		if (invocationsSoFar[0]++ < MAX_INVOCATIONS_PER_DOCUMENT)
 			return false;
-		logger.warn("template invocations in this document exceed the budget of {}; the rest are left as "
+		log.warn("template invocations in this document exceed the budget of {}; the rest are left as "
 				+ "authored", MAX_INVOCATIONS_PER_DOCUMENT);
 		return true;
 	}

@@ -35,7 +35,7 @@ public class WikiNamespaceEditGate {
 
 	private Optional<NamespaceEditPolicy> editPolicy(String namespace) {
 		return namespaceData.editPolicy(namespace)
-				.map(policy -> new NamespaceEditPolicy(policy.systemManaged(),
-						Optional.ofNullable(policy.editPermissionCode())));
+				.map(policy -> new NamespaceEditPolicy(policy.isSystemManaged(),
+						Optional.ofNullable(policy.getEditPermissionCode())));
 	}
 }

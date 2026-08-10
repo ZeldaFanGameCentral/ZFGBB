@@ -166,17 +166,7 @@ public class UserDataProvider {
 	}
 
 	private UserSettings toSettings(UserSettingsDbo dbo) {
-		if (dbo == null) {
-			return new UserSettings();
-		}
-		return UserSettings.builder()
-				.userId(dbo.getUserId())
-				.theme(dbo.getTheme())
-				.smileySet(dbo.getSmileySet())
-				.notifyAnnouncementsFlag(dbo.getNotifyAnnouncementsFlag())
-				.notifySendBodyFlag(dbo.getNotifySendBodyFlag())
-				.sendHappyBirthdayFlag(dbo.getSendHappyBirthdayFlag())
-				.build();
+		return dbo == null ? new UserSettings() : userSettingsMap.toModel(dbo);
 	}
 
 	public UserSettings saveUserSettings(Integer userId, UserSettings settings) {

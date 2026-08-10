@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.operations.postgres;
 
+import lombok.extern.slf4j.Slf4j;
 import com.zfgc.zfgbb.persistence.RawSqlAccess;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,13 +11,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.sql.DataSource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 @RawSqlAccess("session-pinned advisory lock")
 public final class PostgresAdvisoryLock implements AutoCloseable {
-
-	private static final Logger LOG = LoggerFactory.getLogger(PostgresAdvisoryLock.class);
 
 	private final Connection session;
 	private final long key;
@@ -55,7 +53,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 			throw unreleasable;
 		}
 		if (!unlocked) {
-			LOG.warn("advisory lock {} was not held at release; discarding the session", key);
+			log.warn("advisory lock {} was not held at release; discarding the session", key);
 			discard(session, key);
 			return;
 		}
@@ -75,7 +73,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 		try {
 			advisoryLock(session, "pg_advisory_unlock", key);
 		} catch (SQLException | RuntimeException unreleasable) {
-			LOG.warn("unable to release advisory lock {}; terminating the session",
+			log.warn("unable to release advisory lock {}; terminating the session",
 					key, unreleasable);
 			abortQuietly(session);
 		}
@@ -86,7 +84,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 		try {
 			session.abort(termination -> termination.run());
 		} catch (SQLException | RuntimeException unabortable) {
-			LOG.warn("Unable to terminate a discarded advisory-lock session", unabortable);
+			log.warn("Unable to terminate a discarded advisory-lock session", unabortable);
 		}
 	}
 
@@ -94,7 +92,7 @@ public final class PostgresAdvisoryLock implements AutoCloseable {
 		try {
 			session.close();
 		} catch (SQLException | RuntimeException unclosable) {
-			LOG.warn("Unable to close a discarded advisory-lock session", unclosable);
+			log.warn("Unable to close a discarded advisory-lock session", unclosable);
 		}
 	}
 }

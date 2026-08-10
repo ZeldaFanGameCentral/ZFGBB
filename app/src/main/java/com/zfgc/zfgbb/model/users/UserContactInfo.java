@@ -16,19 +16,19 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserContactInfo extends BaseModel {
-    @JsonIgnore
-    private Integer userId;
-    private EmailAddress emailAddress;
-    private Boolean allowEmailFlag;
-    private Boolean allowPmFlag;
+	@JsonIgnore
+	private Integer userId;
+	private EmailAddress emailAddress;
+	private Boolean allowEmailFlag;
+	private Boolean allowPmFlag;
 
-    @Override
-    public Integer getId() {
-        return userId;
-    }
+	@Override
+	public Integer getId() {
+		return userId;
+	}
 
-    @Override
-    public void setId(Integer id) {
-        this.userId = id;
-    }
+	@Override
+	public void setId(Integer id) {
+		this.userId = id;
+	}
 } 

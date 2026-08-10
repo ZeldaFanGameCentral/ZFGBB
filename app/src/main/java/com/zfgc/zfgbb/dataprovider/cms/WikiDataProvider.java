@@ -107,8 +107,9 @@ public class WikiDataProvider {
 
 	private List<String> hiddenNamespaces() {
 		return HIDDEN_ROLE_FALLBACKS.entrySet().stream()
-				.flatMap(entry -> Stream.of(namespaceData.nameForRole(entry.getKey()), entry.getValue()))
-				.filter(Objects::nonNull).distinct().toList();
+				.flatMap(entry -> Stream.concat(namespaceData.nameForRole(entry.getKey()).stream(),
+						Stream.of(entry.getValue())))
+				.distinct().toList();
 	}
 
 	public WikiPage getWikiPage(String path, Integer revisionId) {
@@ -251,12 +252,12 @@ public class WikiDataProvider {
 		return new PagedResult<>(items, filtered.size(), page, pageSize);
 	}
 
-	public WikiPageRef getRandomWikiPage() {
+	public Optional<WikiPageRef> getRandomWikiPage() {
 		List<WikiPageDbo> visible = visiblePages();
 		if (visible.isEmpty()) {
-			return null;
+			return Optional.empty();
 		}
-		return toPageRef(visible.get(ThreadLocalRandom.current().nextInt(visible.size())));
+		return Optional.of(toPageRef(visible.get(ThreadLocalRandom.current().nextInt(visible.size()))));
 	}
 
 	public List<Map.Entry<String, Long>> getWikiCategories() {

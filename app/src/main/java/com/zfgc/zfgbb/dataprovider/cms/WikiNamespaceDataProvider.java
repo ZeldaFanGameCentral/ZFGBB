@@ -37,20 +37,20 @@ public class WikiNamespaceDataProvider {
 
 	private final WikiNamespaceDao wikiNamespaceDao;
 
-	public WikiNamespaceRole roleOf(String namespace) {
+	public Optional<WikiNamespaceRole> roleOf(String namespace) {
 		if (namespace == null || namespace.isBlank())
-			return null;
-		return roleByNamespace().get(namespace.toLowerCase(Locale.ROOT));
+			return Optional.empty();
+		return Optional.ofNullable(roleByNamespace().get(namespace.toLowerCase(Locale.ROOT)));
 	}
 
 	public boolean hasRole(String namespace, WikiNamespaceRole role) {
-		return role != null && role == roleOf(namespace);
+		return role != null && roleOf(namespace).filter(role::equals).isPresent();
 	}
 
-	public String nameForRole(WikiNamespaceRole role) {
+	public Optional<String> nameForRole(WikiNamespaceRole role) {
 		if (role == null)
-			return null;
-		return nameByRole().get(role);
+			return Optional.empty();
+		return Optional.ofNullable(nameByRole().get(role));
 	}
 
 	private Map<String, WikiNamespaceRole> roleByNamespace() {
@@ -96,9 +96,9 @@ public class WikiNamespaceDataProvider {
 	}
 
 	public String templateNamespace() {
-		String name = nameForRole(WikiNamespaceRole.TEMPLATE);
-		if (name != null)
-			return name;
+		Optional<String> name = nameForRole(WikiNamespaceRole.TEMPLATE);
+		if (name.isPresent())
+			return name.get();
 		if (warnedMissingTemplateRole.compareAndSet(false, true))
 			log.warn("no namespace holds the TEMPLATE engine role; using 'Template'");
 		return "Template";
@@ -117,7 +117,7 @@ public class WikiNamespaceDataProvider {
 				throw new IllegalStateException("Ambiguous registered wiki namespace '" + prefix + "'");
 			if (namespaces.size() == 1) {
 				WikiNamespaceCustomMapper.NamespaceRecord ns = namespaces.get(0);
-				return WikiTitle.of(ns.name(), path.substring(colon + 1), WikiTitle.CaseMode.valueOf(ns.caseMode()));
+				return WikiTitle.of(ns.getName(), path.substring(colon + 1), WikiTitle.CaseMode.valueOf(ns.getCaseMode()));
 			}
 		}
 		if (colon < 0) {

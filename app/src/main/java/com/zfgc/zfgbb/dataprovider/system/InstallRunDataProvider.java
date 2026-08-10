@@ -1,12 +1,11 @@
 package com.zfgc.zfgbb.dataprovider.system;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.model.system.InstallStrategy;
@@ -14,11 +13,11 @@ import com.zfgc.zfgbb.dbo.InstallRunDbo;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.dao.meta.InstallRunDao;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class InstallRunDataProvider {
 
-	private static final Logger LOG = LoggerFactory.getLogger(InstallRunDataProvider.class);
 	private static final List<String> RESUMABLE_PHASE_STATES = List.of("CORE_READY", "RECYCLE_READY");
 
 	public record Run(String state, String lastCompletedState, String fingerprint, Integer adminUserId,
@@ -33,7 +32,7 @@ public class InstallRunDataProvider {
 	public Run get() {
 		InstallRunDbo row = installRunDao.find((short) 1).orElse(null);
 		if (row == null) {
-			LOG.warn("install_run singleton row missing; treating as not installed");
+			log.warn("install_run singleton row missing; treating as not installed");
 			installRunDao.restoreMissingSingleton();
 			row = installRunDao.find((short) 1).orElse(null);
 		}

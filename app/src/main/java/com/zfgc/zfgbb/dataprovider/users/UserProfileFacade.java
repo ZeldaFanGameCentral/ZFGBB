@@ -30,6 +30,9 @@ import com.zfgc.zfgbb.dao.users.UserReactionSummaryViewDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.dao.users.UserDao;
+import com.zfgc.zfgbb.mapstruct.users.UserSettingsMap;
+import com.zfgc.zfgbb.mapstruct.users.ReactionSummaryMap;
+import com.zfgc.zfgbb.mapstruct.users.AwardMap;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
@@ -49,156 +52,134 @@ import lombok.RequiredArgsConstructor;
 @UnfilteredBoardRead("counts only guest-visible boards")
 public class UserProfileFacade {
 
-    private final UserDao userDao;
+	private final UserDao userDao;
 
-    private final UserPermissionViewDao userPermissionViewDao;
+	private final UserPermissionViewDao userPermissionViewDao;
 
-    private final ContentRenderingService contentRenderingService;
+	private final ContentRenderingService contentRenderingService;
 
-    private final UserMap userMap;
+	private final UserMap userMap;
 
-    private final UserBioInfoMap userBioInfoMap;
+	private final UserBioInfoMap userBioInfoMap;
 
-    private final UserContactInfoMap userContactInfoMap;
+	private final UserContactInfoMap userContactInfoMap;
 
-    private final AvatarMap avatarMap;
+	private final AvatarMap avatarMap;
 
-    private final PermissionMap permissionMap;
+	private final PermissionMap permissionMap;
 
-    private final UserReactionSummaryViewDao reactionSummaryDao;
+	private final AwardMap awardMap;
 
-    private final UserAwardDao userAwardDao;
+	private final UserSettingsMap userSettingsMap;
 
-    private final AwardDao awardDao;
+	private final ReactionSummaryMap reactionSummaryMap;
 
-    private final MessageDao messageDao;
+	private final UserReactionSummaryViewDao reactionSummaryDao;
 
-    private final GuestPermissionDataProvider guestPermissionDataProvider;
+	private final UserAwardDao userAwardDao;
 
-    public List<Integer> guestVisibleBoardIds() {
-        return guestPermissionDataProvider.guestVisibleBoardIds();
-    }
+	private final AwardDao awardDao;
 
-    public Map<Integer, User> loadUsersByIds(Collection<Integer> userIds, UserLoadOptions loadOptions) {
-        if (userIds == null || userIds.isEmpty()) return Collections.emptyMap();
-        List<Integer> distinctIds = userIds.stream().filter(id -> id != null).distinct().toList();
-        if (distinctIds.isEmpty()) return Collections.emptyMap();
+	private final MessageDao messageDao;
 
-        List<UserAggregateDbo> aggregates = userDao.hydrate(distinctIds);
-        if (aggregates.isEmpty()) return Collections.emptyMap();
+	private final GuestPermissionDataProvider guestPermissionDataProvider;
 
-        Map<Integer, List<Permission>> permissionsByUserId = Collections.emptyMap();
-        if (loadOptions.loadPermissions()) {
-            UserPermissionViewDboExample permissionEx = new UserPermissionViewDboExample();
-            permissionEx.createCriteria().andUserIdIn(distinctIds);
-            permissionsByUserId = userPermissionViewDao.get(permissionEx).stream()
-                    .collect(Collectors.groupingBy(UserPermissionViewDbo::getUserId,
-                            Collectors.mapping(permissionMap::toModel, Collectors.toList())));
-        }
+	public List<Integer> guestVisibleBoardIds() {
+		return guestPermissionDataProvider.guestVisibleBoardIds();
+	}
 
-        Map<Integer, ReactionSummary> reactionByUserId = Collections.emptyMap();
-        if (loadOptions.loadReactions()) {
-            UserReactionSummaryViewDboExample reactionEx = new UserReactionSummaryViewDboExample();
-            reactionEx.createCriteria().andUserIdIn(distinctIds);
-            reactionByUserId = reactionSummaryDao.get(reactionEx).stream()
-                    .collect(Collectors.toMap(UserReactionSummaryViewDbo::getUserId, this::toReactionSummary));
-        }
+	public Map<Integer, User> loadUsersByIds(Collection<Integer> userIds, UserLoadOptions loadOptions) {
+		if (userIds == null || userIds.isEmpty()) return Collections.emptyMap();
+		List<Integer> distinctIds = userIds.stream().filter(id -> id != null).distinct().toList();
+		if (distinctIds.isEmpty()) return Collections.emptyMap();
 
-        Map<Integer, Integer> postCountByOwnerId = Collections.emptyMap();
-        List<Integer> guestVisibleBoardIds = guestVisibleBoardIds();
-        if (!guestVisibleBoardIds.isEmpty() && loadOptions.loadBio()) {
-            postCountByOwnerId = messageDao
-                    .postCountsByOwnerWithinBoards(distinctIds, guestVisibleBoardIds).stream()
-                    .collect(Collectors.toMap(MessagePostCountMapper.OwnerPostCount::getOwnerId,
-                            ownerPostCount -> (int) ownerPostCount.getPostCount()));
-        }
+		List<UserAggregateDbo> aggregates = userDao.hydrate(distinctIds);
+		if (aggregates.isEmpty()) return Collections.emptyMap();
 
-        Map<Integer, List<Award>> awardsByUserId = Collections.emptyMap();
-        if (loadOptions.loadAwards()) {
-            UserAwardDboExample grantEx = new UserAwardDboExample();
-            grantEx.createCriteria().andUserIdIn(distinctIds);
-            grantEx.setOrderByClause("granted_ts desc");
-            List<UserAwardDbo> grants = userAwardDao.get(grantEx);
-            if (!grants.isEmpty()) {
-                List<Integer> awardIds = grants.stream().map(UserAwardDbo::getAwardId).distinct().toList();
-                AwardDboExample awardEx = new AwardDboExample();
-                awardEx.createCriteria().andAwardIdIn(awardIds);
-                Map<Integer, AwardDbo> awardsById = awardDao.get(awardEx).stream()
-                        .collect(Collectors.toMap(AwardDbo::getAwardId, awardDbo -> awardDbo));
-                awardsByUserId = grants.stream()
-                        .filter(grant -> awardsById.containsKey(grant.getAwardId()))
-                        .collect(Collectors.groupingBy(UserAwardDbo::getUserId,
-                                Collectors.mapping(grant -> toAward(grant, awardsById.get(grant.getAwardId())), Collectors.toList())));
-            }
-        }
+		Map<Integer, List<Permission>> permissionsByUserId = Collections.emptyMap();
+		if (loadOptions.loadPermissions()) {
+			UserPermissionViewDboExample permissionEx = new UserPermissionViewDboExample();
+			permissionEx.createCriteria().andUserIdIn(distinctIds);
+			permissionsByUserId = userPermissionViewDao.get(permissionEx).stream()
+					.collect(Collectors.groupingBy(UserPermissionViewDbo::getUserId,
+							Collectors.mapping(permissionMap::toModel, Collectors.toList())));
+		}
 
-        Map<Integer, User> users = new HashMap<>();
-        for (UserAggregateDbo agg : aggregates) {
-            Integer userId = agg.getUser().getUserId();
-            UserBioInfo bioInfo = null;
-            if (agg.getBio() != null && loadOptions.loadBio()) {
-                bioInfo = userBioInfoMap.toModel(agg.getBio())
-                        .toBuilder()
-                        .postCount(postCountByOwnerId.getOrDefault(userId, 0))
-                        .signatureParsed(contentRenderingService.render(agg.getBio().getSignature(),
-                                        ContentFormat.BBCODE, ContentScope.SIGNATURE))
-                        .avatar(agg.getAvatar() != null && loadOptions.loadAvatar() ? avatarMap.toModel(agg.getAvatar()) : null)
-                        .build();
-            }
+		Map<Integer, ReactionSummary> reactionByUserId = Collections.emptyMap();
+		if (loadOptions.loadReactions()) {
+			UserReactionSummaryViewDboExample reactionEx = new UserReactionSummaryViewDboExample();
+			reactionEx.createCriteria().andUserIdIn(distinctIds);
+			reactionByUserId = reactionSummaryDao.get(reactionEx).stream()
+					.collect(Collectors.toMap(UserReactionSummaryViewDbo::getUserId, reactionSummaryMap::toModel));
+		}
 
-            UserContactInfo contactInfo = null;
-            if (agg.getContact() != null && agg.getEmail() != null && loadOptions.loadContactInfo()) {
-                contactInfo = userContactInfoMap.toModel(agg.getContact(), agg.getEmail());
-            }
+		Map<Integer, Integer> postCountByOwnerId = Collections.emptyMap();
+		List<Integer> guestVisibleBoardIds = guestVisibleBoardIds();
+		if (!guestVisibleBoardIds.isEmpty() && loadOptions.loadBio()) {
+			postCountByOwnerId = messageDao
+					.postCountsByOwnerWithinBoards(distinctIds, guestVisibleBoardIds).stream()
+					.collect(Collectors.toMap(MessagePostCountMapper.OwnerPostCount::getOwnerId,
+							ownerPostCount -> (int) ownerPostCount.getPostCount()));
+		}
 
-            UserSettings settings = null;
-            if (agg.getSettings() != null && loadOptions.loadSettings()) {
-                settings = UserSettings.builder()
-                        .userId(agg.getSettings().getUserId())
-                        .theme(agg.getSettings().getTheme())
-                        .smileySet(agg.getSettings().getSmileySet())
-                        .notifyAnnouncementsFlag(agg.getSettings().getNotifyAnnouncementsFlag())
-                        .notifySendBodyFlag(agg.getSettings().getNotifySendBodyFlag())
-                        .sendHappyBirthdayFlag(agg.getSettings().getSendHappyBirthdayFlag())
-                        .build();
-            } else if (loadOptions.loadSettings()) {
-                settings = new UserSettings();
-            }
+		Map<Integer, List<Award>> awardsByUserId = Collections.emptyMap();
+		if (loadOptions.loadAwards()) {
+			UserAwardDboExample grantEx = new UserAwardDboExample();
+			grantEx.createCriteria().andUserIdIn(distinctIds);
+			grantEx.setOrderByClause("granted_ts desc");
+			List<UserAwardDbo> grants = userAwardDao.get(grantEx);
+			if (!grants.isEmpty()) {
+				List<Integer> awardIds = grants.stream().map(UserAwardDbo::getAwardId).distinct().toList();
+				AwardDboExample awardEx = new AwardDboExample();
+				awardEx.createCriteria().andAwardIdIn(awardIds);
+				Map<Integer, AwardDbo> awardsById = awardDao.get(awardEx).stream()
+						.collect(Collectors.toMap(AwardDbo::getAwardId, awardDbo -> awardDbo));
+				awardsByUserId = grants.stream()
+						.filter(grant -> awardsById.containsKey(grant.getAwardId()))
+						.collect(Collectors.groupingBy(UserAwardDbo::getUserId,
+								Collectors.mapping(grant -> awardMap.toGrantedAward(awardsById.get(grant.getAwardId()), grant), Collectors.toList())));
+			}
+		}
 
-            User user = userMap.toModel(agg.getUser())
-                    .toBuilder()
-                    .bioInfo(bioInfo)
-                    .contactInfo(contactInfo)
-                    .reactionSummary(reactionByUserId.get(userId))
-                    .awards(awardsByUserId.getOrDefault(userId, Collections.emptyList()))
-                    .permissions(permissionsByUserId.getOrDefault(userId, Collections.emptyList()))
-                    .settings(settings)
-                    .build();
+		Map<Integer, User> users = new HashMap<>();
+		for (UserAggregateDbo agg : aggregates) {
+			Integer userId = agg.getUser().getUserId();
+			UserBioInfo bioInfo = null;
+			if (agg.getBio() != null && loadOptions.loadBio()) {
+				bioInfo = userBioInfoMap.toModel(agg.getBio())
+						.toBuilder()
+						.postCount(postCountByOwnerId.getOrDefault(userId, 0))
+						.signatureParsed(contentRenderingService.render(agg.getBio().getSignature(),
+										ContentFormat.BBCODE, ContentScope.SIGNATURE))
+						.avatar(agg.getAvatar() != null && loadOptions.loadAvatar() ? avatarMap.toModel(agg.getAvatar()) : null)
+						.build();
+			}
 
-            users.put(userId, user);
-        }
-        return users;
-    }
+			UserContactInfo contactInfo = null;
+			if (agg.getContact() != null && agg.getEmail() != null && loadOptions.loadContactInfo()) {
+				contactInfo = userContactInfoMap.toModel(agg.getContact(), agg.getEmail());
+			}
 
-    private ReactionSummary toReactionSummary(UserReactionSummaryViewDbo dbo) {
-        ReactionSummary summary = new ReactionSummary();
-        summary.setReputationPoints(dbo.getReputationPoints() == null ? 0 : dbo.getReputationPoints().intValue());
-        summary.setPositiveCount(dbo.getPositiveCount() == null ? 0 : dbo.getPositiveCount().intValue());
-        summary.setNegativeCount(dbo.getNegativeCount() == null ? 0 : dbo.getNegativeCount().intValue());
-        summary.setReactionCount(dbo.getReactionCount() == null ? 0 : dbo.getReactionCount().intValue());
-        return summary;
-    }
+			UserSettings settings = null;
+			if (loadOptions.loadSettings()) {
+				settings = agg.getSettings() != null
+						? userSettingsMap.toModel(agg.getSettings())
+						: new UserSettings();
+			}
 
-    private Award toAward(UserAwardDbo grant, AwardDbo award) {
-        Award model = new Award();
-        model.setAwardId(award.getAwardId());
-        model.setCode(award.getCode());
-        model.setName(award.getName());
-        model.setDescription(award.getDescription());
-        model.setIcon(award.getIcon());
-        model.setReason(grant.getReason());
-        model.setContentEntityId(grant.getContentEntityId());
-        model.setGrantedTs(grant.getGrantedTs() == null ? null : grant.getGrantedTs().toString());
-        return model;
-    }
+			User user = userMap.toModel(agg.getUser())
+					.toBuilder()
+					.bioInfo(bioInfo)
+					.contactInfo(contactInfo)
+					.reactionSummary(reactionByUserId.get(userId))
+					.awards(awardsByUserId.getOrDefault(userId, Collections.emptyList()))
+					.permissions(permissionsByUserId.getOrDefault(userId, Collections.emptyList()))
+					.settings(settings)
+					.build();
+
+			users.put(userId, user);
+		}
+		return users;
+	}
+
 }

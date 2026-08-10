@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.cms.catalog;
 
+import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,8 +36,8 @@ public class ResourceService {
 	public PagedResult<Resource> getResources(String search, String type, String author, Boolean hasDownload,
 			String sort, Integer page, Integer pageSize) {
 		CatalogListing listing = CatalogListing.of(page, pageSize);
-		return resourceDataProvider.getResources(CatalogListing.blankToNull(search), CatalogListing.blankToNull(type),
-				CatalogListing.blankToNull(author), hasDownload, sort, listing.page(), listing.pageSize());
+		return resourceDataProvider.getResources(StringUtils.trimToNull(search), StringUtils.trimToNull(type),
+				StringUtils.trimToNull(author), hasDownload, sort, listing.page(), listing.pageSize());
 	}
 
 	public List<Map.Entry<String, Long>> getResourceTypes() {

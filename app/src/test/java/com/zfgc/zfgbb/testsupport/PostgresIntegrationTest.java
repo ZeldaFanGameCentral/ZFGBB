@@ -56,25 +56,14 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 
 	protected final String suffix = UUID.randomUUID().toString().substring(0, 8);
 
-	/**
-	 * Lightweight handle returned by {@link #createUser(String)} encapsulating a
-	 * registered-and-logged-in test user's credentials.
-	 */
 	protected record TestUser(String userName, String token, int id) {}
 
-	/**
-	 * Register a new user, log them in, and return a {@link TestUser} handle.
-	 */
 	protected TestUser createUser(String userName) throws Exception {
 		register(userName, "password123");
 		String token = login(userName, "password123").get("accessToken").asString();
 		return new TestUser(userName, token, userIdOf(userName));
 	}
 
-	/**
-	 * Convenience shorthand – returns a fresh access token for the built-in admin
-	 * account that is guaranteed to exist after {@link #installSampleData()}.
-	 */
 	protected String getAdminToken() throws Exception {
 		return login(ADMIN_USER, ADMIN_PASSWORD).get("accessToken").asString();
 	}
@@ -85,12 +74,6 @@ public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 		ensureOrdinaryIntegrationFixture();
 	}
 
-	/**
-	 * The general integration suite needs a tiny, deterministic forum/CMS surface.
-	 * Production no-pack installation intentionally creates none of this sample
-	 * content, so keep it local to tests rather than coupling ordinary installs to
-	 * the distributable preview pack.
-	 */
 	private void ensureOrdinaryIntegrationFixture() {
 		testFixtureSetupMapper.ensureDefaultCategory();
 		testFixtureSetupMapper.ensureGeneralBoard();

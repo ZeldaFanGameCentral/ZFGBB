@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.cms.catalog;
 
+import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,8 +45,8 @@ public class ProjectService implements TemplateDataService {
 	public PagedResult<Project> getProjects(String search, String status, String language, String author,
 			Boolean hasDownload, String sort, Integer page, Integer pageSize) {
 		CatalogListing listing = CatalogListing.of(page, pageSize);
-		return projectDataProvider.getProjects(CatalogListing.blankToNull(search), CatalogListing.blankToNull(status),
-				CatalogListing.blankToNull(language), CatalogListing.blankToNull(author), hasDownload, sort,
+		return projectDataProvider.getProjects(StringUtils.trimToNull(search), StringUtils.trimToNull(status),
+				StringUtils.trimToNull(language), StringUtils.trimToNull(author), hasDownload, sort,
 				listing.page(), listing.pageSize());
 	}
 

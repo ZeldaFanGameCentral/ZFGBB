@@ -20,10 +20,6 @@ public record CatalogListing(int page, int pageSize) {
 						: pageSize);
 	}
 
-	public static String blankToNull(String value) {
-		return value == null || value.isBlank() ? null : value;
-	}
-
 	public static <T> List<T> rail(BiFunction<String, Integer, List<T>> fetch, Function<T, String> slug,
 			String sort, int limit, String excludeSlug) {
 		return fetch.apply(sort, limit + 1).stream()

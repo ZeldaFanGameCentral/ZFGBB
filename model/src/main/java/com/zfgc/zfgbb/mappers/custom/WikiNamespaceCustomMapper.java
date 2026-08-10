@@ -10,18 +10,16 @@ import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public interface WikiNamespaceCustomMapper {
 
+	@Getter
+	@Setter
 	public static class NamespaceRecord {
 		private String name;
 		private String caseMode;
-
-		public String name() { return name; }
-		public String caseMode() { return caseMode; }
-		public String getName() { return name; }
-		public void setName(String name) { this.name = name; }
-		public String getCaseMode() { return caseMode; }
-		public void setCaseMode(String caseMode) { this.caseMode = caseMode; }
 	}
 
 	@Select("""
@@ -39,17 +37,12 @@ public interface WikiNamespaceCustomMapper {
 	@Select("select case_mode from zfgbb.wiki_namespace where lower(name) = 'main'")
 	List<String> findMainCaseMode();
 
+	@Getter
+	@Setter
 	public static class NamespacePageCount {
 		private String namespace;
 		private long pageCount;
 		private long redirectCount;
-
-		public String getNamespace() { return namespace; }
-		public void setNamespace(String namespace) { this.namespace = namespace; }
-		public long getPageCount() { return pageCount; }
-		public void setPageCount(long pageCount) { this.pageCount = pageCount; }
-		public long getRedirectCount() { return redirectCount; }
-		public void setRedirectCount(long redirectCount) { this.redirectCount = redirectCount; }
 	}
 
 	@Select("""
@@ -83,20 +76,12 @@ public interface WikiNamespaceCustomMapper {
 	@Select("select case_mode from zfgbb.wiki_namespace where lower(name)=lower(#{namespace})")
 	List<String> findCaseModeByName(@Param("namespace") String namespace);
 
+	@Getter
+	@Setter
 	public static class EditPolicyRecord {
 		private String name;
 		private boolean systemManaged;
 		private String editPermissionCode;
-
-		public String name() { return name; }
-		public boolean systemManaged() { return systemManaged; }
-		public String editPermissionCode() { return editPermissionCode; }
-		public String getName() { return name; }
-		public void setName(String name) { this.name = name; }
-		public boolean getSystemManaged() { return systemManaged; }
-		public void setSystemManaged(boolean systemManaged) { this.systemManaged = systemManaged; }
-		public String getEditPermissionCode() { return editPermissionCode; }
-		public void setEditPermissionCode(String editPermissionCode) { this.editPermissionCode = editPermissionCode; }
 	}
 
 	@Select("""
@@ -130,14 +115,11 @@ public interface WikiNamespaceCustomMapper {
 	@Delete("delete from zfgbb.wiki_namespace where name = #{name}")
 	int deleteNamespaceByName(@Param("name") String name);
 
+	@Getter
+	@Setter
 	public static class ImportNamespaceRecord {
 		private Integer sourceNamespaceId;
 		private String namespaceName;
-
-		public Integer getSourceNamespaceId() { return sourceNamespaceId; }
-		public void setSourceNamespaceId(Integer sourceNamespaceId) { this.sourceNamespaceId = sourceNamespaceId; }
-		public String getNamespaceName() { return namespaceName; }
-		public void setNamespaceName(String namespaceName) { this.namespaceName = namespaceName; }
 	}
 
 	@Select("""

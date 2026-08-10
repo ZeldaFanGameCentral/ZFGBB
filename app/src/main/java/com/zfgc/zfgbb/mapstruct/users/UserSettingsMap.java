@@ -16,4 +16,6 @@ public interface UserSettingsMap {
 	@Mapping(target = "createdTs", ignore = true)
 	@Mapping(target = "updatedTs", ignore = true)
 	void applyOnto(UserSettings settings, @MappingTarget UserSettingsDbo row);
+
+	UserSettings toModel(UserSettingsDbo row);
 }

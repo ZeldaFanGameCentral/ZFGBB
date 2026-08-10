@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.content.renderer.templates;
 
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
 import static org.jsoup.nodes.Entities.escape;
@@ -18,8 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.samskivert.mustache.Mustache;
@@ -35,6 +34,7 @@ import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TemplateExpander {
@@ -46,8 +46,6 @@ public class TemplateExpander {
 	private static final Pattern FILE_REF = Pattern.compile("\\[\\[(?:File|Image):([^\\]|]+)(?:\\|[^\\]]*)?\\]\\]", Pattern.CASE_INSENSITIVE);
 	private static final DateTimeFormatter TEMPLATE_DATE_FORMAT = DateTimeFormatter.ofPattern("MMMM d, yyyy",
 			Locale.ENGLISH);
-
-	private final Logger logger = LoggerFactory.getLogger(TemplateExpander.class);
 
 	private final ContentResourceDao contentResourceDao;
 	private final ContentTemplateCatalog templates;
@@ -157,7 +155,7 @@ public class TemplateExpander {
 			}
 			return compiled.computeIfAbsent(body, this::compile).execute(data);
 		} catch (RuntimeException e) {
-			logger.warn("content_template '{}' failed to render: {}", name, e.toString());
+			log.warn("content_template '{}' failed to render: {}", name, e.toString());
 			return "";
 		}
 	}
@@ -174,7 +172,7 @@ public class TemplateExpander {
 		try {
 			return SOURCE_PATH_COMPILER.compile(source).execute(urlEncodedParams);
 		} catch (RuntimeException unparseablePath) {
-			logger.warn("template source path '{}' failed to substitute: {}", source, unparseablePath.toString());
+			log.warn("template source path '{}' failed to substitute: {}", source, unparseablePath.toString());
 			return source;
 		}
 	}

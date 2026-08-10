@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.content.renderer.templates;
 
+import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URLDecoder;
@@ -12,8 +13,6 @@ import java.util.concurrent.Semaphore;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +29,7 @@ import com.zfgc.zfgbb.model.users.User;
 
 import tools.jackson.databind.ObjectMapper;
 
+@Slf4j
 @Component
 public class TemplateDataFetcher {
 
@@ -38,8 +38,6 @@ public class TemplateDataFetcher {
 
 	private record Registry(Map<String, Endpoint> exact, Map<String, Endpoint> trailing) {
 	}
-
-	private final Logger logger = LoggerFactory.getLogger(TemplateDataFetcher.class);
 
 	private final ThreadLocal<Boolean> inFetch = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -67,7 +65,7 @@ public class TemplateDataFetcher {
 	private Object theEndpointFetchedWithinTheConnectionBudget(Endpoint endpoint, Map<String, String> params)
 			throws InterruptedException {
 		if (!secondConnections.tryAcquire(SECONDS_A_FETCH_WAITS_FOR_ITS_CONNECTION, TimeUnit.SECONDS)) {
-			logger.warn("template data fetch gave up waiting for a connection slot; the widget renders blank");
+			log.warn("template data fetch gave up waiting for a connection slot; the widget renders blank");
 			return null;
 		}
 		try {
@@ -93,7 +91,7 @@ public class TemplateDataFetcher {
 			Object result = theEndpointFetchedWithinTheConnectionBudget(endpoint, params);
 			return result == null ? null : json.convertValue(result, Object.class);
 		} catch (Exception e) {
-			logger.warn("template data fetch failed for '{}': {}", path, e.toString());
+			log.warn("template data fetch failed for '{}': {}", path, e.toString());
 			return null;
 		} finally {
 			inFetch.remove();
@@ -141,7 +139,7 @@ public class TemplateDataFetcher {
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void initializeSources() {
-		logger.debug("template data sources: {}", describeSources());
+		log.debug("template data sources: {}", describeSources());
 	}
 
 	public Map<String, List<String>> describeSources() {

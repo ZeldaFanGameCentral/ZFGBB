@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.cms.wiki;
 
+import java.util.Optional;
 import java.util.List;
 import java.util.Map;
 
@@ -98,7 +99,7 @@ public class WikiService implements TemplateDataService {
 				pageSize == null || pageSize < 1 || pageSize > 200 ? 50 : pageSize);
 	}
 
-	public WikiPageRef getRandomWikiPage() {
+	public Optional<WikiPageRef> getRandomWikiPage() {
 		return wikiDataProvider.getRandomWikiPage();
 	}
 

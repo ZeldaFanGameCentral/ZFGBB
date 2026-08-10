@@ -59,7 +59,9 @@ public class WikiController extends BaseController {
 	@GetMapping("/meta/random")
 	@AllowAnonymous
 	public ResponseEntity<WikiPageRef> getRandomPage() {
-		return ResponseEntity.ok(wikiService.getRandomWikiPage());
+		return wikiService.getRandomWikiPage()
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
 
 	@GetMapping("/meta/categories")
