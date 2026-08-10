@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.services.backup;
 
+import static com.zfgc.zfgbb.operations.archive.OperationFiles.canonicalId;
+
 import com.zfgc.zfgbb.services.contentstore.ContentRoot;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -174,14 +176,6 @@ public class OperationStorageService {
 	private static boolean canonicalSafetyDump(String name) {
 		return name.endsWith(SAFETY_DUMP_SUFFIX) && canonicalId(
 				name.substring(0, name.length() - SAFETY_DUMP_SUFFIX.length()));
-	}
-
-	public static boolean canonicalId(String id) {
-		try {
-			return UUID.fromString(id).toString().equals(id);
-		} catch (IllegalArgumentException | NullPointerException invalid) {
-			return false;
-		}
 	}
 
 	private static boolean lastModifiedBefore(Path path, Instant cutoff) {

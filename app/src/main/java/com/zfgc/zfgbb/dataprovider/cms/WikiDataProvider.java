@@ -17,6 +17,11 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dataprovider.reactions.ReactionDataProvider;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDbo;
 import com.zfgc.zfgbb.dbo.WikiPageCategoryDboExample;
@@ -37,10 +42,12 @@ import com.zfgc.zfgbb.mappers.custom.WikiNamespaceCustomMapper.NamespacePageCoun
 import com.zfgc.zfgbb.mapstruct.cms.WikiFileRefMap;
 import com.zfgc.zfgbb.mapstruct.cms.WikiPageMap;
 import com.zfgc.zfgbb.mapstruct.cms.WikiPageRefMap;
+import com.zfgc.zfgbb.mapstruct.cms.WikiRevisionMap;
 import com.zfgc.zfgbb.mapstruct.cms.WikiRevisionRefMap;
 import com.zfgc.zfgbb.model.cms.PagedResult;
 import com.zfgc.zfgbb.model.cms.WikiPage;
 import com.zfgc.zfgbb.model.cms.WikiPageRef;
+import com.zfgc.zfgbb.model.cms.WikiRevision;
 import com.zfgc.zfgbb.model.cms.WikiRevisionRef;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
 import com.zfgc.zfgbb.wiki.WikiTitle;
@@ -57,6 +64,14 @@ public class WikiDataProvider {
 
 	private final WikiPageDao wikiPageDao;
 
+	private final UserErasureDao userErasureDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
+	private final CatalogDataProvider catalogDataProvider;
+
+	private final ReactionDataProvider reactionDataProvider;
+
 	private final WikiPageRevisionDao wikiPageRevisionDao;
 
 	private final WikiRevisionRefDao wikiRevisionRefDao;
@@ -70,6 +85,8 @@ public class WikiDataProvider {
 	private final WikiPageMap wikiPageMap;
 
 	private final WikiRevisionRefMap wikiRevisionRefMap;
+
+	private final WikiRevisionMap wikiRevisionMap;
 
 	private final WikiPageRefMap wikiPageRefMap;
 
@@ -95,7 +112,7 @@ public class WikiDataProvider {
 	}
 
 	public WikiPage getWikiPage(String path, Integer revisionId) {
-		WikiPageDbo dbo = findPage(path);
+		WikiPageDbo dbo = findPageDbo(path);
 		if (dbo == null) {
 			WikiTitle categoryTitle = path == null ? null : namespaceData.resolve(path);
 			if (categoryTitle != null
@@ -130,7 +147,7 @@ public class WikiDataProvider {
 	}
 
 	public Optional<WikiPage> getWikiPageQuietly(String slug) {
-		return Optional.ofNullable(findPage(slug)).map(this::toWikiPage);
+		return Optional.ofNullable(findPageDbo(slug)).map(this::toWikiPage);
 	}
 
 	public List<String> getNamespaces() {
@@ -141,10 +158,10 @@ public class WikiDataProvider {
 						NamespacePageCount::getPageCount));
 		return counts.entrySet().stream()
 				.sorted((entryA, entryB) -> {
-					if ("MAIN".equals(entryA.getKey())) {
-						return "MAIN".equals(entryB.getKey()) ? 0 : -1;
+					if (entryA.getKey().equals("MAIN")) {
+						return entryB.getKey().equals("MAIN") ? 0 : -1;
 					}
-					if ("MAIN".equals(entryB.getKey())) {
+					if (entryB.getKey().equals("MAIN")) {
 						return 1;
 					}
 					int byCount = Long.compare(entryB.getValue(), entryA.getValue());
@@ -177,7 +194,7 @@ public class WikiDataProvider {
 	}
 
 	public List<WikiRevisionRef> getWikiHistory(String path) {
-		WikiPageDbo dbo = findPage(path);
+		WikiPageDbo dbo = findPageDbo(path);
 		if (dbo == null) {
 			throw new ZfgcNotFoundException();
 		}
@@ -281,7 +298,11 @@ public class WikiDataProvider {
 				.map(this::toPageRef).toList();
 	}
 
-	public WikiPageDbo findPage(String path) {
+	public Optional<WikiPage> findPage(String path) {
+		return Optional.ofNullable(findPageDbo(path)).map(wikiPageMap::toModel);
+	}
+
+	private WikiPageDbo findPageDbo(String path) {
 		WikiPageDboExample slug = new WikiPageDboExample();
 		slug.createCriteria().andSlugEqualTo(path);
 		WikiPageDbo byStableSlug = uniquePage(wikiPageDao.get(slug), path);
@@ -301,7 +322,7 @@ public class WikiDataProvider {
 	}
 
 	private boolean shadowsRegisteredNamespace(WikiPageDbo candidate, WikiTitle resolved) {
-		return "MAIN".equals(candidate.getNamespace()) && !"MAIN".equals(resolved.namespace());
+		return candidate.getNamespace().equals("MAIN") && !resolved.namespace().equals("MAIN");
 	}
 
 	private static WikiPageDbo uniquePage(List<WikiPageDbo> matches, String requestedPath) {
@@ -344,17 +365,17 @@ public class WikiDataProvider {
 		return wikiRevisionRefMap.toRef(rev);
 	}
 
-	public WikiPageDbo createPage(String namespace, String title, String slug) {
+	public WikiPage createPage(String namespace, String title, String slug) {
 		WikiPageDbo page = new WikiPageDbo();
 		page.setNamespace(namespace);
 		page.setTitle(title);
 		page.setSlug(slug);
 		wikiPageDao.insert(page);
-		return page;
+		return wikiPageMap.toModel(page);
 	}
 
-	public WikiPageRevisionDbo getRevision(Integer revisionId) {
-		return wikiPageRevisionDao.find(revisionId).orElse(null);
+	public Optional<WikiRevision> getRevision(Integer revisionId) {
+		return wikiPageRevisionDao.find(revisionId).map(wikiRevisionMap::toModel);
 	}
 
 	public Optional<ContentFormat> contentFormatOfRevisionBeingSuperseded(Integer wikiPageId) {
@@ -373,11 +394,11 @@ public class WikiDataProvider {
 				.flatMap(revision -> ContentFormat.parse(revision.getContentFormat()));
 	}
 
-	public WikiPageDbo getPage(Integer wikiPageId) {
-		return wikiPageDao.find(wikiPageId).orElse(null);
+	public Optional<WikiPage> getPage(Integer wikiPageId) {
+		return wikiPageDao.find(wikiPageId).map(wikiPageMap::toModel);
 	}
 
-	public WikiPageRevisionDbo submitRevision(Integer wikiPageId, String content, ContentFormat contentFormat,
+	public WikiRevisionRef submitRevision(Integer wikiPageId, String content, ContentFormat contentFormat,
 			String summary, Integer authorUserId, String authorName) {
 		WikiPageRevisionDbo revision = new WikiPageRevisionDbo();
 		revision.setWikiPageId(wikiPageId);
@@ -391,10 +412,12 @@ public class WikiDataProvider {
 		revision.setAuthorName(authorName);
 		revision.setSummary(summary);
 		wikiPageRevisionDao.insert(revision);
-		return revision;
+		return wikiRevisionRefMap.toRef(revision);
 	}
 
-	public void approveRevision(WikiPageRevisionDbo revision) {
+	public void approveRevision(Integer revisionId) {
+		WikiPageRevisionDbo revision = wikiPageRevisionDao.find(revisionId)
+				.orElseThrow(ZfgcNotFoundException::new);
 		WikiPageRevisionDboExample currentEx = new WikiPageRevisionDboExample();
 		currentEx.createCriteria().andWikiPageIdEqualTo(revision.getWikiPageId()).andCurrentFlagEqualTo(true);
 		for (WikiPageRevisionDbo old : wikiPageRevisionDao.get(currentEx)) {
@@ -406,7 +429,9 @@ public class WikiDataProvider {
 		wikiPageRevisionDao.save(revision);
 	}
 
-	public void rejectRevision(WikiPageRevisionDbo revision) {
+	public void rejectRevision(Integer revisionId) {
+		WikiPageRevisionDbo revision = wikiPageRevisionDao.find(revisionId)
+				.orElseThrow(ZfgcNotFoundException::new);
 		revision.setStatus(STATUS_REJECTED);
 		wikiPageRevisionDao.save(revision);
 	}
@@ -417,5 +442,39 @@ public class WikiDataProvider {
 		return withPageRefs(wikiRevisionRefDao.get(ex).stream()
 				.sorted(Comparator.comparing(WikiRevisionRefDbo::getWikiPageRevisionId))
 				.toList());
+	}
+
+	public List<Integer> findOwnedTemplateLinkedWikiPageIds(Integer userId) {
+		return userErasureDao.findOwnedTemplateLinkedWikiPageIds(userId);
+	}
+
+	public List<ReleasedResource> purgeOwnedWikiPages(Integer userId) {
+		List<Integer> pageIds = userErasureDao.findOwnedHardDeletableWikiPageIds(userId);
+		if (pageIds.isEmpty())
+			return List.of();
+		reactionDataProvider.deleteReactions("WIKI_PAGE", pageIds);
+		userErasureDao.nullRetainedEntityWikiPageLinks(pageIds);
+		List<Integer> releasedResourceIds = userErasureDao.findWikiPageContentResourceIds(pageIds);
+		WikiPageRevisionDboExample wikiRevisionsExample = new WikiPageRevisionDboExample();
+		wikiRevisionsExample.createCriteria().andWikiPageIdIn(pageIds);
+		wikiPageRevisionDao.deleteWhere(wikiRevisionsExample);
+		MigratorIdMapDboExample migratorEntries = new MigratorIdMapDboExample();
+		migratorEntries.createCriteria().andEntityTypeEqualTo("WIKI_PAGE").andZfgbbIdIn(pageIds);
+		migratorIdMapDao.deleteWhere(migratorEntries);
+		WikiPageDboExample wikiPagesExample = new WikiPageDboExample();
+		wikiPagesExample.createCriteria().andWikiPageIdIn(pageIds);
+		wikiPageDao.deleteWhere(wikiPagesExample);
+		return catalogDataProvider.deleteContentResourcesIfUnreferenced(releasedResourceIds);
+	}
+
+	public int countOwnedWikiPages(Integer userId) {
+		WikiPageDboExample ownedWikiPagesExample = new WikiPageDboExample();
+		ownedWikiPagesExample.createCriteria().andCreatedUserIdEqualTo(userId);
+		return (int) wikiPageDao.count(ownedWikiPagesExample);
+	}
+
+	public void scrubRetainedWikiContributions(Integer userId) {
+		userErasureDao.nullWikiPageCreators(userId);
+		userErasureDao.scrubRetainedWikiRevisions(userId);
 	}
 }

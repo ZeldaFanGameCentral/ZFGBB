@@ -3,7 +3,7 @@ create table zfgbb.migrator_id_map (
 	entity_type varchar(50) not null,
 	legacy_id integer not null,
 	zfgbb_id integer not null,
-	created_ts timestamptz not null default current_timestamp,
+	created_ts timestamp not null default current_timestamp,
 	unique (entity_type, legacy_id)
 );
 

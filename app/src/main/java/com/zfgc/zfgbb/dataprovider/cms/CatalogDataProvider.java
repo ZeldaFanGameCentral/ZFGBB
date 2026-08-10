@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,8 @@ public class CatalogDataProvider {
 	protected final UserDao userDao;
 
 	protected final ContentResourceDao contentResourceDao;
+
+	protected final UserErasureDao userErasureDao;
 
 	Map<Integer, String> displayNames(Stream<Integer> userIds) {
 		Map<Integer, String> names = new HashMap<>();
@@ -49,4 +54,27 @@ public class CatalogDataProvider {
 		return items.stream().skip((long) (page - 1) * pageSize).limit(pageSize);
 	}
 
+	public List<ReleasedResource> deleteContentResourcesIfUnreferenced(List<Integer> candidateResourceIds) {
+		if (candidateResourceIds.isEmpty())
+			return List.of();
+		List<Integer> deletableResourceIds = userErasureDao.findUnreferencedContentResourceIds(candidateResourceIds);
+		if (deletableResourceIds.isEmpty())
+			return List.of();
+		return deleteContentResourceRows(deletableResourceIds);
+	}
+
+	public List<ReleasedResource> deleteContentResourceRows(List<Integer> resourceIds) {
+		if (resourceIds.isEmpty())
+			return List.of();
+		ContentResourceDboExample ex = new ContentResourceDboExample();
+		ex.createCriteria().andContentResourceIdIn(resourceIds);
+		List<ReleasedResource> released = contentResourceDao.get(ex).stream()
+				.map(resource -> new ReleasedResource(resource.getContentResourceId(), resource.getStorageDir(),
+						resource.getFilename()))
+				.toList();
+		ContentResourceDboExample deletableResourcesExample = new ContentResourceDboExample();
+		deletableResourcesExample.createCriteria().andContentResourceIdIn(resourceIds);
+		contentResourceDao.deleteWhere(deletableResourcesExample);
+		return released;
+	}
 }

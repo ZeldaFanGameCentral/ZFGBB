@@ -42,7 +42,6 @@ import org.springframework.context.annotation.Bean;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import com.zfgc.zfgbb.config.BackupRestoreProperties;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.controller.system.SiteController;
 import com.zfgc.zfgbb.model.system.SiteInfo;
@@ -53,6 +52,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
+import com.zfgc.zfgbb.config.BackupRestoreProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
@@ -77,7 +77,7 @@ import com.zfgc.zfgbb.dao.meta.SystemConfigDao;
 import com.zfgc.zfgbb.services.mail.MailDispatcher;
 import com.zfgc.zfgbb.services.contentstore.AuthoringContentFormat;
 import com.zfgc.zfgbb.services.install.InstallPhaseTransactions;
-import com.zfgc.zfgbb.services.install.InstallRunRepository;
+import com.zfgc.zfgbb.dataprovider.system.InstallRunDataProvider;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
 class PlatformTest {
@@ -98,17 +98,17 @@ class PlatformTest {
 
 		private record GateRun(MockFilterChain chain, MockHttpServletResponse response) {}
 
-		private InstallRunRepository installs;
+		private InstallRunDataProvider installs;
 		private PartialInstallGateFilter filter;
 
 		@BeforeEach
 		void setup() {
-			installs = mock(InstallRunRepository.class);
+			installs = mock(InstallRunDataProvider.class);
 			filter = new PartialInstallGateFilter(installs);
 		}
 
 		private GateRun runFilter(String state, String method, String contextPath, String requestUri) throws Exception {
-			when(installs.get()).thenReturn(new InstallRunRepository.Run(state, null, null, null, null,
+			when(installs.get()).thenReturn(new InstallRunDataProvider.Run(state, null, null, null, null,
 					Optional.empty()));
 			MockHttpServletRequest request = new MockHttpServletRequest(method, requestUri);
 			request.setContextPath(contextPath);
@@ -659,4 +659,5 @@ class PlatformTest {
 					sitePayloadBuiltWith("2025.5.0-183-ga4514fd50").buildVersion());
 		}
 	}
+
 }

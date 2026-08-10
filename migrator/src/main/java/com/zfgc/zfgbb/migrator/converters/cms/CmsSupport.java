@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.converters.cms;
 
+import java.util.Objects;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -87,7 +88,7 @@ public final class CmsSupport {
 	}
 
 	public static String wikiSlug(String namespace, String pageTitle) {
-		return "MAIN".equals(namespace) ? pageTitle : namespace + ":" + pageTitle;
+		return Objects.equals(namespace, "MAIN") ? pageTitle : namespace + ":" + pageTitle;
 	}
 
 	public static String wikiTitleDisplay(String pageTitle) {

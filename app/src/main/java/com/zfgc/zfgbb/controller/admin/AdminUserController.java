@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
+import com.zfgc.zfgbb.model.users.DeletionMode;
 import com.zfgc.zfgbb.model.users.UserSummary;
-import com.zfgc.zfgbb.services.users.UserDeletionService;
-import com.zfgc.zfgbb.services.users.deletion.CoreUserDataHandler;
+import com.zfgc.zfgbb.services.users.UserService;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -24,18 +24,18 @@ import com.zfgc.zfgbb.services.users.deletion.CoreUserDataHandler;
 @RequiredArgsConstructor
 public class AdminUserController extends BaseController {
 
-	private final UserDeletionService userDeletionService;
+	private final UserService userService;
 
-	private final CoreUserDataHandler coreUserDataHandler;
+	public record UserDeletionRequest(Integer userId, DeletionMode mode) {}
 
 	@GetMapping
 	public ResponseEntity<List<UserSummary>> list() {
-		return ResponseEntity.ok(coreUserDataHandler.listUsers());
+		return ResponseEntity.ok(userService.listUsers());
 	}
 
 	@PostMapping("/delete")
-	public ResponseEntity<Void> delete(@Valid @RequestBody UserDeletionService.UserDeletionRequest request) {
-		userDeletionService.deleteUser(request.userId(), request.mode(), zfgcUser());
+	public ResponseEntity<Void> delete(@Valid @RequestBody UserDeletionRequest request) {
+		userService.deleteUser(request.userId(), request.mode(), zfgcUser());
 		return ResponseEntity.noContent().build();
 	}
 }

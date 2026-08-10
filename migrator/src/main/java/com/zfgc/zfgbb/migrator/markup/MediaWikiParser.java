@@ -103,7 +103,7 @@ public final class MediaWikiParser {
                 return;
             }
             String upper = templateName.trim().toUpperCase();
-            if ("NUMBEROFARTICLES".equals(upper) || "NUMBEROFPAGES".equals(upper)) {
+            if (upper.equals("NUMBEROFARTICLES") || upper.equals("NUMBEROFPAGES")) {
                 templateName = "PageCount";
             } else if (MAGIC_VARIABLES.contains(upper)) {
                 return;

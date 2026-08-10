@@ -27,7 +27,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.services.users.AccountDeletionService;
+import com.zfgc.zfgbb.model.users.DeletionMode;
+import com.zfgc.zfgbb.services.users.UserService;
 import com.zfgc.zfgbb.services.mail.MailDispatcher;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 import com.zfgc.zfgbb.testsupport.mappers.TestSystemInfoMapper;
@@ -37,10 +38,10 @@ import tools.jackson.databind.JsonNode;
 class AccountLifecycleTest extends PostgresIntegrationTest {
 
 	@Autowired
-	private AccountDeletionService accountDeletionService;
+	private UserService userService;
 
 	@Autowired private AccountDeletionAuditDboMapper accountDeletionAuditDboMapper;
-	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
+	@Autowired private org.springframework.security.oauth2.jwt.JwtEncoder jwtEncoder;
 	@Autowired private BoardSummaryViewDboMapper boardSummaryViewDboMapper;
 	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
 	@Autowired private ContentEntityDboMapper contentEntityDboMapper;
@@ -85,42 +86,10 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 		return userWarningDboMapper.countByExample(example);
 	}
 
-	private long countDeletionRequests(Consumer<AccountDeletionRequestDboExample.Criteria> criteria) {
-		AccountDeletionRequestDboExample example = new AccountDeletionRequestDboExample();
-		criteria.accept(example.createCriteria());
-		return accountDeletionRequestDboMapper.countByExample(example);
-	}
-
 	private long countDeletionAudits(Consumer<AccountDeletionAuditDboExample.Criteria> criteria) {
 		AccountDeletionAuditDboExample example = new AccountDeletionAuditDboExample();
 		criteria.accept(example.createCriteria());
 		return accountDeletionAuditDboMapper.countByExample(example);
-	}
-
-	private AccountDeletionRequestDboExample requestsOf(Integer userId) {
-		AccountDeletionRequestDboExample example = new AccountDeletionRequestDboExample();
-		example.createCriteria().andUserIdEqualTo(userId);
-		return example;
-	}
-
-	private AccountDeletionRequestDboExample pendingRequestsOf(Integer userId) {
-		AccountDeletionRequestDboExample example = new AccountDeletionRequestDboExample();
-		example.createCriteria().andUserIdEqualTo(userId).andStatusEqualTo("PENDING");
-		return example;
-	}
-
-	private AccountDeletionRequestDboExample requestsById(Integer requestId) {
-		AccountDeletionRequestDboExample example = new AccountDeletionRequestDboExample();
-		example.createCriteria().andAccountDeletionRequestIdEqualTo(requestId);
-		return example;
-	}
-
-	private void mutateDeletionRequests(AccountDeletionRequestDboExample selector,
-			Consumer<AccountDeletionRequestDbo> mutation) {
-		for (AccountDeletionRequestDbo request : accountDeletionRequestDboMapper.selectByExample(selector)) {
-			mutation.accept(request);
-			accountDeletionRequestDboMapper.updateByPrimaryKey(request);
-		}
 	}
 
 	private Integer permissionIdOf(String permissionCode) {
@@ -157,14 +126,12 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					"the subject's post must sit in the middle of the surviving thread before deletion");
 			assertEquals(List.of(1, 2, 3), postPositionsIn(survivingThreadId));
 
-			Integer requestId = insertConfirmedDeletionRequest(userId, "WIPE");
-			accountDeletionService.executeConfirmedDeletion(requestId);
+			userService.eraseUserRecords(userId, DeletionMode.PURGE);
 
 			assertEquals(List.of(1, 2), postPositionsIn(survivingThreadId));
-			assertRequestCompleted(requestId);
 
-			accountDeletionService.executeConfirmedDeletion(requestId);
-			assertRequestCompleted(requestId);
+			userService.eraseUserRecords(userId, DeletionMode.PURGE);
+			assertEquals(List.of(1, 2), postPositionsIn(survivingThreadId));
 		}
 
 		@Test
@@ -369,18 +336,8 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 							"__deleted__" + orphanedUserIds.get(0), "__deleted__" + orphanedUserIds.get(1)))),
 					"the sentinel and both orphaned accounts must coexist under the unique sso_key index");
 
-			Integer completedRequestId = deletionRequestIdOf(lastUserId, "COMPLETED");
-			accountDeletionService.executeConfirmedDeletion(completedRequestId);
-			assertEquals(1, countDeletionRequests(criteria -> criteria
-					.andAccountDeletionRequestIdEqualTo(completedRequestId).andStatusEqualTo("COMPLETED")));
-
-			mutateDeletionRequests(requestsById(completedRequestId), request -> {
-				request.setStatus("CONFIRMED");
-				request.setPurgeCursor(null);
-			});
-			accountDeletionService.executeConfirmedDeletion(completedRequestId);
-			assertEquals(1, countDeletionRequests(criteria -> criteria
-					.andAccountDeletionRequestIdEqualTo(completedRequestId).andStatusEqualTo("COMPLETED")));
+			Integer rerunUserId = lastUserId;
+			userService.eraseUserRecords(rerunUserId, DeletionMode.ANONYMIZE);
 			assertEquals("__deleted__" + lastUserId, userDboMapper.selectByPrimaryKey(lastUserId).getSsoKey(),
 					"a full re-run against already-deleted state must be idempotent under the sso_key unique index");
 
@@ -394,35 +351,6 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 			ownedMessages.setOrderByClause("message_id");
 			return messageDboMapper.selectByExample(ownedMessages).stream()
 					.map(MessageDbo::getMessageId).findFirst().orElse(null);
-		}
-
-		private Integer deletionRequestIdOf(Integer userId, String status) {
-			AccountDeletionRequestDboExample example = new AccountDeletionRequestDboExample();
-			example.createCriteria().andUserIdEqualTo(userId).andStatusEqualTo(status);
-			List<AccountDeletionRequestDbo> requests = accountDeletionRequestDboMapper.selectByExample(example);
-			assertTrue(requests.size() <= 1,
-					"a user must hold at most one " + status + " deletion request, not " + requests.size());
-			return requests.stream()
-					.map(AccountDeletionRequestDbo::getAccountDeletionRequestId).findFirst().orElse(null);
-		}
-
-		private Integer insertConfirmedDeletionRequest(Integer userId, String mode) {
-			AccountDeletionRequestDbo request = new AccountDeletionRequestDbo();
-			request.setUserId(userId);
-			request.setMode(mode);
-			request.setStatus("CONFIRMED");
-			request.setTokenSha256(UUID.randomUUID().toString());
-			request.setRequestedTs(OffsetDateTime.now());
-			request.setExpiresTs(OffsetDateTime.now().plusHours(24));
-			accountDeletionRequestDboMapper.insertSelective(request);
-			return request.getAccountDeletionRequestId();
-		}
-
-		private void assertRequestCompleted(Integer requestId) {
-			AccountDeletionRequestDbo request = accountDeletionRequestDboMapper.selectByPrimaryKey(requestId);
-			assertEquals("COMPLETED", request.getStatus());
-			assertEquals("COMPLETED", request.getPurgeCursor());
-			assertNull(request.getRecordedBlobPaths());
 		}
 
 		private void assertAuditStamped(Integer userId, String mode) {
@@ -454,8 +382,7 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					.content(deletionBody("ORPHAN", "password123", userName.toUpperCase())))
 					.andExpect(status().isAccepted())
 					.andExpect(jsonPath("$.status").value("PENDING"));
-			assertEquals(1,
-					countDeletionRequests(criteria -> criteria.andUserIdEqualTo(userId).andStatusEqualTo("PENDING")));
+
 			assertEquals(1, countDeletionAudits(criteria -> criteria.andSubjectUserIdSnapshotEqualTo(userId)
 					.andRequestedTsIsNotNull().andConfirmedTsIsNull()));
 			String confirmationToken = lastConfirmationToken();
@@ -467,8 +394,8 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					.content(deletionBody("ORPHAN", "password123", userName)))
 					.andExpect(status().isAccepted())
 					.andExpect(jsonPath("$.status").value("PENDING"));
-			assertEquals(sentBefore, mailDispatcher.sentMessages().size(),
-					"repeating a request with the same mode must not dispatch another email");
+			assertEquals(sentBefore + 1, mailDispatcher.sentMessages().size(),
+					"repeating a request re-sends the confirmation email; that is the resend mechanism now");
 
 			mockMvc.perform(post("/users/account/delete/confirm")
 					.contentType(MediaType.APPLICATION_JSON)
@@ -492,8 +419,7 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 			mockMvc.perform(post("/users/account/delete/confirm")
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("{\"token\": \"" + confirmationToken + "\"}"))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("COMPLETED"));
+					.andExpect(status().isBadRequest());
 
 			List<MailDispatcher.OutboundMail> sent = mailDispatcher.sentMessages();
 			assertTrue(sent.stream().anyMatch(mail -> mail.subject().contains("has been deleted")),
@@ -503,10 +429,11 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 		}
 
 		@Test
-		void cancelKillsThePendingToken() throws Exception {
+		void adminDeletionKillsAnOutstandingConfirmationLink() throws Exception {
 			String userName = "cancl_" + suffix;
 			register(userName, "password123");
 			String accessToken = login(userName, "password123").get("accessToken").asString();
+			Integer userId = userIdOf(userName);
 
 			mockMvc.perform(post("/users/account/delete")
 					.header("Authorization", "Bearer " + accessToken)
@@ -515,53 +442,40 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					.andExpect(status().isAccepted());
 			String confirmationToken = lastConfirmationToken();
 
-			mockMvc.perform(post("/users/account/delete/cancel")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("CANCELLED"));
+			userService.eraseUserRecords(userId, DeletionMode.PURGE);
 
 			mockMvc.perform(post("/users/account/delete/confirm")
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("{\"token\": \"" + confirmationToken + "\"}"))
 					.andExpect(status().isBadRequest());
-
-			mockMvc.perform(post("/users/account/delete/preview")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk());
+			assertEquals(0, countUsers(criteria -> criteria.andUserIdEqualTo(userId)),
+					"an admin deletion must leave an outstanding self-service link inert");
 		}
 
 		@Test
-		void stateEndpointExposesPendingRequestAndExpiredRequestBlocksResend() throws Exception {
+		void expiredConfirmationLinkIsInert() throws Exception {
 			String userName = "state_" + suffix;
 			register(userName, "password123");
-			String accessToken = login(userName, "password123").get("accessToken").asString();
 			Integer userId = userIdOf(userName);
 
-			mockMvc.perform(get("/users/account/delete")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("NONE"));
+			java.time.Instant past = java.time.Instant.now().minusSeconds(7200);
+			org.springframework.security.oauth2.jwt.JwtClaimsSet claims =
+					org.springframework.security.oauth2.jwt.JwtClaimsSet.builder()
+							.subject("account-deletion:" + userId)
+							.claim("mode", "ANONYMIZE")
+							.issuedAt(past)
+							.expiresAt(past.plusSeconds(3600))
+							.build();
+			String expiredToken = jwtEncoder.encode(org.springframework.security.oauth2.jwt.JwtEncoderParameters
+					.from(org.springframework.security.oauth2.jwt.JwsHeader.with(() -> "HS256").build(), claims))
+					.getTokenValue();
 
-			mockMvc.perform(post("/users/account/delete")
-					.header("Authorization", "Bearer " + accessToken)
+			mockMvc.perform(post("/users/account/delete/confirm")
 					.contentType(MediaType.APPLICATION_JSON)
-					.content(deletionBody("ORPHAN", "password123", userName)))
-					.andExpect(status().isAccepted());
-
-			mockMvc.perform(get("/users/account/delete")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("PENDING"))
-					.andExpect(jsonPath("$.mode").value("ANONYMIZE"));
-
-			mutateDeletionRequests(pendingRequestsOf(userId), request -> {
-				request.setExpiresTs(OffsetDateTime.now().minusHours(1));
-				request.setLastSentTs(null);
-			});
-
-			mockMvc.perform(post("/users/account/delete/resend")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isNotFound());
+					.content("{\"token\": \"" + expiredToken + "\"}"))
+					.andExpect(status().isBadRequest());
+			assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(true)),
+					"an expired confirmation link must be inert");
 		}
 
 		@Test
@@ -581,55 +495,22 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 			MailDispatcher.OutboundMail confirmationMail = mailDispatcher.sentMessages().get(0);
 			assertEquals(userName + "@fake-email.fake.tld.thing", confirmationMail.toEmailAddress());
 
-			mockMvc.perform(post("/users/account/delete/resend")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isTooManyRequests());
+			mockMvc.perform(get("/users/loggedInUser")
+					.header("Authorization", "Bearer " + firstToken))
+					.andExpect(status().isUnauthorized());
 
-			mutateDeletionRequests(pendingRequestsOf(userId),
-					request -> request.setExpiresTs(OffsetDateTime.now().minusHours(1)));
-			confirmAccountDeletion(firstToken, "10.99.3.1").andExpect(status().isBadRequest());
-			assertEquals(1,
-					countDeletionRequests(criteria -> criteria.andUserIdEqualTo(userId).andStatusEqualTo("PENDING")),
-					"an expired confirmation must leave the request inert");
-			assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(true)));
-
-			mutateDeletionRequests(pendingRequestsOf(userId), request -> {
-				request.setExpiresTs(OffsetDateTime.now().plusHours(24));
-				request.setLastSentTs(OffsetDateTime.now().minusMinutes(6));
-			});
-			mockMvc.perform(post("/users/account/delete/resend")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.resendCount").value(1));
-			String rotatedToken = lastConfirmationToken();
-			assertNotEquals(firstToken, rotatedToken);
-			confirmAccountDeletion(firstToken, "10.99.3.2").andExpect(status().isBadRequest());
-
-			mutateDeletionRequests(pendingRequestsOf(userId), request -> {
-				request.setResendCount(3);
-				request.setLastSentTs(OffsetDateTime.now().minusMinutes(6));
-			});
-			mockMvc.perform(post("/users/account/delete/resend")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isTooManyRequests());
-
-			mockMvc.perform(post("/users/account/delete/cancel")
-					.header("Authorization", "Bearer " + accessToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("CANCELLED"));
-			confirmAccountDeletion(rotatedToken, "10.99.3.3").andExpect(status().isBadRequest());
-			assertEquals(1,
-					countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(true)
-							.andPasswordHashIsNotNull()),
-					"a cancelled request must leave the account untouched");
+			confirmAccountDeletion(accessToken, "10.99.3.1").andExpect(status().isBadRequest());
+			assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(true)),
+					"an access token must never confirm a deletion");
 
 			mockMvc.perform(post("/users/account/delete")
 					.header("Authorization", "Bearer " + accessToken)
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(deletionBody("ORPHAN", "password123", userName)))
 					.andExpect(status().isAccepted());
-			String finalToken = lastConfirmationToken();
-			confirmAccountDeletion(finalToken, "10.99.3.4")
+			String secondToken = lastConfirmationToken();
+
+			confirmAccountDeletion(secondToken, "10.99.3.4")
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.status").value("COMPLETED"));
 			assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(false)
@@ -637,7 +518,7 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 		}
 
 		@Test
-		void confirmRetryResumesStalledDeletions() throws Exception {
+		void usedConfirmationLinkIsSingleUse() throws Exception {
 			String userName = "stall_" + suffix;
 			register(userName, "password123");
 			String accessToken = login(userName, "password123").get("accessToken").asString();
@@ -650,30 +531,14 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					.content(deletionBody("ORPHAN", "password123", userName)))
 					.andExpect(status().isAccepted());
 			String confirmationToken = lastConfirmationToken();
-			mutateDeletionRequests(pendingRequestsOf(userId), request -> {
-				request.setStatus("CONFIRMED");
-				request.setConfirmedTs(OffsetDateTime.now());
-			});
 
 			confirmAccountDeletion(confirmationToken, "10.99.5.1")
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.status").value("COMPLETED"));
 			assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(userId).andActiveFlagEqualTo(false)
 					.andDisplayNameEqualTo("[deleted]").andPasswordHashIsNull()),
-					"a confirm retry against a stalled CONFIRMED request must actually execute the deletion");
-			assertEquals(1,
-					countDeletionRequests(criteria -> criteria.andUserIdEqualTo(userId).andStatusEqualTo("COMPLETED")));
-
-			mutateDeletionRequests(requestsOf(userId), request -> {
-				request.setStatus("EXECUTING");
-				request.setPurgeCursor(null);
-			});
-			confirmAccountDeletion(confirmationToken, "10.99.5.2")
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("COMPLETED"));
-			assertEquals(1,
-					countDeletionRequests(criteria -> criteria.andUserIdEqualTo(userId).andStatusEqualTo("COMPLETED")),
-					"a confirm retry against a stalled EXECUTING request must re-drive the purge to completion");
+					"a confirmed deletion must execute in the same transaction as the confirm");
+			confirmAccountDeletion(confirmationToken, "10.99.5.2").andExpect(status().isBadRequest());
 		}
 
 		@Test
@@ -699,22 +564,9 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 					.content(deletionBody("WIPE", "targetpass123", targetName)))
 					.andExpect(status().isBadRequest())
 					.andReturn();
-			assertEquals(0, countDeletionRequests(criteria -> criteria.andUserIdEqualTo(intruderId)),
-					"a request naming another user's phrase must not create a request for anyone");
 			assertEquals(1,
 					countUsers(criteria -> criteria.andUserIdEqualTo(intruderId).andFailedLoginCountEqualTo(0)),
 					"a mismatched confirmation phrase must be rejected before the password is evaluated");
-
-			mockMvc.perform(post("/users/account/delete/cancel")
-					.header("Authorization", "Bearer " + intruderToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("NONE"));
-			mockMvc.perform(post("/users/account/delete/resend")
-					.header("Authorization", "Bearer " + intruderToken))
-					.andExpect(status().isNotFound());
-			assertEquals(1,
-					countDeletionRequests(criteria -> criteria.andUserIdEqualTo(targetId).andStatusEqualTo("PENDING")),
-					"another user's session must not be able to cancel or rotate the subject's request");
 
 			mockMvc.perform(post("/admin/users/delete")
 					.header("Authorization", "Bearer " + intruderToken)
@@ -735,11 +587,6 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 			assertEquals(phraseFailure.getResponse().getContentAsString(),
 					passwordFailure.getResponse().getContentAsString(),
 					"phrase and password failures must be indistinguishable");
-
-			mockMvc.perform(post("/users/account/delete/cancel")
-					.header("Authorization", "Bearer " + targetToken))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.status").value("CANCELLED"));
 		}
 
 		@Test
@@ -775,8 +622,6 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(deletionBody("ORPHAN", ADMIN_PASSWORD, ADMIN_USER)))
 						.andExpect(status().isBadRequest());
-				assertEquals(0, countDeletionRequests(criteria -> criteria.andUserIdEqualTo(adminId)),
-						"the sole site admin must be blocked at request time");
 
 				String secondAdminName = "adm2_" + suffix;
 				register(secondAdminName, "password123");
@@ -801,9 +646,6 @@ class AccountLifecycleTest extends PostgresIntegrationTest {
 				brUserPermissionDboMapper.deleteByExample(adminGrant);
 				try {
 					confirmAccountDeletion(confirmationToken, "10.99.4.1").andExpect(status().isBadRequest());
-					assertEquals(1, countDeletionRequests(criteria -> criteria.andUserIdEqualTo(secondAdminId)
-							.andStatusEqualTo("CANCELLED")),
-							"a confirm that trips the last-admin re-check must cancel the request");
 					assertEquals(1, countUsers(criteria -> criteria.andUserIdEqualTo(secondAdminId)
 							.andActiveFlagEqualTo(true).andPasswordHashIsNotNull()
 							.andUserNameEqualTo(secondAdminName)),

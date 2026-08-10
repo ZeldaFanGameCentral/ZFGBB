@@ -6,6 +6,6 @@ create table file_attachments (
 	file_ext text not null,
 	mime_type text not null,
 	active_flag boolean not null default false,
-	created_ts timestamptz not null default current_timestamp,
-	updated_ts timestamptz not null default current_timestamp
+	created_ts timestamp not null default current_timestamp,
+	updated_ts timestamp not null default current_timestamp
 );

@@ -382,7 +382,7 @@ public class ProjectsConverter extends AbstractConverter<Void> {
 			return merges;
 		}
 		for (SmfDownloadQueryMapper.CuratedMergeRow row : gameDownloadMapper.selectCuratedMerges()) {
-			if ("GAME".equals(row.getSourceEntityType())) {
+			if (Objects.equals(row.getSourceEntityType(), "GAME")) {
 				merges.put(row.getSourceLegacyId(), row);
 			}
 		}

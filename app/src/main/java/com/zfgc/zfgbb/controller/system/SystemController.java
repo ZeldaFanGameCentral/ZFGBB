@@ -21,7 +21,7 @@ import com.zfgc.zfgbb.model.users.LoginResponse;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
 import com.zfgc.zfgbb.services.install.InstallService;
-import com.zfgc.zfgbb.services.install.InstallRunRepository;
+import com.zfgc.zfgbb.dataprovider.system.InstallRunDataProvider;
 import com.zfgc.zfgbb.services.install.InstallTokenGate;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 
@@ -43,7 +43,7 @@ public class SystemController {
 	private final AuthCookieService cookieService;
 	@Value("${zfgbb.install.token:}")
 	private final String installToken;
-	private final InstallRunRepository installRun;
+	private final InstallRunDataProvider installRun;
 	private final InstallTokenGate tokenGate;
 
 	@PostMapping

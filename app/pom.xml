@@ -327,25 +327,4 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>seed</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-maven-plugin</artifactId>
-            <configuration>
-              <locations>
-                <location>classpath:db/seed</location>
-              </locations>
-              <table>flyway_seed_history</table>
-              <baselineVersion>0</baselineVersion>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
-
 </project>

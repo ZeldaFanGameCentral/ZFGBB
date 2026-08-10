@@ -48,7 +48,6 @@ class SystemInstallSampleDataTest extends AbstractSystemInstallTest {
 	private OperationStorageService operationStorage;
 
 	@Autowired private AccountDeletionAuditDboMapper accountDeletionAuditDboMapper;
-	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
 	@Autowired private BackupJobDboMapper backupJobDboMapper;
 	@Autowired private BoardDboMapper boardDboMapper;
 	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
@@ -141,7 +140,6 @@ class SystemInstallSampleDataTest extends AbstractSystemInstallTest {
 		assertEquals(0, quoteStripAuditDboMapper.countByExample(new QuoteStripAuditDboExample()));
 		assertEquals(0, quoteStripRunDboMapper.countByExample(new QuoteStripRunDboExample()));
 
-		assertEquals(0, accountDeletionRequestDboMapper.countByExample(new AccountDeletionRequestDboExample()));
 		assertEquals(0, accountDeletionAuditDboMapper.countByExample(new AccountDeletionAuditDboExample()));
 		assertEquals(0, userRefreshTokenDboMapper.countByExample(new UserRefreshTokenDboExample()),
 				"installing the archive must not import generation-time sessions");

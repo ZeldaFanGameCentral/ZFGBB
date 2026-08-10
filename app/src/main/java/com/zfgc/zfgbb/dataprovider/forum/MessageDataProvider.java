@@ -1,9 +1,12 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -12,6 +15,16 @@ import org.springframework.stereotype.Repository;
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dao.forum.ThreadDao;
+import com.zfgc.zfgbb.dao.forum.PersonalMessageDao;
+import com.zfgc.zfgbb.dbo.PersonalMessageDboExample;
+import com.zfgc.zfgbb.dao.forum.PersonalMessageRecipientDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dataprovider.cms.CatalogDataProvider;
+import com.zfgc.zfgbb.dataprovider.reactions.ReactionDataProvider;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dbo.PersonalMessageRecipientDboExample;
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.forum.MessageHistoryDao;
@@ -25,6 +38,7 @@ import com.zfgc.zfgbb.dbo.FileAttachmentDboExample;
 import com.zfgc.zfgbb.dbo.MessageDbo;
 import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.MessageHistoryDbo;
+import com.zfgc.zfgbb.dbo.MessageHistoryDboExample;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.dao.forum.CurrentMessageDao;
 import com.zfgc.zfgbb.dao.forum.FileAttachmentDao;
@@ -32,9 +46,11 @@ import com.zfgc.zfgbb.mappers.custom.ForumSearchQueryMapper;
 import com.zfgc.zfgbb.mapstruct.forum.MessageHistoryMap;
 import com.zfgc.zfgbb.mapstruct.forum.MessageMap;
 import com.zfgc.zfgbb.model.users.User;
+import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.model.forum.FileAttachment;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.MessageHistory;
+import com.zfgc.zfgbb.model.forum.MessagePosition;
 import lombok.RequiredArgsConstructor;
 
 @Repository
@@ -43,6 +59,19 @@ import lombok.RequiredArgsConstructor;
 public class MessageDataProvider {
 
 	private final MessageDao messageDao;
+
+	private final UserErasureDao userErasureDao;
+
+	private final PersonalMessageRecipientDao personalMessageRecipientDao;
+
+	private final PersonalMessageDao personalMessageDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
+
+	private final CatalogDataProvider catalogDataProvider;
+
+	private final ReactionDataProvider reactionDataProvider;
 
 	private final MessageHistoryDao messageHistoryDao;
 
@@ -61,6 +90,39 @@ public class MessageDataProvider {
 	private final MessageMap messageMap;
 
 	private final MessageHistoryMap messageHistoryMap;
+
+	private static final int MESSAGE_ID_QUERY_CHUNK_SIZE = 1000;
+
+	public Optional<MessagePosition> findMessagePosition(Integer messageId) {
+		return messageDao.find(messageId).map(message -> new MessagePosition(message.getMessageId(),
+				message.getOwnerId(), message.getThreadId(), message.getPostInThread()));
+	}
+
+	public Optional<ContentFormat> currentRevisionContentFormat(Integer messageId) {
+		MessageHistoryDboExample example = new MessageHistoryDboExample();
+		example.createCriteria().andMessageIdEqualTo(messageId).andCurrentFlagEqualTo(true);
+		return messageHistoryDao.getOne(example)
+				.flatMap(revision -> ContentFormat.parse(revision.getContentFormat()));
+	}
+
+	public Map<Integer, OffsetDateTime> currentRevisionCreatedTsByMessageId(List<Integer> messageIds) {
+		List<Integer> ids = messageIds.stream().filter(Objects::nonNull).distinct().toList();
+		Map<Integer, OffsetDateTime> createdTsByMessageId = new HashMap<>();
+		for (List<Integer> chunk : partition(ids, MESSAGE_ID_QUERY_CHUNK_SIZE)) {
+			MessageHistoryDboExample example = new MessageHistoryDboExample();
+			example.createCriteria().andCurrentFlagEqualTo(true).andMessageIdIn(chunk);
+			for (MessageHistoryDbo revision : messageHistoryDao.get(example))
+				createdTsByMessageId.put(revision.getMessageId(), revision.getCreatedTs());
+		}
+		return createdTsByMessageId;
+	}
+
+	public static List<List<Integer>> partition(List<Integer> ids, int chunkSize) {
+		List<List<Integer>> chunks = new ArrayList<>();
+		for (int start = 0; start < ids.size(); start += chunkSize)
+			chunks.add(ids.subList(start, Math.min(start + chunkSize, ids.size())));
+		return chunks;
+	}
 
 	public Message saveMessage(Message message) {
 		MessageDbo messageDbo = messageMap.toDbo(message);
@@ -247,5 +309,85 @@ public class MessageDataProvider {
 		return forumSearchQueryMapper.messagesByUser(userId, perms, pageSize, (int) offset)
 						 .stream()
 						 .map(dbo -> mapMessage(dbo, ownerCache)).toList();
+	}
+
+	public List<Integer> findOwnedMessageIds(Integer userId, int chunkSize) {
+		return userErasureDao.findOwnedMessageIds(userId, chunkSize);
+	}
+
+	public int countOwnedMessages(Integer userId) {
+		return userErasureDao.countOwnedMessages(userId);
+	}
+
+	public List<Integer> findThreadIdsForMessages(List<Integer> messageIds) {
+		return userErasureDao.findThreadIdsForMessages(messageIds);
+	}
+
+	public void resequencePostInThread(List<Integer> threadIds) {
+		if (!threadIds.isEmpty())
+			userErasureDao.resequencePostInThread(threadIds);
+	}
+
+	public List<ReleasedResource> purgeMessagesByIds(List<Integer> messageIds) {
+		if (messageIds.isEmpty())
+			return List.of();
+		userErasureDao.deleteAttachmentRefRewritesForMessages(messageIds);
+		List<Integer> attachmentIds = userErasureDao.findAttachmentIdsForMessages(messageIds);
+		List<Integer> releasedResourceIds = userErasureDao.findAttachmentContentResourceIds(messageIds);
+		FileAttachmentDboExample attachmentsExample = new FileAttachmentDboExample();
+		attachmentsExample.createCriteria().andMessageIdIn(messageIds);
+		fileAttachmentDao.deleteWhere(attachmentsExample);
+		if (!attachmentIds.isEmpty())
+			deleteMigratorIdMapEntries("ATTACHMENT", attachmentIds);
+		List<Integer> candidateIpIds = userErasureDao.findHistoryIpAddressIds(messageIds);
+		userErasureDao.deleteHistoryForMessages(messageIds);
+		if (!candidateIpIds.isEmpty())
+			userErasureDao.deleteUnreferencedIpAddresses(candidateIpIds);
+		reactionDataProvider.deleteReactions("MESSAGE", messageIds);
+		deleteMigratorIdMapEntries("MESSAGE", messageIds);
+		userErasureDao.deleteMessagesByIds(messageIds);
+		return catalogDataProvider.deleteContentResourcesIfUnreferenced(releasedResourceIds);
+	}
+
+	public int orphanOwnedMessagesBatch(Integer userId, Integer sentinelId, int chunkSize) {
+		List<Integer> messageIds = userErasureDao.findOwnedMessageIds(userId, chunkSize);
+		if (messageIds.isEmpty())
+			return 0;
+		List<Integer> candidateIpIds = userErasureDao.findHistoryIpAddressIds(messageIds);
+		userErasureDao.scrubHistoryForMessages(messageIds);
+		if (!candidateIpIds.isEmpty())
+			userErasureDao.deleteUnreferencedIpAddresses(candidateIpIds);
+		List<Integer> attachmentIds = userErasureDao.findAttachmentIdsForMessages(messageIds);
+		if (!attachmentIds.isEmpty())
+			deleteMigratorIdMapEntries("ATTACHMENT", attachmentIds);
+		userErasureDao.scrubAttachmentMigrationHashesForMessages(messageIds);
+		deleteMigratorIdMapEntries("MESSAGE", messageIds);
+		userErasureDao.reassignAndScrubMessages(messageIds, sentinelId);
+		return messageIds.size();
+	}
+
+	public int countSentPersonalMessages(Integer userId) {
+		PersonalMessageDboExample sentPersonalMessagesExample = new PersonalMessageDboExample();
+		sentPersonalMessagesExample.createCriteria().andSenderUserIdEqualTo(userId);
+		return (int) personalMessageDao.count(sentPersonalMessagesExample);
+	}
+
+	public void purgePersonalMessages(Integer userId) {
+		List<Integer> conversationIds = userErasureDao.findParticipantConversationIds(userId);
+		userErasureDao.scrubSentPersonalMessages(userId);
+		PersonalMessageRecipientDboExample recipientExample = new PersonalMessageRecipientDboExample();
+		recipientExample.createCriteria().andRecipientUserIdEqualTo(userId);
+		personalMessageRecipientDao.deleteWhere(recipientExample);
+		if (conversationIds.isEmpty())
+			return;
+		userErasureDao.scrubPersonalMessageMigrationHashesInConversations(conversationIds);
+		userErasureDao.scrubConversationMigrationHashes(conversationIds);
+		userErasureDao.gcEmptyConversationsAmong(conversationIds);
+	}
+
+	private void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
+		migratorIdMapDao.deleteWhere(example);
 	}
 }

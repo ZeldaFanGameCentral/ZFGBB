@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.zfgc.zfgbb.services.install.InstallRunRepository;
+import com.zfgc.zfgbb.dataprovider.system.InstallRunDataProvider;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,7 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequiredArgsConstructor
 public class PartialInstallGateFilter extends OncePerRequestFilter {
 
-	private final InstallRunRepository installs;
+	private final InstallRunDataProvider installs;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)

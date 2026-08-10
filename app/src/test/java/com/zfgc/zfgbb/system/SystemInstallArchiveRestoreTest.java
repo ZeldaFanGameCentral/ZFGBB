@@ -28,6 +28,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.junit.jupiter.Container;
 
+import com.zfgc.zfgbb.model.system.InstallStrategy;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.operations.archive.BackupArchiveWriter;
@@ -68,7 +69,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	private BackupRestoreService installabilityClassifier;
 
 	@Autowired private AccountDeletionAuditDboMapper accountDeletionAuditDboMapper;
-	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
 	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
 	@Autowired private CategoryDboMapper categoryDboMapper;
 	@Autowired private InstallRunDboMapper installRunDboMapper;
@@ -214,12 +214,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 	@Test
 	@Order(4)
 	void anInstallInterruptedAfterTheRestoreServesNoTrafficAndStaysRetryable() throws Exception {
-		AccountDeletionRequestDbo deletionRequest = new AccountDeletionRequestDbo();
-		deletionRequest.setUserId(1);
-		deletionRequest.setMode("ANONYMIZE");
-		deletionRequest.setTokenSha256("generation-token-digest");
-		deletionRequest.setExpiresTs(OffsetDateTime.now().plusDays(1));
-		accountDeletionRequestDboMapper.insertSelective(deletionRequest);
 		AccountDeletionAuditDbo deletionAudit = new AccountDeletionAuditDbo();
 		deletionAudit.setSubjectUserIdSnapshot(1);
 		deletionAudit.setSubjectPseudonym("generation-pseudonym");
@@ -236,8 +230,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 				"an archive must never carry another deployment's install state");
 		assertTrue(refreshTokens() > 0,
 				"the restored archive still carries generation-time sessions at this point");
-		assertEquals(1, accountDeletionRequests(),
-				"the restored archive still carries the generation deployment's pending deletion");
 		mockMvc.perform(get("/users/loggedInUser"))
 				.andExpect(status().isServiceUnavailable());
 		assertEquals(1, installRuns(run -> run.andStateEqualTo("READY")
@@ -253,8 +245,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 
 		assertEquals(1, installRuns(run -> run.andStateEqualTo("INSTALLED")));
 		assertEquals(0, refreshTokens());
-		assertEquals(0, accountDeletionRequests(),
-				"the reconciled administrator must not inherit the generation deployment's deletion");
 		assertEquals(0, accountDeletionAuditDboMapper.countByExample(new AccountDeletionAuditDboExample()));
 		assertRequestedAdministratorAuthenticates();
 	}
@@ -525,10 +515,6 @@ class SystemInstallArchiveRestoreTest extends AbstractSystemInstallTest {
 
 	private long refreshTokens() {
 		return userRefreshTokenDboMapper.countByExample(new UserRefreshTokenDboExample());
-	}
-
-	private long accountDeletionRequests() {
-		return accountDeletionRequestDboMapper.countByExample(new AccountDeletionRequestDboExample());
 	}
 
 	private long contactInfoFor(int userId) {

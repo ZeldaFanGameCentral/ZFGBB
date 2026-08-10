@@ -68,15 +68,6 @@ class JobServiceLifecycleTest {
 		awaitState(subsequent, JobState.COMPLETED);
 	}
 
-	/**
-	 * finish() takes a job monitor and then the service monitor (via accountTerminal). cancelAll()
-	 * therefore must not hold the service monitor while it takes job monitors, or the two lock in
-	 * opposite orders and a cancel issued as a step finishes wedges both the request thread and the
-	 * job runner, stranding the maintenance lease until restart. Racing for that window is unreliable
-	 * -- whether it deadlocks depends on where the running job falls in hash iteration order -- so
-	 * this pins the invariant instead: with every job monitor held, cancelAll() is parked mid-loop,
-	 * and the service monitor must still be free for another caller.
-	 */
 	@Test
 	@Timeout(value = 30, unit = TimeUnit.SECONDS)
 	void cancelAllDoesNotHoldTheServiceMonitorWhileTakingJobMonitors() throws Exception {
@@ -108,7 +99,6 @@ class JobServiceLifecycleTest {
 			try {
 				service.enqueuePrepared(List.of(job(JobType.IPS)));
 			} catch (IllegalArgumentException expected) {
-				// a second migration is correctly refused; all this probe needs is that it got in
 			} finally {
 				probeReturned.countDown();
 			}

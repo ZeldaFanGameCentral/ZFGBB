@@ -3,8 +3,8 @@ create table zfgbb.gender_lkup (
 	code text not null,
 	description text not null,
 	seqno integer not null default 0,
-	created_ts timestamptz not null default current_timestamp,
-	updated_ts timestamptz not null default current_timestamp
+	created_ts timestamp not null default current_timestamp,
+	updated_ts timestamp not null default current_timestamp
 );
 
 create unique index idx_gender_lkup_code

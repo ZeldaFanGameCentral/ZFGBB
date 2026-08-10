@@ -27,12 +27,13 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.ComposeContainer;
 import org.testcontainers.junit.jupiter.Container;
 
+import com.zfgc.zfgbb.model.system.InstallStrategy;
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
-import com.zfgc.zfgbb.services.install.InstallRunRepository;
+import com.zfgc.zfgbb.dataprovider.system.InstallRunDataProvider;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.operations.postgres.PostgresAdvisoryLock;
 import com.zfgc.zfgbb.testsupport.ZfgbbIntegrationTest;
@@ -51,7 +52,7 @@ class SystemInstallTest extends ZfgbbIntegrationTest {
 	private static String staleAccessToken;
 
 	@Autowired
-	private InstallRunRepository installRun;
+	private InstallRunDataProvider installRun;
 
 	@Autowired
 	private AuthService authService;

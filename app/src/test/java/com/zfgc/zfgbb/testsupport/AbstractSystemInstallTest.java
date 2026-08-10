@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.ComposeContainer;
 
+import com.zfgc.zfgbb.model.system.InstallStrategy;
 import com.zfgc.zfgbb.dbo.InstallRunDboExample;
 import com.zfgc.zfgbb.mappers.InstallRunDboMapper;
 

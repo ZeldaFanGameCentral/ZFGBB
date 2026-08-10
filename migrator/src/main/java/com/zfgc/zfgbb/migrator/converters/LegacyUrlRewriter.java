@@ -65,7 +65,8 @@ public final class LegacyUrlRewriter {
 				"https?://" + hostAlternation,
 				Pattern.CASE_INSENSITIVE);
 		this.bareUrlPattern = Pattern.compile(
-				"(?<![\\w\\]>])(?<!\\[url=)(?<!\\[iurl=)https?://" + hostAlternation
+				"(?<![\\w\\]])(?<![^/]>)(?<!\\[url=)(?<!\\[iurl=)"
+						+ "(?<!href=\")(?<!href=')(?<!src=\")(?<!src=')https?://" + hostAlternation
 						+ "(?:/forum)?/?index\\.php(?:#\\??|\\?)[^\\s\\[\\]\"'<>]+",
 				Pattern.CASE_INSENSITIVE);
 		this.appBaseUrl = normalizeAppBaseUrl(appBaseUrl);

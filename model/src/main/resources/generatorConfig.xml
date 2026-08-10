@@ -96,16 +96,6 @@
       <columnOverride column="revoked_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table>
 
-    <table schema="zfgbb" tableName="account_deletion_request" domainObjectName="AccountDeletionRequestDbo">
-      <generatedKey column="account_deletion_request_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="requested_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-      <columnOverride column="expires_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-      <columnOverride column="confirmed_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-      <columnOverride column="last_sent_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-    </table>
-
     <table schema="zfgbb" tableName="account_deletion_audit" domainObjectName="AccountDeletionAuditDbo">
       <generatedKey column="deletion_id" sqlStatement="JDBC" identity="true"/>
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>

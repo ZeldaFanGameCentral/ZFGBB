@@ -13,6 +13,12 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.dbo.ContentEntityDboExample;
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dataprovider.reactions.ReactionDataProvider;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.dbo.ContentCollectionDboExample;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDbo;
 import com.zfgc.zfgbb.dbo.ContentCollectionItemDboExample;
@@ -65,6 +71,12 @@ public class ProjectDataProvider {
 	private final ProjectViewDao projectViewDao;
 
 	private final ContentEntityDao contentEntityDao;
+
+	private final UserErasureDao userErasureDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
+	private final ReactionDataProvider reactionDataProvider;
 
 	private final ProjectScreenshotDao projectScreenshotDao;
 
@@ -283,7 +295,8 @@ public class ProjectDataProvider {
 	}
 
 	public void linkProjectThread(Integer projectId, Integer threadId) {
-		ContentEntityDbo dbo = contentEntityDao.find(projectId).orElse(null);
+		ContentEntityDbo dbo = contentEntityDao.find(projectId)
+				.orElseThrow(ZfgcNotFoundException::new);
 		dbo.setThreadId(threadId);
 		contentEntityDao.save(dbo);
 	}
@@ -328,4 +341,40 @@ public class ProjectDataProvider {
 		return team;
 	}
 
+	public int countOwnedContentEntities(Integer userId, String entityType) {
+		ContentEntityDboExample ownedEntitiesExample = new ContentEntityDboExample();
+		ownedEntitiesExample.createCriteria().andCreatedUserIdEqualTo(userId).andEntityTypeEqualTo(entityType);
+		return (int) contentEntityDao.count(ownedEntitiesExample);
+	}
+
+	public List<ReleasedResource> purgeOwnedContentEntities(Integer userId) {
+		List<ReleasedResource> released = new ArrayList<>();
+		for (String entityType : List.of("PROJECT", "RESOURCE")) {
+			List<Integer> entityIds = userErasureDao.findOwnedContentEntityIdsByType(userId, entityType);
+			if (entityIds.isEmpty())
+				continue;
+			reactionDataProvider.deleteReactions(entityType, entityIds);
+			List<Integer> releasedResourceIds = userErasureDao.findEntityReleasedContentResourceIds(entityIds);
+			MigratorIdMapDboExample migratorEntries = new MigratorIdMapDboExample();
+			migratorEntries.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(entityIds);
+			migratorIdMapDao.deleteWhere(migratorEntries);
+			ContentEntityDboExample entitiesExample = new ContentEntityDboExample();
+			entitiesExample.createCriteria().andContentEntityIdIn(entityIds);
+			contentEntityDao.deleteWhere(entitiesExample);
+			released.addAll(catalogDataProvider.deleteContentResourcesIfUnreferenced(releasedResourceIds));
+		}
+		return released;
+	}
+
+	public void scrubRetainedContentContributions(Integer userId) {
+		userErasureDao.scrubRetainedContentEntities(userId);
+		userErasureDao.scrubProjectNewsAuthors(userId);
+		userErasureDao.nullTeamCreators(userId);
+	}
+
+	public void deleteTeamMemberships(Integer userId) {
+		TeamMemberDboExample teamMemberExample = new TeamMemberDboExample();
+		teamMemberExample.createCriteria().andUserIdEqualTo(userId);
+		teamMemberDao.deleteWhere(teamMemberExample);
+	}
 }

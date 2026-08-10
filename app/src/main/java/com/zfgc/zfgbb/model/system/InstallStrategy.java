@@ -1,4 +1,4 @@
-package com.zfgc.zfgbb.services.install;
+package com.zfgc.zfgbb.model.system;
 
 import java.util.Optional;
 

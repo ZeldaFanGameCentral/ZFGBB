@@ -1,6 +1,5 @@
 package com.zfgc.zfgbb.forum;
 
-import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.model.Securable;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
@@ -114,6 +113,12 @@ import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.dao.cms.ProjectNewsDao;
+import com.zfgc.zfgbb.dao.users.AccountDeletionAuditDao;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dao.users.UserPermissionGroupAssocDao;
+import com.zfgc.zfgbb.dao.users.AvatarDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
 import com.zfgc.zfgbb.dao.users.UserAwardDao;
 import com.zfgc.zfgbb.dao.users.UserAwardDao;
 import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
@@ -141,6 +146,7 @@ import com.zfgc.zfgbb.authorization.access.ForumAccessRules;
 import com.zfgc.zfgbb.authorization.access.ForumAccessRules.MessageState;
 import com.zfgc.zfgbb.authorization.access.ForumAccessRules.ThreadState;
 import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
+import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
 import com.zfgc.zfgbb.services.forum.ForumService;
 
 class PolicyTest {
@@ -648,13 +654,13 @@ class PolicyTest {
 	class QueryPartitioning {
 		@Test
 		void emptyIdsProduceNoChunks() {
-			assertEquals(List.of(), ForumService.partition(List.of(), 10000));
+			assertEquals(List.of(), MessageDataProvider.partition(List.of(), 10000));
 		}
 
 		@Test
 		void smallIdListStaysSingleChunk() {
 			List<Integer> ids = List.of(1, 2, 3);
-			List<List<Integer>> chunks = ForumService.partition(ids, 10000);
+			List<List<Integer>> chunks = MessageDataProvider.partition(ids, 10000);
 			assertEquals(1, chunks.size());
 			assertEquals(ids, chunks.get(0));
 		}
@@ -662,7 +668,7 @@ class PolicyTest {
 		@Test
 		void oversizedIdListIsSplitUnderTheBindParamLimit() {
 			List<Integer> ids = IntStream.range(0, 165_000).boxed().toList();
-			List<List<Integer>> chunks = ForumService.partition(ids, 10000);
+			List<List<Integer>> chunks = MessageDataProvider.partition(ids, 10000);
 			assertEquals(17, chunks.size());
 			int total = 0;
 			for (List<Integer> chunk : chunks) {
@@ -811,7 +817,12 @@ class PolicyTest {
 						mock(UserAwardDao.class),
 						mock(UserPermissionViewDao.class),
 						mock(UserRefreshTokenDao.class),
-						mock(AccountDeletionRequestDao.class),
+						mock(UserErasureDao.class),
+						mock(AccountDeletionAuditDao.class),
+						mock(ContentResourceDao.class),
+						mock(UserPermissionGroupAssocDao.class),
+						mock(AvatarDao.class),
+						mock(MigratorIdMapDao.class),
 						userProfileFacade);
 
 			UserDbo userDbo = new UserDbo();
@@ -940,7 +951,12 @@ class PolicyTest {
 						mock(UserAwardDao.class),
 						mock(UserPermissionViewDao.class),
 						mock(UserRefreshTokenDao.class),
-						mock(AccountDeletionRequestDao.class),
+						mock(UserErasureDao.class),
+						mock(AccountDeletionAuditDao.class),
+						mock(ContentResourceDao.class),
+						mock(UserPermissionGroupAssocDao.class),
+						mock(AvatarDao.class),
+						mock(MigratorIdMapDao.class),
 						userProfileFacade);
 
 			BoardPermissionViewDbo perm = new BoardPermissionViewDbo();

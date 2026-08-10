@@ -48,7 +48,6 @@ class AccountDeletionDeepWipeTest extends PostgresIntegrationTest {
 	private TestSystemInfoMapper testSystemInfoMapper;
 
 	@Autowired private AccountDeletionAuditDboMapper accountDeletionAuditDboMapper;
-	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
 	@Autowired private AvatarDboMapper avatarDboMapper;
 	@Autowired private BoardSummaryViewDboMapper boardSummaryViewDboMapper;
 	@Autowired private ContentCollectionDboMapper contentCollectionDboMapper;
@@ -422,9 +421,6 @@ class AccountDeletionDeepWipeTest extends PostgresIntegrationTest {
 		assertEquals(0, testQueryHelperMapper.countReactionsWithoutContentEntity());
 		assertEquals(0, migratorIdMapDboMapper.countByExample(where(new MigratorIdMapDboExample(),
 				example -> example.createCriteria().andEntityTypeEqualTo("USER").andZfgbbIdEqualTo(userId))));
-		assertEquals(1, accountDeletionRequestDboMapper.countByExample(where(new AccountDeletionRequestDboExample(),
-				example -> example.createCriteria().andUserIdEqualTo(userId).andStatusEqualTo("COMPLETED")
-						.andPurgeCursorEqualTo("COMPLETED").andRecordedBlobPathsIsNull())));
 		assertEquals(1, accountDeletionAuditDboMapper.countByExample(where(new AccountDeletionAuditDboExample(),
 				example -> example.createCriteria().andSubjectUserIdSnapshotEqualTo(userId).andModeEqualTo("PURGE")
 						.andInitiatedByEqualTo("SELF").andConfirmedTsIsNotNull().andExecutedTsIsNotNull())));
@@ -686,9 +682,6 @@ class AccountDeletionDeepWipeTest extends PostgresIntegrationTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(deletionBody("WIPE", PASSWORD, userName)))
 				.andExpect(status().isBadRequest());
-		assertEquals(0, accountDeletionRequestDboMapper.countByExample(where(new AccountDeletionRequestDboExample(),
-				example -> example.createCriteria().andUserIdEqualTo(userId))),
-				"a locked account must not be able to create a deletion request even with the right password");
 
 		mockMvc.perform(post("/users/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)

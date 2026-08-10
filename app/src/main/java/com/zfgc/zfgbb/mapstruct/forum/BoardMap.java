@@ -11,10 +11,12 @@ import com.zfgc.zfgbb.config.BBMapperConfig;
 import com.zfgc.zfgbb.dbo.BoardDbo;
 import com.zfgc.zfgbb.dbo.BoardSummaryViewDbo;
 import com.zfgc.zfgbb.dbo.ChildBoardViewDbo;
+import com.zfgc.zfgbb.dbo.RecentActivityViewDbo;
 import com.zfgc.zfgbb.dbo.CategoryDbo;
 import com.zfgc.zfgbb.model.forum.Board;
 import com.zfgc.zfgbb.model.forum.BoardSummary;
 import com.zfgc.zfgbb.model.forum.ChildBoard;
+import com.zfgc.zfgbb.model.forum.RecentActivity;
 import com.zfgc.zfgbb.model.forum.Category;
 import com.zfgc.zfgbb.model.forum.Forum;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -36,6 +38,10 @@ public interface BoardMap {
 	BoardSummary toModel(BoardSummaryViewDbo dbo);
 
 	ChildBoard toModel(ChildBoardViewDbo dbo);
+
+	RecentActivity toModel(RecentActivityViewDbo dbo);
+
+	List<RecentActivity> toRecentActivityList(List<RecentActivityViewDbo> dbos);
 
 	List<BoardSummary> toBoardSummaryList(List<BoardSummaryViewDbo> dbos);
 

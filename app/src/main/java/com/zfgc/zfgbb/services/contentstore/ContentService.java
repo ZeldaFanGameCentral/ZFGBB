@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Service;
 
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
@@ -74,18 +75,27 @@ public class ContentService {
 	}
 
 	public Path storedFile(ContentResourceDbo contentResource) {
+		return storedFile(contentResource.getContentResourceId(), contentResource.getStorageDir(),
+				contentResource.getFilename());
+	}
+
+	public Path storedFile(ReleasedResource released) {
+		return storedFile(released.contentResourceId(), released.storageDir(), released.filename());
+	}
+
+	public Path storedFile(Integer contentResourceId, String storageDir, String filename) {
 		Path activeContentRoot = contentRoot.activeContentRoot();
 		Path resolved;
-		if (contentResource.getStorageDir() != null && !contentResource.getStorageDir().isBlank()) {
-			if (contentResource.getFilename() == null || contentResource.getFilename().isBlank()) {
+		if (storageDir != null && !storageDir.isBlank()) {
+			if (filename == null || filename.isBlank()) {
 				throw new ZfgcNotFoundException();
 			}
-			resolved = activeContentRoot.resolve(contentResource.getStorageDir())
-					.resolve(String.valueOf(contentResource.getContentResourceId()))
-					.resolve(contentResource.getFilename());
+			resolved = activeContentRoot.resolve(storageDir)
+					.resolve(String.valueOf(contentResourceId))
+					.resolve(filename);
 		} else {
 			resolved = activeContentRoot.resolve(LEGACY_IMAGE_DIRECTORY)
-					.resolve(String.valueOf(contentResource.getContentResourceId()));
+					.resolve(String.valueOf(contentResourceId));
 		}
 		Path confined = resolved.toAbsolutePath().normalize();
 		if (!confined.startsWith(activeContentRoot)) {

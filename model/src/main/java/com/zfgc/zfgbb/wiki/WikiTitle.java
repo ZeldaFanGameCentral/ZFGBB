@@ -57,7 +57,7 @@ public record WikiTitle(String namespace, String title) {
 	}
 
 	public String path() {
-		return "MAIN".equals(namespace) ? title.replace(' ', '_')
+		return namespace.equals("MAIN") ? title.replace(' ', '_')
 				: namespace + ":" + title.replace(' ', '_');
 	}
 

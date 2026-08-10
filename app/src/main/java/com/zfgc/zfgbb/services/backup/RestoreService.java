@@ -3,7 +3,7 @@ package com.zfgc.zfgbb.services.backup;
 import lombok.RequiredArgsConstructor;
 
 import com.zfgc.zfgbb.services.contentstore.ContentRoot;
-import static com.zfgc.zfgbb.services.backup.OperationStorageService.canonicalId;
+import static com.zfgc.zfgbb.operations.archive.OperationFiles.canonicalId;
 import static com.zfgc.zfgbb.operations.archive.OperationFiles.deleteTree;
 import static com.zfgc.zfgbb.services.backup.OperationStorageService.setPrivateFile;
 

@@ -2,6 +2,7 @@ package com.zfgc.zfgbb.services.forum;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
@@ -31,7 +32,7 @@ public class ForumAccessStateLoader implements ResourceAccessRules {
 
 	@Override
 	public boolean supports(String resourceType) {
-		return "THREAD".equals(resourceType) || "MESSAGE".equals(resourceType);
+		return Objects.equals(resourceType, "THREAD") || Objects.equals(resourceType, "MESSAGE");
 	}
 
 	@Override

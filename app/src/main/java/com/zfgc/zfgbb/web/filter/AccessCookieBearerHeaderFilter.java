@@ -63,8 +63,8 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 			SignedJWT jwt = SignedJWT.parse(token);
 			Date exp = jwt.getJWTClaimsSet().getExpirationTime();
 			return exp != null && exp.toInstant().isBefore(Instant.now());
-		} catch (ParseException unreadableToken) {
-			return true;
+		} catch (ParseException tokenTheResourceServerMustJudge) {
+			return false;
 		}
 	}
 

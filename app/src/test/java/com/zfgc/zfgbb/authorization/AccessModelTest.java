@@ -43,6 +43,21 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import com.zfgc.zfgbb.services.auth.TokenSubjectValidator;
+import com.zfgc.zfgbb.dataprovider.cms.CatalogDataProvider;
+import com.zfgc.zfgbb.dataprovider.cms.MigrationConflictDataProvider;
+import com.zfgc.zfgbb.dataprovider.cms.ProjectDataProvider;
+import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
+import com.zfgc.zfgbb.dataprovider.forum.ForumDataProvider;
+import com.zfgc.zfgbb.dataprovider.forum.MessageDataProvider;
+import com.zfgc.zfgbb.dataprovider.forum.ThreadDataProvider;
+import com.zfgc.zfgbb.dataprovider.reactions.ReactionDataProvider;
+import com.zfgc.zfgbb.services.auth.AuthService;
+import com.zfgc.zfgbb.services.contentstore.ContentService;
+import com.zfgc.zfgbb.services.forum.ForumService;
 import com.zfgc.zfgbb.authorization.access.ProfileAccessRules;
 import com.zfgc.zfgbb.authorization.access.WikiAccessRules;
 import com.zfgc.zfgbb.authorization.access.WikiAccessRules.NamespaceEditDenial;
@@ -384,6 +399,23 @@ class AccessModelTest {
 			assertThrows(ZfgcInvalidRequestException.class,
 					() -> ReflectionTestUtils.invokeMethod(new UserService(
 							mock(UserDataProvider.class),
+							mock(MessageDataProvider.class),
+							mock(ThreadDataProvider.class),
+							mock(ForumDataProvider.class),
+							mock(WikiDataProvider.class),
+							mock(ProjectDataProvider.class),
+							mock(CatalogDataProvider.class),
+							mock(ReactionDataProvider.class),
+							mock(MigrationConflictDataProvider.class),
+							mock(AuthService.class),
+							mock(ContentService.class),
+							mock(ForumService.class),
+							mock(ObjectProvider.class),
+							mock(JwtEncoder.class),
+							mock(JwtDecoder.class),
+							mock(TokenSubjectValidator.class),
+							"https://zfgc.example/account/delete/confirm",
+							24L,
 							mock(ProfileAccessRules.class),
 							mock(UserDao.class),
 							mock(AvatarDao.class),

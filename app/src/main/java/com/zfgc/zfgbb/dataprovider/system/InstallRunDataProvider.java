@@ -1,4 +1,4 @@
-package com.zfgc.zfgbb.services.install;
+package com.zfgc.zfgbb.dataprovider.system;
 
 import lombok.RequiredArgsConstructor;
 
@@ -9,15 +9,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.model.system.InstallStrategy;
 import com.zfgc.zfgbb.dbo.InstallRunDbo;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
 import com.zfgc.zfgbb.dao.meta.InstallRunDao;
 
 @Repository
 @RequiredArgsConstructor
-public class InstallRunRepository {
+public class InstallRunDataProvider {
 
-	private static final Logger LOG = LoggerFactory.getLogger(InstallRunRepository.class);
+	private static final Logger LOG = LoggerFactory.getLogger(InstallRunDataProvider.class);
 	private static final List<String> RESUMABLE_PHASE_STATES = List.of("CORE_READY", "RECYCLE_READY");
 
 	public record Run(String state, String lastCompletedState, String fingerprint, Integer adminUserId,

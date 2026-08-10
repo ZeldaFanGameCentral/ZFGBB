@@ -13,7 +13,6 @@ public enum JobType {
 	USER_BIO_INFO,
 	ATTACHMENTS,
 	ATTACHMENT_FILES,
-	BBCODE_REWRITE,
 	USER_CONTACT_INFO,
 	POLLS,
 	POLL_CHOICES,
@@ -27,11 +26,12 @@ public enum JobType {
 	PROJECTS,
 	RESOURCES,
 	CMS_COMMENTS,
+	BBCODE_REWRITE,
 	MIGRATE_SMF_INSTALLATION,
 	MIGRATE_CMS_INSTALLATION,
 	MIGRATE_EVERYTHING;
 
-	public static final List<JobType> SMF_INSTALLATION_PIPELINE = List.of(
+	private static final List<JobType> SMF_CONTENT = List.of(
 			USERS,
 			CATEGORIES,
 			BOARDS,
@@ -42,7 +42,6 @@ public enum JobType {
 			USER_BIO_INFO,
 			ATTACHMENTS,
 			ATTACHMENT_FILES,
-			BBCODE_REWRITE,
 			USER_CONTACT_INFO,
 			POLLS,
 			POLL_CHOICES,
@@ -53,17 +52,23 @@ public enum JobType {
 			SUBSCRIPTIONS,
 			MODERATION_LOGS);
 
-	public static final List<JobType> CMS_INSTALLATION_PIPELINE = List.of(
+	private static final List<JobType> CMS_CONTENT = List.of(
 			PROJECTS,
 			RESOURCES,
 			CMS_COMMENTS,
 			WIKI_PAGES);
 
+	public static final List<JobType> SMF_INSTALLATION_PIPELINE =
+			Stream.concat(SMF_CONTENT.stream(), Stream.of(BBCODE_REWRITE)).toList();
+
+	public static final List<JobType> CMS_INSTALLATION_PIPELINE =
+			Stream.concat(CMS_CONTENT.stream(), Stream.of(BBCODE_REWRITE)).toList();
+
 	public List<JobType> expand() {
 		return switch (this) {
 			case MIGRATE_SMF_INSTALLATION -> SMF_INSTALLATION_PIPELINE;
 			case MIGRATE_CMS_INSTALLATION -> CMS_INSTALLATION_PIPELINE;
-			case MIGRATE_EVERYTHING -> Stream.concat(SMF_INSTALLATION_PIPELINE.stream(),
+			case MIGRATE_EVERYTHING -> Stream.concat(SMF_CONTENT.stream(),
 					CMS_INSTALLATION_PIPELINE.stream()).toList();
 			default -> List.of(this);
 		};

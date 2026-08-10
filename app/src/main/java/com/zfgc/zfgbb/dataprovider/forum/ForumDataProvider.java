@@ -1,20 +1,31 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.dbo.ModerationLogDboExample;
+import com.zfgc.zfgbb.dbo.ModerationLogDbo;
+import com.zfgc.zfgbb.dao.forum.ModerationLogDao;
+import com.zfgc.zfgbb.dbo.NotificationSubscriptionDboExample;
+import com.zfgc.zfgbb.dao.forum.NotificationSubscriptionDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
 import com.zfgc.zfgbb.dao.forum.BoardDao;
 import com.zfgc.zfgbb.dao.forum.CategoryDao;
 import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.dbo.BoardDbo;
+import com.zfgc.zfgbb.dbo.BoardDboExample;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.BoardSummaryViewDboExample;
@@ -25,7 +36,11 @@ import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.forum.BoardSummaryViewDao;
 import com.zfgc.zfgbb.dao.forum.ChildBoardViewDao;
+import com.zfgc.zfgbb.dao.forum.RecentActivityViewDao;
+import com.zfgc.zfgbb.dbo.RecentActivityViewDbo;
+import com.zfgc.zfgbb.dbo.RecentActivityViewDboExample;
 import com.zfgc.zfgbb.mapstruct.forum.BoardMap;
+import com.zfgc.zfgbb.model.forum.RecentActivity;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.model.forum.Board;
 import com.zfgc.zfgbb.model.forum.BoardSummary;
@@ -43,6 +58,12 @@ public class ForumDataProvider {
 
 	private final BoardDao boardDao;
 
+	private final UserErasureDao userErasureDao;
+
+	private final ModerationLogDao moderationLogDao;
+
+	private final NotificationSubscriptionDao notificationSubscriptionDao;
+
 	private final CategoryDao categoryDao;
 
 	private final ThreadDao threadDao;
@@ -55,9 +76,45 @@ public class ForumDataProvider {
 
 	private final ChildBoardViewDao childBoardViewDao;
 
+	private final RecentActivityViewDao recentActivityViewDao;
+
 	private final BoardMap boardMap;
 
 	private final PermissionMap permissionMap;
+
+	public Set<Integer> visibleBoardIds(List<Integer> permissionIds) {
+		if (permissionIds == null || permissionIds.isEmpty()) {
+			return Set.of();
+		}
+		BoardPermissionViewDboExample ex = new BoardPermissionViewDboExample();
+		ex.createCriteria().andPermissionIdIn(permissionIds);
+		return boardPermissionViewDao.get(ex).stream()
+				.map(BoardPermissionViewDbo::getBoardId)
+				.collect(Collectors.toSet());
+	}
+
+	public boolean boardExists(Integer boardId) {
+		BoardDboExample example = new BoardDboExample();
+		example.createCriteria().andBoardIdEqualTo(boardId);
+		return boardDao.exists(example);
+	}
+
+	public List<Integer> lockBoards(List<Integer> orderedBoardIds) {
+		return boardDao.lockForUpdate(orderedBoardIds);
+	}
+
+	public List<RecentActivity> getRecentActivity(Integer boardId, Collection<Integer> visibleBoardIds, int limit) {
+		RecentActivityViewDboExample recentActivityEx = new RecentActivityViewDboExample();
+		if (boardId != null) {
+			recentActivityEx.createCriteria().andBoardIdEqualTo(boardId);
+		} else {
+			recentActivityEx.createCriteria().andBoardIdIn(new ArrayList<>(visibleBoardIds));
+		}
+		recentActivityEx.setOrderByClause("last_post_ts desc");
+		recentActivityEx.setLimit(limit);
+		recentActivityEx.setOffset(0);
+		return boardMap.toRecentActivityList(recentActivityViewDao.get(recentActivityEx));
+	}
 
 	public Board getBoard(Integer boardId, Integer pageNumber, Integer pageSize) {
 		Optional<BoardDbo> boardDbo = boardDao.find(boardId);
@@ -173,4 +230,34 @@ public class ForumDataProvider {
 
 	}
 
+	public void deleteNotificationSubscriptions(Integer userId) {
+		NotificationSubscriptionDboExample notificationSubscriptionExample = new NotificationSubscriptionDboExample();
+		notificationSubscriptionExample.createCriteria().andUserIdEqualTo(userId);
+		notificationSubscriptionDao.deleteWhere(notificationSubscriptionExample);
+	}
+
+	public void scrubModerationResidue(Integer userId) {
+		userErasureDao.nullModerationLogActors(userId);
+		userErasureDao.scrubModerationLogTargets(userId);
+	}
+
+	public void scrubMigratedModerationTargetsByName(String subjectUserName) {
+		if (subjectUserName == null || subjectUserName.isBlank())
+			return;
+		userErasureDao.scrubModerationLogTargetsByName(subjectUserName);
+	}
+
+	public void recordOperatorRemediation(String action, String detail) {
+		ModerationLogDboExample ex = new ModerationLogDboExample();
+		ex.createCriteria().andActionEqualTo(action).andDetailEqualTo(detail);
+		if (!moderationLogDao.get(ex).isEmpty())
+			return;
+		ModerationLogDbo entry = new ModerationLogDbo();
+		entry.setAction(action);
+		entry.setDetail(detail);
+		OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+		entry.setLoggedTs(now);
+		entry.setCreatedTs(now);
+		moderationLogDao.insertSelective(entry);
+	}
 }

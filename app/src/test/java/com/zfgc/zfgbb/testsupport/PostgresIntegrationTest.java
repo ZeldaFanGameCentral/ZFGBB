@@ -31,7 +31,7 @@ import tools.jackson.databind.JsonNode;
 
 public abstract class PostgresIntegrationTest extends ZfgbbIntegrationTest {
 
-	protected static final Pattern CONFIRMATION_TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_-]+)");
+	protected static final Pattern CONFIRMATION_TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_.-]+)");
 
 	static final ComposeContainer POSTGRES = devPostgres();
 	private static final Path CONTENT_ROOT = Path.of(System.getProperty("java.io.tmpdir"),

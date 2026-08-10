@@ -36,8 +36,9 @@ import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadDeletionResponse;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
-import com.zfgc.zfgbb.services.users.deletion.ForumUserDataHandler;
-import com.zfgc.zfgbb.services.forum.ForumService.MessagePosition;
+import com.zfgc.zfgbb.model.cms.ReleasedResource;
+import com.zfgc.zfgbb.services.contentstore.ContentService;
+import com.zfgc.zfgbb.model.forum.MessagePosition;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,7 +72,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 	private final ThreadDataProvider threadDataProvider;
 	private final MessageDataProvider messageDataProvider;
 	private final MessageDao messageDao;
-	private final ForumUserDataHandler forumUserDataHandler;
+	private final ContentService contentService;
 	private final UserErasureDao userErasureDao;
 	private final ModerationLogDao moderationLogDao;
 
@@ -158,7 +159,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		Thread splitResult = threadDataProvider.splitThread(split, newThread);
 
 		userErasureDao.resequencePostInThread(List.of(split.threadId(), splitResult.getThreadId()));
-		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(split.threadId()));
+		threadDataProvider.gcThreadsEmptiedByDeletion(List.of(split.threadId()));
 
 		writeModerationLog(ACTION_THREAD_SPLIT, user, sourceThread.getCreatedUserId(), newThread.getBoardId(),
 				splitResult.getThreadId(), null, "thread_id=" + split.threadId() + " split: "
@@ -237,8 +238,11 @@ public class ForumModerationOrchestrator extends AbstractService {
 		writeModerationLog(ACTION_MESSAGE_PURGED, user, lockedMessage.ownerId(), boardId, threadId,
 				lockedMessage.messageId(), "message_id=" + lockedMessage.messageId() + " post "
 						+ lockedMessage.postInThread() + " purged from thread_id=" + threadId + " board_id=" + boardId);
-		List<String> releasedBlobPaths = forumUserDataHandler
-				.purgeMessagesByIds(List.of(lockedMessage.messageId()), blobPaths -> {});
+		List<Integer> touchedThreadIds = messageDataProvider.findThreadIdsForMessages(List.of(lockedMessage.messageId()));
+		List<String> releasedBlobPaths = blobPathsOf(
+				messageDataProvider.purgeMessagesByIds(List.of(lockedMessage.messageId())));
+		threadDataProvider.gcThreadsEmptiedByDeletion(touchedThreadIds);
+		messageDataProvider.resequencePostInThread(touchedThreadIds);
 
 		boolean threadDeleted = !forumService.threadExists(threadId);
 		Integer pageCount = threadDeleted ? null : pageCountOf(countMessagesInThread(threadId));
@@ -261,10 +265,9 @@ public class ForumModerationOrchestrator extends AbstractService {
 
 		List<String> releasedBlobPaths = new ArrayList<>();
 		for (int chunkStart = 0; chunkStart < messageIds.size(); chunkStart += THREAD_PURGE_CHUNK_SIZE)
-			releasedBlobPaths.addAll(forumUserDataHandler.purgeMessagesByIds(
-					messageIds.subList(chunkStart, Math.min(chunkStart + THREAD_PURGE_CHUNK_SIZE, messageIds.size())),
-					blobPaths -> {}));
-		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(threadId));
+			releasedBlobPaths.addAll(blobPathsOf(messageDataProvider.purgeMessagesByIds(
+					messageIds.subList(chunkStart, Math.min(chunkStart + THREAD_PURGE_CHUNK_SIZE, messageIds.size())))));
+		threadDataProvider.gcThreadsEmptiedByDeletion(List.of(threadId));
 
 		deleteBlobFilesAfterCommit(releasedBlobPaths);
 		forumService.evictUnfilteredForumCache();
@@ -299,7 +302,7 @@ public class ForumModerationOrchestrator extends AbstractService {
 		forumService.requireBoardAction(originBoardId, user);
 		Integer restoredPostInThread = forumService.nextPostInThread(originThreadId);
 		messageDataProvider.reparentMessage(messageId, originThreadId, originBoardId, restoredPostInThread);
-		forumUserDataHandler.gcThreadsEmptiedByDeletion(List.of(wrapperThreadId));
+		threadDataProvider.gcThreadsEmptiedByDeletion(List.of(wrapperThreadId));
 		if (forumService.threadExists(wrapperThreadId))
 			userErasureDao.resequencePostInThread(List.of(wrapperThreadId));
 
@@ -366,6 +369,17 @@ public class ForumModerationOrchestrator extends AbstractService {
 		entry.setLoggedTs(now);
 		entry.setCreatedTs(now);
 		moderationLogDao.insertSelective(entry);
+	}
+
+	private List<String> blobPathsOf(List<ReleasedResource> released) {
+		List<String> blobPaths = new ArrayList<>();
+		for (ReleasedResource resource : released) {
+			try {
+				blobPaths.add(contentService.storedFile(resource).toString());
+			} catch (RuntimeException pathUnresolvable) {
+			}
+		}
+		return blobPaths;
 	}
 
 	private void deleteBlobFilesAfterCommit(List<String> blobPaths) {

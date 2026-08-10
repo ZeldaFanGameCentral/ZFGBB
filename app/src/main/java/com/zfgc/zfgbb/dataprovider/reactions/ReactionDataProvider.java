@@ -25,6 +25,7 @@ import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.cms.ContentEntityDao;
 import com.zfgc.zfgbb.authorization.UnfilteredBoardRead;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.dao.reactions.ReactionDao;
 import com.zfgc.zfgbb.dao.reactions.ReactionTypeDao;
 import com.zfgc.zfgbb.dao.forum.ThreadDao;
@@ -39,6 +40,8 @@ import lombok.RequiredArgsConstructor;
 public class ReactionDataProvider {
 
 	private final ReactionDao reactionDao;
+
+	private final UserErasureDao userErasureDao;
 
 	private final ReactionTypeDao reactionTypeDao;
 
@@ -156,5 +159,17 @@ public class ReactionDataProvider {
 		ex.createCriteria().andBoardIdEqualTo(boardId);
 		return boardPermissionViewDao.get(ex).stream()
 				.map(BoardPermissionViewDbo::getPermissionId).collect(Collectors.toList());
+	}
+
+	public void deleteReactions(String reactableType, List<Integer> reactableIds) {
+		if (reactableIds.isEmpty())
+			return;
+		ReactionDboExample reactionExample = new ReactionDboExample();
+		reactionExample.createCriteria().andReactableTypeEqualTo(reactableType).andReactableIdIn(reactableIds);
+		reactionDao.deleteWhere(reactionExample);
+	}
+
+	public void scrubGivenReactions(Integer userId) {
+		userErasureDao.scrubGivenReactions(userId);
 	}
 }

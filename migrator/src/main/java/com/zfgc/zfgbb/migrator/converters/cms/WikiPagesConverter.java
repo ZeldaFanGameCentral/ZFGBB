@@ -491,7 +491,7 @@ public class WikiPagesConverter extends AbstractConverter<Void> {
 
 		ContentEntityDbo adoptingProject = null;
 		SmfDownloadQueryMapper.WikiProjectLinkRow link =
-				"MAIN".equals(namespace) ? wikiProjectLinks.get(page.getPageTitle()) : null;
+				namespace.equals("MAIN") ? wikiProjectLinks.get(page.getPageTitle()) : null;
 		if (link != null) {
 			adoptingProject = linkedProject(link);
 			if (adoptingProject == null || adoptingProject.getWikiPageId() == null) {

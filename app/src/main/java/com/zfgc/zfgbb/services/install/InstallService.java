@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.services.install;
 
+import com.zfgc.zfgbb.model.system.InstallStrategy;
+import com.zfgc.zfgbb.dataprovider.system.InstallRunDataProvider;
 import com.zfgc.zfgbb.services.system.SystemConfigService;
 import com.zfgc.zfgbb.services.backup.RestoreService;
 import com.zfgc.zfgbb.services.contentstore.ContentArchiveService;
@@ -25,7 +27,6 @@ import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.dao.forum.BoardDao;
 import com.zfgc.zfgbb.dao.forum.CategoryDao;
 import com.zfgc.zfgbb.dbo.AccountDeletionAuditDboExample;
-import com.zfgc.zfgbb.dbo.AccountDeletionRequestDboExample;
 import com.zfgc.zfgbb.dbo.BoardDbo;
 import com.zfgc.zfgbb.dbo.BoardDboExample;
 import com.zfgc.zfgbb.dbo.BrBoardPermissionDbo;
@@ -37,7 +38,6 @@ import com.zfgc.zfgbb.dbo.PermissionDbo;
 import com.zfgc.zfgbb.dbo.PermissionDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.dao.users.AccountDeletionAuditDao;
-import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
 import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
 import com.zfgc.zfgbb.dao.forum.BrBoardPermissionDao;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
@@ -53,7 +53,6 @@ import com.zfgc.zfgbb.operations.archive.BackupManifest;
 import com.zfgc.zfgbb.operations.postgres.PostgresAdvisoryLock;
 import com.zfgc.zfgbb.services.users.UserRegistrationService;
 import com.zfgc.zfgbb.services.auth.AuthService;
-import com.zfgc.zfgbb.services.users.deletion.CoreUserDataHandler;
 import com.zfgc.zfgbb.dataprovider.users.UserDataProvider;
 import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.exception.ZfgcConflictException;
@@ -79,17 +78,14 @@ public class InstallService {
 	private final PermissionDao permissionDao;
 	private final ThreadDao threadDao;
 	private final MessageDao messageDao;
-	private final AccountDeletionRequestDao accountDeletionRequestDao;
 	private final AccountDeletionAuditDao accountDeletionAuditDao;
 	private final DataSource dataSource;
-	private final InstallRunRepository installRun;
+	private final InstallRunDataProvider installRun;
 	private final InstallPhaseTransactions phases;
 	private final UserDataProvider userDataProvider;
 	private final AuthService authService;
 	private final ContentArchiveService contentArchiveService;
 	private final RestoreService restoreService;
-	private final CoreUserDataHandler coreUserDataHandler;
-
 	public InstallResult install(InstallRequest req) {
 		if (req == null) {
 			throw new ZfgcInvalidRequestException("Install request is required.");
@@ -115,7 +111,7 @@ public class InstallService {
 						Boolean.TRUE.equals(req.provisionRecycleBin()), siteName,
 						requestedStrategy) == InstallStrategy.ARCHIVE;
 				workflowClaimed = true;
-				InstallRunRepository.Run run = installRun.get();
+				InstallRunDataProvider.Run run = installRun.get();
 				User admin;
 				if (run.state().equals("READY")) {
 					admin = archiveInstall
@@ -202,7 +198,6 @@ public class InstallService {
 		grammarLoader.reloadFromTheDatabase();
 		phases.run(() -> {
 			authService.deleteEveryToken();
-			accountDeletionRequestDao.deleteWhere(new AccountDeletionRequestDboExample());
 			accountDeletionAuditDao.deleteWhere(new AccountDeletionAuditDboExample());
 			systemConfigService.unset(SystemConfigService.Keys.INSTALLED);
 			systemConfigService.unset(SystemConfigService.Keys.INSTALLED_AT);
@@ -237,8 +232,12 @@ public class InstallService {
 		return phases.call(() -> {
 			int reconciledUserId = restoredUserAdoptableAsAdministrator(req, administratorUserId)
 					.orElse(administratorUserId);
-			if (reconciledUserId != administratorUserId)
-				coreUserDataHandler.neutralizeUserIdentity(administratorUserId);
+			if (reconciledUserId != administratorUserId) {
+				List<Integer> releasedEmailAddressIds = userDataProvider.findEmailAddressIds(administratorUserId);
+				userDataProvider.neutralizeIdentity(administratorUserId);
+				authService.revokeAllForUser(administratorUserId);
+				userDataProvider.releaseEmailAddresses(releasedEmailAddressIds);
+			}
 			User administrator = userRegistrationService.reassignUserIdentity(
 					administratorRegistration(req), reconciledUserId);
 			grantPermission(administrator.getUserId(), siteAdminPermissionId);

@@ -21,7 +21,13 @@ public class UserJwtAuthenticationConverter implements Converter<Jwt, AbstractAu
 
 	@Override
 	public AbstractAuthenticationToken convert(Jwt jwt) {
-		User user = tokenSubjects.validSubject(Integer.valueOf(jwt.getSubject()),
+		Integer subjectUserId;
+		try {
+			subjectUserId = Integer.valueOf(jwt.getSubject());
+		} catch (NumberFormatException notAnAccessToken) {
+			throw new InvalidBearerTokenException("token subject is not a user id");
+		}
+		User user = tokenSubjects.validSubject(subjectUserId,
 				Optional.ofNullable(jwt.getIssuedAt()), InvalidBearerTokenException::new);
 		return new UsernamePasswordAuthenticationToken(user, jwt, user.getAuthorities());
 	}

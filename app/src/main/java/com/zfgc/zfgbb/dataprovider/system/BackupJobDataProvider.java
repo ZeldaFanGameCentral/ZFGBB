@@ -1,8 +1,8 @@
-package com.zfgc.zfgbb.services.backup;
+package com.zfgc.zfgbb.dataprovider.system;
 
 import lombok.RequiredArgsConstructor;
 
-import static com.zfgc.zfgbb.services.backup.OperationStorageService.canonicalId;
+import static com.zfgc.zfgbb.operations.archive.OperationFiles.canonicalId;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -24,7 +24,7 @@ import com.zfgc.zfgbb.model.system.BackupJob.State;
 
 @Repository
 @RequiredArgsConstructor
-public class BackupJobRepository {
+public class BackupJobDataProvider {
 
 	private final BackupJobDao backupJobDao;
 

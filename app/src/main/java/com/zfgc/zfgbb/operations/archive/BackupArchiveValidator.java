@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
+import java.util.Objects;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -118,7 +119,7 @@ public final class BackupArchiveValidator {
 
 	private Map<String, BackupManifest.Entry> validateManifest(BackupManifest manifest)
 			throws InvalidBackupException {
-		if (manifest.formatVersion() != 1 || !"ZFGBB".equals(manifest.application()))
+		if (manifest.formatVersion() != 1 || !Objects.equals(manifest.application(), "ZFGBB"))
 			throw invalid("unsupported backup format or application");
 		if (manifest.postgresqlMajor() != 18)
 			throw invalid("unsupported PostgreSQL source major");

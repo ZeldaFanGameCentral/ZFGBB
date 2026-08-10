@@ -31,11 +31,11 @@ public final class PostgresDumpTocValidator {
 			String description = matcher.group(1);
 			String namespace = matcher.group(2);
 			String tag = matcher.group(3);
-			if ("SCHEMA".equals(description)) {
-				if (!"-".equals(namespace) || !"zfgbb".equals(tag))
+			if (description.equals("SCHEMA")) {
+				if (!namespace.equals("-") || !tag.equals("zfgbb"))
 					throw new InvalidBackupException(
 							"database dump contains an object outside zfgbb");
-			} else if (!"zfgbb".equals(namespace)) {
+			} else if (!namespace.equals("zfgbb")) {
 				throw new InvalidBackupException(
 						"database dump contains an object outside zfgbb");
 			}

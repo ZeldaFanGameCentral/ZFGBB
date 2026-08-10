@@ -1,13 +1,18 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
+import java.util.UUID;
+import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.users.AccountDeletionAuditDao;
+import com.zfgc.zfgbb.dbo.AccountDeletionAuditDbo;
+import com.zfgc.zfgbb.dbo.AccountDeletionAuditDboExample;
+import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
 import com.zfgc.zfgbb.dao.users.UserPermissionViewDao;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
-import com.zfgc.zfgbb.dao.users.AccountDeletionRequestDao;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDbo;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
-import com.zfgc.zfgbb.dbo.AccountDeletionRequestDboExample;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,10 +24,21 @@ import java.time.OffsetDateTime;
 
 import org.springframework.stereotype.Repository;
 
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.users.AvatarDao;
 import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
 import com.zfgc.zfgbb.dao.users.EmailAddressDao;
 import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dao.users.UserPermissionGroupAssocDao;
+import com.zfgc.zfgbb.dbo.BrUserPermissionDboExample;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dbo.UserAwardDboExample;
+import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
+import com.zfgc.zfgbb.dbo.UserPermissionGroupAssocDboExample;
+import com.zfgc.zfgbb.dbo.UserSettingsDboExample;
+import com.zfgc.zfgbb.model.users.UserSummary;
 import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dbo.AwardDboExample;
 import com.zfgc.zfgbb.dbo.UserAwardDbo;
@@ -90,7 +106,21 @@ public class UserDataProvider {
 
 	private final UserRefreshTokenDao userRefreshTokenDao;
 
-	private final AccountDeletionRequestDao accountDeletionRequestDao;
+	private final UserErasureDao userErasureDao;
+
+	private final AccountDeletionAuditDao accountDeletionAuditDao;
+
+	private final ContentResourceDao contentResourceDao;
+
+	private final UserPermissionGroupAssocDao userPermissionGroupAssocDao;
+
+	private final AvatarDao avatarDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
+	public static final String SENTINEL_SSO_KEY = "__deleted__";
+
+	private static final String SENTINEL_DISPLAY_NAME = "[deleted]";
 
 	private final UserProfileFacade userProfileFacade;
 
@@ -372,12 +402,191 @@ public class UserDataProvider {
 
 		UserRefreshTokenDboExample foreignRefreshToken = new UserRefreshTokenDboExample();
 		foreignRefreshToken.createCriteria().andUserIdNotEqualTo(anchorAdministratorId);
-		if (userRefreshTokenDao.exists(foreignRefreshToken))
-			return true;
+		return userRefreshTokenDao.exists(foreignRefreshToken);
+	}
 
-		AccountDeletionRequestDboExample foreignDeletionRequest =
-				new AccountDeletionRequestDboExample();
-		foreignDeletionRequest.createCriteria().andUserIdNotEqualTo(anchorAdministratorId);
-		return accountDeletionRequestDao.exists(foreignDeletionRequest);
+	public Integer ensureSentinelUser() {
+		Optional<Integer> existing = userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY);
+		if (existing.isPresent())
+			return existing.get();
+		UserDbo sentinel = new UserDbo();
+		sentinel.setSsoKey(SENTINEL_SSO_KEY);
+		sentinel.setUserName(SENTINEL_SSO_KEY);
+		sentinel.setDisplayName(SENTINEL_DISPLAY_NAME);
+		sentinel.setActiveFlag(false);
+		sentinel.setFailedLoginCount(0);
+		userDao.save(sentinel);
+		return sentinel.getUserId();
+	}
+
+	public List<UserSummary> listUsers() {
+		return userErasureDao.listUsers();
+	}
+
+	public boolean isSentinelUser(Integer userId) {
+		return userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY).filter(userId::equals).isPresent();
+	}
+
+	public boolean isSiteAdmin(Integer userId) {
+		return userErasureDao.isSiteAdmin(userId);
+	}
+
+	public boolean isLastSiteAdmin(Integer userId) {
+		userErasureDao.acquireAdminRosterLock();
+		return userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1;
+	}
+
+	public boolean adminReplacementRequired(Integer userId) {
+		return userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1;
+	}
+
+	public Optional<String> findUserName(Integer userId) {
+		return userErasureDao.findUserName(userId);
+	}
+
+	public Optional<String> findPrimaryEmailAddress(Integer userId) {
+		return userErasureDao.findPrimaryEmailAddress(userId);
+	}
+
+	public List<Integer> findEmailAddressIds(Integer userId) {
+		return userErasureDao.findEmailAddressIds(userId);
+	}
+
+	public void neutralizeIdentity(Integer userId) {
+		userErasureDao.neutralizeUserRow(userId, SENTINEL_SSO_KEY + userId);
+		userErasureDao.scrubUserBioInfo(userId);
+		BrUserPermissionDboExample brUserPermissionExample = new BrUserPermissionDboExample();
+		brUserPermissionExample.createCriteria().andUserIdEqualTo(userId);
+		brUserPermissionDao.deleteWhere(brUserPermissionExample);
+		UserPermissionGroupAssocDboExample userPermissionGroupAssocExample = new UserPermissionGroupAssocDboExample();
+		userPermissionGroupAssocExample.createCriteria().andUserIdEqualTo(userId);
+		userPermissionGroupAssocDao.deleteWhere(userPermissionGroupAssocExample);
+		userErasureDao.deleteUserContactTypes(userId);
+		UserSettingsDboExample userSettingsExample = new UserSettingsDboExample();
+		userSettingsExample.createCriteria().andUserIdEqualTo(userId);
+		userSettingsDao.deleteWhere(userSettingsExample);
+		UserContactInfoDboExample userContactInfoExample = new UserContactInfoDboExample();
+		userContactInfoExample.createCriteria().andUserIdEqualTo(userId);
+		userContactInfoDao.deleteWhere(userContactInfoExample);
+	}
+
+	public List<Integer> releaseEmailAddresses(List<Integer> emailAddressIds) {
+		List<Integer> retainedSharedAddressIds = new ArrayList<>();
+		for (Integer emailAddressId : emailAddressIds.stream().distinct().toList()) {
+			userErasureDao.deleteEmailAddressIfUnreferenced(emailAddressId);
+			if (emailDao.existsWithPrimaryKey(emailAddressId))
+				retainedSharedAddressIds.add(emailAddressId);
+		}
+		return retainedSharedAddressIds;
+	}
+
+	public void deleteUserAwards(Integer userId) {
+		UserAwardDboExample userAwardExample = new UserAwardDboExample();
+		userAwardExample.createCriteria().andUserIdEqualTo(userId);
+		userAwardDao.deleteWhere(userAwardExample);
+	}
+
+	public Optional<Integer> findBioAvatarId(Integer userId) {
+		return userErasureDao.findBioAvatarId(userId);
+	}
+
+	public Optional<Integer> findAvatarContentResourceId(Integer avatarId) {
+		return userErasureDao.findAvatarContentResourceId(avatarId);
+	}
+
+	public void deleteBioInfo(Integer userId) {
+		UserBioInfoDboExample bioInfoExample = new UserBioInfoDboExample();
+		bioInfoExample.createCriteria().andUserIdEqualTo(userId);
+		bioInfoDao.deleteWhere(bioInfoExample);
+	}
+
+	public void deleteAvatar(Integer avatarId) {
+		avatarDao.delete(avatarId);
+	}
+
+	public void deleteUserRow(Integer userId) {
+		userDao.delete(userId);
+	}
+
+	public void nullAwardGranters(Integer userId) {
+		userErasureDao.nullAwardGranters(userId);
+	}
+
+	public void scrubIssuedWarnings(Integer userId) {
+		userErasureDao.scrubIssuedWarnings(userId);
+	}
+
+	public void scrubReceivedWarningMigrationHashes(Integer userId) {
+		userErasureDao.scrubReceivedWarningMigrationHashes(userId);
+	}
+
+	public void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
+		migratorIdMapDao.deleteWhere(example);
+	}
+
+	public void reassignContentResources(Integer userId, Integer sentinelId) {
+		userErasureDao.reassignContentResources(userId, sentinelId);
+	}
+
+	public List<Integer> findOwnedUnreferencedContentResourceIds(Integer userId, int chunkSize) {
+		return userErasureDao.findOwnedUnreferencedContentResourceIds(userId, chunkSize);
+	}
+
+	public void recordDeletionRequestedAudit(Integer userId, String mode, OffsetDateTime requestedTs) {
+		AccountDeletionAuditDbo audit = findOrCreateOpenAuditRow(userId, mode, requestedTs);
+		audit.setMode(mode);
+		audit.setRequestedTs(requestedTs);
+		accountDeletionAuditDao.save(audit);
+	}
+
+	public void stampAuditConfirmed(Integer userId, String mode, OffsetDateTime requestedTs, OffsetDateTime now) {
+		AccountDeletionAuditDbo audit = findOrCreateOpenAuditRow(userId, mode,
+				requestedTs != null ? requestedTs : now);
+		if (audit.getConfirmedTs() != null)
+			return;
+		audit.setConfirmedTs(now);
+		accountDeletionAuditDao.save(audit);
+	}
+
+	public void stampAuditExecuted(Integer userId, OffsetDateTime now) {
+		AccountDeletionAuditDboExample ex = new AccountDeletionAuditDboExample();
+		ex.createCriteria().andSubjectUserIdSnapshotEqualTo(userId).andExecutedTsIsNull();
+		ex.setOrderByClause("deletion_id desc");
+		accountDeletionAuditDao.getOne(ex).ifPresent(audit -> {
+			audit.setExecutedTs(now);
+			accountDeletionAuditDao.save(audit);
+		});
+	}
+
+	private AccountDeletionAuditDbo findOrCreateOpenAuditRow(Integer userId, String mode, OffsetDateTime timestamp) {
+		AccountDeletionAuditDboExample ex = new AccountDeletionAuditDboExample();
+		ex.createCriteria().andSubjectUserIdSnapshotEqualTo(userId).andExecutedTsIsNull();
+		ex.setOrderByClause("deletion_id desc");
+		Optional<AccountDeletionAuditDbo> existing = accountDeletionAuditDao.getOne(ex);
+		if (existing.isPresent())
+			return existing.get();
+		AccountDeletionAuditDbo audit = new AccountDeletionAuditDbo();
+		audit.setSubjectUserIdSnapshot(userId);
+		audit.setSubjectPseudonym(UUID.randomUUID().toString().replace("-", ""));
+		audit.setMode(mode);
+		audit.setInitiatedBy("SELF");
+		audit.setRequestedTs(timestamp);
+		audit.setMessageCount(userErasureDao.countOwnedMessages(userId));
+		audit.setContentResourceCount(countOwnedContentResources(userId));
+		audit.setCreatedTs(timestamp);
+		accountDeletionAuditDao.insertSelective(audit);
+		return audit;
+	}
+
+	public int countOwnedMessages(Integer userId) {
+		return userErasureDao.countOwnedMessages(userId);
+	}
+
+	public int countOwnedContentResources(Integer userId) {
+		ContentResourceDboExample ownedResourcesExample = new ContentResourceDboExample();
+		ownedResourcesExample.createCriteria().andUploadedUserIdEqualTo(userId);
+		return (int) contentResourceDao.count(ownedResourcesExample);
 	}
 }

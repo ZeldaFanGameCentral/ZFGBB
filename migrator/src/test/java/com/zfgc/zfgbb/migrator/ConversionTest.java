@@ -382,6 +382,22 @@ class ConversionTest {
 							"[url=http://www.zfgc.com/index.php#?action=games&sa=view&id=99]Triforce Saga[/url]",
 							maps().gameProject(99, 7).build(),
 							"[project=7]Triforce Saga[/project]"),
+					arguments("bareGameUrlWithAFragmentQueryRewritesToTheProject",
+							"see it here: http://www.zfgc.com/index.php#?action=games&sa=view&id=99",
+							maps().gameProject(99, 7).build(),
+							"see it here: [project=7]Project #7[/project]"),
+					arguments("aLegacyUrlInsideAnHtmlAttributeIsNotTurnedIntoBBCode",
+							"<a href=\"http://www.zfgc.com/index.php#?action=games&sa=view&id=99\">Triforce Saga</a>",
+							maps().gameProject(99, 7).build(),
+							"<a href=\"http://www.zfgc.com/index.php#?action=games&sa=view&id=99\">Triforce Saga</a>"),
+					arguments("aLegacyUrlUsedAsAnchorTextIsLeftAlone",
+							"<a href=\"https://example.com\">http://www.zfgc.com/index.php#?action=games&sa=view&id=99</a>",
+							maps().gameProject(99, 7).build(),
+							"<a href=\"https://example.com\">http://www.zfgc.com/index.php#?action=games&sa=view&id=99</a>"),
+					arguments("aBareUrlDirectlyAfterAnHtmlBreakStillRewrites",
+							"it should be:<br /><br />http://www.zfgc.com/index.php#?action=games&sa=view&id=99",
+							maps().gameProject(99, 7).build(),
+							"it should be:<br /><br />[project=7]Project #7[/project]"),
 					arguments("urlToAGameThatMigratedToNoProjectStaysAnOrdinaryUrl",
 							"[url=http://www.zfgc.com/index.php#?action=games&sa=view&id=99]Triforce Saga[/url]",
 							LegacyIdMaps.empty(),
@@ -537,8 +553,8 @@ class ConversionTest {
 			assertEquals(JobType.USERS, JobType.SMF_INSTALLATION_PIPELINE.get(0),
 					"users must be migrated first; everything else carries their ids");
 			assertEquals(20, JobType.MIGRATE_SMF_INSTALLATION.expand().size());
-			assertEquals(List.of(JobType.PROJECTS, JobType.RESOURCES, JobType.CMS_COMMENTS, JobType.WIKI_PAGES),
-					JobType.MIGRATE_CMS_INSTALLATION.expand());
+			assertEquals(List.of(JobType.PROJECTS, JobType.RESOURCES, JobType.CMS_COMMENTS, JobType.WIKI_PAGES,
+					JobType.BBCODE_REWRITE), JobType.MIGRATE_CMS_INSTALLATION.expand());
 		}
 
 		@Test

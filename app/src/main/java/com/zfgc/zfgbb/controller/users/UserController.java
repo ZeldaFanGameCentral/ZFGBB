@@ -29,10 +29,10 @@ import com.zfgc.zfgbb.model.users.LoginResponse;
 import com.zfgc.zfgbb.model.users.RefreshRequest;
 import com.zfgc.zfgbb.model.users.RegistrationRequest;
 import com.zfgc.zfgbb.model.users.TokenPair;
-import com.zfgc.zfgbb.services.users.AccountDeletionService;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
 import com.zfgc.zfgbb.services.users.UserRegistrationService;
+import com.zfgc.zfgbb.services.users.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -43,10 +43,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserController extends BaseController {
 
 	private final UserRegistrationService userRegistrationService;
+	private final UserService userService;
 	private final AuthService authService;
 	private final AuthCookieService cookieService;
-	private final AccountDeletionService accountDeletionService;
-
 	@Value("${zfgbb.registration.enabled:false}")
 	private boolean registrationEnabled;
 
@@ -121,34 +120,19 @@ public class UserController extends BaseController {
 	public ResponseEntity<AccountDeletionState> requestAccountDeletion(
 			@Valid @RequestBody AccountDeletionRequest body) {
 		return ResponseEntity.status(HttpStatus.ACCEPTED)
-				.body(accountDeletionService.requestDeletion(zfgcUser(), body));
-	}
-
-	@GetMapping("/account/delete")
-	public ResponseEntity<AccountDeletionState> accountDeletionState() {
-		return ResponseEntity.ok(accountDeletionService.currentDeletionState(zfgcUser()));
+				.body(userService.requestDeletion(zfgcUser(), body));
 	}
 
 	@PostMapping("/account/delete/preview")
 	public ResponseEntity<AccountDeletionPreview> previewAccountDeletion() {
-		return ResponseEntity.ok(accountDeletionService.previewDeletion(zfgcUser()));
-	}
-
-	@PostMapping("/account/delete/resend")
-	public ResponseEntity<AccountDeletionState> resendAccountDeletionConfirmation() {
-		return ResponseEntity.ok(accountDeletionService.resendConfirmation(zfgcUser()));
-	}
-
-	@PostMapping("/account/delete/cancel")
-	public ResponseEntity<AccountDeletionState> cancelAccountDeletion() {
-		return ResponseEntity.ok(accountDeletionService.cancelPendingDeletion(zfgcUser()));
+		return ResponseEntity.ok(userService.previewDeletion(zfgcUser()));
 	}
 
 	@PostMapping("/account/delete/confirm")
 	@AllowAnonymous
 	public ResponseEntity<AccountDeletionState> confirmAccountDeletion(
 			@Valid @RequestBody(required = false) AccountDeletionConfirmation body, HttpServletRequest httpRequest) {
-		AccountDeletionService.AccountDeletionConfirmOutcome outcome = accountDeletionService
+		UserService.AccountDeletionConfirmOutcome outcome = userService
 				.confirmDeletion(body == null ? null : body.token(), httpRequest.getRemoteAddr());
 		User caller = zfgcUser();
 		if (outcome.subjectUserId() != null && outcome.subjectUserId().equals(caller.getUserId())) {

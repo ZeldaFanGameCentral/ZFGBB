@@ -857,10 +857,11 @@ class MemberTest extends PostgresIntegrationTest {
 					.contentType(MediaType.APPLICATION_JSON)
 					.content("{\"body\": \"a reply worth timestamping\"}"))
 					.andExpect(status().isCreated())
+					.andExpect(jsonPath("$.message.createdTs").isString())
 					.andExpect(jsonPath("$.message.createdTs").isNotEmpty())
-					.andExpect(jsonPath("$.message.updatedTs").isNotEmpty())
-					.andExpect(jsonPath("$.message.currentMessage.createdTs").isNotEmpty())
-					.andExpect(jsonPath("$.message.currentMessage.updatedTs").isNotEmpty());
+					.andExpect(jsonPath("$.message.updatedTs").isString())
+					.andExpect(jsonPath("$.message.currentMessage.createdTs").isString())
+					.andExpect(jsonPath("$.message.currentMessage.updatedTs").isString());
 
 			editMessage(author.token(), messageIdAt(threadId, 2), "an edited body")
 					.andExpect(status().isOk())

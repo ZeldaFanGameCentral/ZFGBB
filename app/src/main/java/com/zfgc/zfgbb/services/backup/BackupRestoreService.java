@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.services.backup;
 
+import com.zfgc.zfgbb.dataprovider.system.BackupJobDataProvider;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
 import com.zfgc.zfgbb.dbo.ContentResourceDbo;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
@@ -61,7 +62,7 @@ public class BackupRestoreService {
 			"Backup payload is missing or does not match its metadata.";
 
 	private final OperationStorageService storage;
-	private final BackupJobRepository jobs;
+	private final BackupJobDataProvider jobs;
 	private final BackupRestoreProperties properties;
 	private final PostgresBackupTool postgres;
 	private final MaintenanceCoordinator maintenance;
@@ -78,7 +79,7 @@ public class BackupRestoreService {
 		return thread;
 	});
 
-	public BackupRestoreService(OperationStorageService storage, BackupJobRepository jobs,
+	public BackupRestoreService(OperationStorageService storage, BackupJobDataProvider jobs,
 			BackupRestoreProperties properties, PostgresBackupTool postgres,
 			MaintenanceCoordinator maintenance, ContentRoot content,
 			UserDataProvider userDataProvider, ContentResourceDao contentResourceDao, Clock clock) {

@@ -15,16 +15,12 @@ import com.zfgc.zfgbb.authorization.AuthorityTiers;
 import com.zfgc.zfgbb.content.ContentFormat;
 import com.zfgc.zfgbb.content.ContentScope;
 import com.zfgc.zfgbb.content.renderer.templates.TemplateDataFetcher;
+import com.zfgc.zfgbb.dataprovider.cms.ContentTemplateDataProvider;
 import com.zfgc.zfgbb.dataprovider.cms.WikiDataProvider;
 import com.zfgc.zfgbb.dataprovider.cms.WikiNamespaceDataProvider;
-import com.zfgc.zfgbb.dbo.ContentTemplateDbo;
-import com.zfgc.zfgbb.dbo.ContentTemplateDboExample;
-import com.zfgc.zfgbb.dbo.WikiPageDbo;
-import com.zfgc.zfgbb.dbo.WikiPageRevisionDbo;
-import com.zfgc.zfgbb.dao.cms.ContentTemplateDao;
-import com.zfgc.zfgbb.mapstruct.cms.WikiRevisionRefMap;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.cms.WikiPage;
+import com.zfgc.zfgbb.model.cms.WikiRevision;
 import com.zfgc.zfgbb.model.cms.WikiRevisionRef;
 import com.zfgc.zfgbb.services.contentstore.AuthoringContentFormat;
 import com.zfgc.zfgbb.wiki.WikiNamespaceRole;
@@ -38,15 +34,13 @@ public class WikiModerationService {
 
 	private final WikiDataProvider wikiDataProvider;
 
-	private final ContentTemplateDao contentTemplateDao;
+	private final ContentTemplateDataProvider contentTemplateDataProvider;
 
 	private final CmsPageRenderer cmsPageRenderer;
 
 	private final TemplateDataFetcher templateDataFetcher;
 
 	private final AuthorityTiers authorityTiers;
-
-	private final WikiRevisionRefMap wikiRevisionRefMap;
 
 	private final WikiNamespaceDataProvider namespaceData;
 
@@ -80,18 +74,15 @@ public class WikiModerationService {
 		if (canonical.title() == null || canonical.title().isBlank())
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "slug must name a page, not just a namespace");
 		wikiNamespaceEditGate.requireNamespaceEditable(canonical.namespace(), user);
-		WikiPageDbo page = wikiDataProvider.findPage(canonical.path());
-		if (page == null) {
-			page = createPage(canonical);
-		}
+		WikiPage page = wikiDataProvider.findPage(canonical.path())
+				.orElseGet(() -> createPage(canonical));
 		if (namespaceData.hasRole(page.getNamespace(), WikiNamespaceRole.TEMPLATE))
 			requireResolvableSource(TemplateSourceDirective.parse(content));
 		Integer wikiPageId = page.getWikiPageId();
 		ContentFormat contentFormat = authoringContentFormat.forSupersedingContent(requestedContentFormat,
 				() -> wikiDataProvider.contentFormatOfRevisionBeingSuperseded(wikiPageId));
-		WikiPageRevisionDbo revision = wikiDataProvider.submitRevision(wikiPageId, content, contentFormat,
+		return wikiDataProvider.submitRevision(wikiPageId, content, contentFormat,
 				summary, user.getUserId(), user.getDisplayName());
-		return wikiRevisionRefMap.toRef(revision);
 	}
 
 	public List<WikiRevisionRef> getPendingRevisions() {
@@ -99,47 +90,44 @@ public class WikiModerationService {
 	}
 
 	public void approve(Integer revisionId) {
-		WikiPageRevisionDbo revision = requirePending(revisionId);
-		WikiPageDbo page = wikiDataProvider.getPage(revision.getWikiPageId());
+		WikiRevision revision = requirePending(revisionId);
+		WikiPage page = wikiDataProvider.getPage(revision.getWikiPageId()).orElse(null);
 		if (page == null || !namespaceData.hasRole(page.getNamespace(), WikiNamespaceRole.TEMPLATE)) {
-			wikiDataProvider.approveRevision(revision);
+			wikiDataProvider.approveRevision(revisionId);
 			return;
 		}
 		TemplateSourceDirective directive = TemplateSourceDirective.parse(revision.getContent());
 		requireResolvableSource(directive);
-		wikiDataProvider.approveRevision(revision);
+		wikiDataProvider.approveRevision(revisionId);
 		publishTemplate(page, directive, ContentFormat.parse(revision.getContentFormat())
 				.orElse(ContentFormat.BBCODE));
 	}
 
 	public void reject(Integer revisionId) {
-		wikiDataProvider.rejectRevision(requirePending(revisionId));
+		requirePending(revisionId);
+		wikiDataProvider.rejectRevision(revisionId);
 	}
 
 	public Map<String, Object> preview(Integer revisionId) {
-		WikiPageRevisionDbo revision = wikiDataProvider.getRevision(revisionId);
-		if (revision == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such revision");
-		}
-		WikiPageDbo page = wikiDataProvider.getPage(revision.getWikiPageId());
+		WikiRevision revision = wikiDataProvider.getRevision(revisionId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such revision"));
+		WikiPage page = wikiDataProvider.getPage(revision.getWikiPageId()).orElse(null);
 		WikiPage rendered = cmsPageRenderer.previewPage(page == null ? null : page.getNamespace(),
 				page == null ? null : page.getTitle(), page == null ? null : page.getSlug(), revision.getContent(),
 				revision.getContentFormat(), ContentScope.WIKI);
 		return Map.of("contentParsed", rendered.getContentParsed() == null ? "" : rendered.getContentParsed());
 	}
 
-	private WikiPageRevisionDbo requirePending(Integer revisionId) {
-		WikiPageRevisionDbo revision = wikiDataProvider.getRevision(revisionId);
-		if (revision == null) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such revision");
-		}
+	private WikiRevision requirePending(Integer revisionId) {
+		WikiRevision revision = wikiDataProvider.getRevision(revisionId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such revision"));
 		if (!WikiDataProvider.STATUS_PENDING.equals(revision.getStatus())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Revision is not pending");
 		}
 		return revision;
 	}
 
-	private WikiPageDbo createPage(WikiTitle canonical) {
+	private WikiPage createPage(WikiTitle canonical) {
 		return wikiDataProvider.createPage(canonical.namespace(), canonical.title(), canonical.path());
 	}
 
@@ -151,40 +139,10 @@ public class WikiModerationService {
 						+ "' does not match any registered data source");
 	}
 
-	private void publishTemplate(WikiPageDbo page, TemplateSourceDirective directive, ContentFormat contentFormat) {
-		String code = namespaceData.templateCode(page.getTitle());
-		ContentTemplateDboExample ex = new ContentTemplateDboExample();
-		ex.createCriteria().andWikiPageIdEqualTo(page.getWikiPageId())
-				.andContentFormatEqualTo(contentFormat.name());
-		ContentTemplateDbo existing = contentTemplateDao.getOne(ex).orElse(null);
-		if (existing == null) {
-			ContentTemplateDboExample seeded = new ContentTemplateDboExample();
-			seeded.createCriteria().andCodeEqualTo(code).andContentFormatEqualTo(contentFormat.name())
-					.andWikiPageIdIsNull();
-			existing = contentTemplateDao.getOne(seeded).orElse(null);
-		}
-		if (existing == null) {
-			ContentTemplateDbo row = new ContentTemplateDbo();
-			row.setCode(code);
-			row.setContentFormat(contentFormat.name());
-			row.setScope("WIKI");
-			row.setBody(directive.body());
-			row.setSource(directive.source());
-			row.setWikiPageId(page.getWikiPageId());
-			contentTemplateDao.insert(row);
-			return;
-		}
-		existing.setBody(directive.body());
-		if (directive.directivePresent())
-			existing.setSource(directive.source());
-		existing.setWikiPageId(page.getWikiPageId());
-		contentTemplateDao.save(existing);
-		ContentTemplateDboExample otherFormats = new ContentTemplateDboExample();
-		otherFormats.createCriteria().andCodeEqualTo(code).andWikiPageIdIsNull();
-		for (ContentTemplateDbo sibling : contentTemplateDao.get(otherFormats)) {
-			sibling.setWikiPageId(page.getWikiPageId());
-			contentTemplateDao.save(sibling);
-		}
+	private void publishTemplate(WikiPage page, TemplateSourceDirective directive, ContentFormat contentFormat) {
+		contentTemplateDataProvider.publishWikiTemplate(namespaceData.templateCode(page.getTitle()),
+				page.getWikiPageId(), contentFormat, directive.body(), directive.source(),
+				directive.directivePresent());
 	}
 
 }

@@ -23,11 +23,18 @@ import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
 import com.zfgc.zfgbb.dbo.PollDbo;
 import com.zfgc.zfgbb.dbo.PollDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
+import com.zfgc.zfgbb.dbo.ThreadDboExample;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
 import com.zfgc.zfgbb.dao.forum.LatestMessageInThreadViewDao;
 import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
+import com.zfgc.zfgbb.dao.forum.UserPollChoiceDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dao.users.UserErasureDao;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dbo.PollDboExample;
+import com.zfgc.zfgbb.dbo.UserPollChoiceDboExample;
 import com.zfgc.zfgbb.dao.forum.MessageDao;
 import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mapstruct.forum.PollMap;
@@ -54,6 +61,12 @@ public class ThreadDataProvider {
 
 	private final ThreadDao threadDao;
 
+	private final UserErasureDao userErasureDao;
+
+	private final UserPollChoiceDao userPollChoiceDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
 	private final MessageDataProvider messageDataProvider;
 
 	private final BoardPermissionViewDao boardPermissionViewDao;
@@ -77,6 +90,21 @@ public class ThreadDataProvider {
 	private final UserMap userMap;
 
 	private final PermissionMap permissionMap;
+
+	public boolean threadExists(Integer threadId) {
+		ThreadDboExample example = new ThreadDboExample();
+		example.createCriteria().andThreadIdEqualTo(threadId);
+		return threadDao.exists(example);
+	}
+
+	public Integer nextPostInThread(Integer threadId) {
+		threadDao.lockForUpdate(threadId);
+		return messageDao.maxPostInThread(threadId) + 1;
+	}
+
+	public List<Integer> lockThreads(List<Integer> orderedThreadIds) {
+		return threadDao.lockForUpdate(orderedThreadIds);
+	}
 
 	public Thread getThread(Integer threadId, Integer page, Integer count) {
 		int pageSize = (count == null || count < 1) ? DEFAULT_MESSAGES_PER_PAGE : Math.min(count, MAX_MESSAGES_PER_PAGE);
@@ -237,5 +265,84 @@ public class ThreadDataProvider {
 
 		return newThread;
 	}
-	
+
+	public void purgeOwnedPolls(Integer userId) {
+		List<Integer> pollIds = userErasureDao.findOwnedPollIds(userId);
+		if (!pollIds.isEmpty()) {
+			userErasureDao.deleteUserPollVotes(userId);
+			userErasureDao.deleteUserPollChoices(userId);
+			deleteMigratorIdMapEntries("POLL", pollIds);
+			PollDboExample ownedPollsExample = new PollDboExample();
+			ownedPollsExample.createCriteria().andCreatedUserIdEqualTo(userId);
+			pollDao.deleteWhere(ownedPollsExample);
+		}
+		deleteOwnVotesAndRecount(userId);
+	}
+
+	public void orphanOwnedPolls(Integer userId, Integer sentinelId) {
+		List<Integer> pollIds = userErasureDao.findOwnedPollIds(userId);
+		if (!pollIds.isEmpty()) {
+			deleteMigratorIdMapEntries("POLL", pollIds);
+			userErasureDao.reassignPolls(userId, sentinelId);
+		}
+		deleteOwnVotesAndRecount(userId);
+	}
+
+	private void deleteOwnVotesAndRecount(Integer userId) {
+		List<Integer> votedChoiceIds = userErasureDao.findVotedPollChoiceIds(userId);
+		UserPollChoiceDboExample ownVotesExample = new UserPollChoiceDboExample();
+		ownVotesExample.createCriteria().andUserIdEqualTo(userId);
+		userPollChoiceDao.deleteWhere(ownVotesExample);
+		if (!votedChoiceIds.isEmpty())
+			userErasureDao.recountPollChoiceVotes(votedChoiceIds);
+	}
+
+	public void purgeThreadsWithGc(Integer userId, Integer sentinelId) {
+		List<Integer> ownedThreadIds = userErasureDao.findOwnedThreadIds(userId);
+		if (!ownedThreadIds.isEmpty())
+			deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
+		gcThreadsEmptiedByDeletion(ownedThreadIds);
+		userErasureDao.reassignThreads(userId, sentinelId);
+	}
+
+	public void gcThreadsEmptiedByDeletion(List<Integer> candidateThreadIds) {
+		if (candidateThreadIds.isEmpty())
+			return;
+		List<Integer> emptyThreadIds = userErasureDao.findEmptyThreadIdsAmong(candidateThreadIds);
+		if (emptyThreadIds.isEmpty())
+			return;
+		List<Integer> pollIds = userErasureDao.findPollIdsOnThreads(emptyThreadIds);
+		if (!pollIds.isEmpty())
+			deleteMigratorIdMapEntries("POLL", pollIds);
+		userErasureDao.deleteVotesForPollsOnThreads(emptyThreadIds);
+		userErasureDao.deleteChoicesForPollsOnThreads(emptyThreadIds);
+		PollDboExample pollsOnThreadsExample = new PollDboExample();
+		pollsOnThreadsExample.createCriteria().andThreadIdIn(emptyThreadIds);
+		pollDao.deleteWhere(pollsOnThreadsExample);
+		deleteMigratorIdMapEntries("THREAD", emptyThreadIds);
+		userErasureDao.deleteThreadsByIds(emptyThreadIds);
+	}
+
+	public void orphanThreads(Integer userId, Integer sentinelId) {
+		List<Integer> ownedThreadIds = userErasureDao.findOwnedThreadIds(userId);
+		if (!ownedThreadIds.isEmpty())
+			deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
+		userErasureDao.reassignThreads(userId, sentinelId);
+	}
+
+	public int countOwnedThreads(Integer userId) {
+		return userErasureDao.countOwnedThreads(userId);
+	}
+
+	public int countOwnedPolls(Integer userId) {
+		PollDboExample ownedPollsExample = new PollDboExample();
+		ownedPollsExample.createCriteria().andCreatedUserIdEqualTo(userId);
+		return (int) pollDao.count(ownedPollsExample);
+	}
+
+	private void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
+		migratorIdMapDao.deleteWhere(example);
+	}
 }

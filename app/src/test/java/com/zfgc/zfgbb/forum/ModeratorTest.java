@@ -27,7 +27,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.services.users.AccountDeletionService;
+import com.zfgc.zfgbb.model.users.DeletionMode;
+import com.zfgc.zfgbb.services.users.UserService;
 import com.zfgc.zfgbb.testsupport.PostgresIntegrationTest;
 
 import tools.jackson.databind.JsonNode;
@@ -36,8 +37,7 @@ class ModeratorTest extends PostgresIntegrationTest {
 
 	private static final String RECYCLE_BOARD_CONFIG_KEY = "recycle_board_id";
 
-	@Autowired private AccountDeletionService accountDeletionService;
-	@Autowired private AccountDeletionRequestDboMapper accountDeletionRequestDboMapper;
+	@Autowired private UserService userService;
 	@Autowired private BoardSummaryViewDboMapper boardSummaryViewDboMapper;
 	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
 	@Autowired private ContentResourceTypeDboMapper contentResourceTypeDboMapper;
@@ -754,15 +754,7 @@ class ModeratorTest extends PostgresIntegrationTest {
 					.andOwnerIdEqualTo(victim.id())),
 					"the recycled post must still belong to its author while it sits in the bin");
 
-			AccountDeletionRequestDbo wipeRequest = new AccountDeletionRequestDbo();
-			wipeRequest.setUserId(victim.id());
-			wipeRequest.setMode("WIPE");
-			wipeRequest.setStatus("CONFIRMED");
-			wipeRequest.setTokenSha256(UUID.randomUUID().toString());
-			wipeRequest.setRequestedTs(OffsetDateTime.now());
-			wipeRequest.setExpiresTs(OffsetDateTime.now().plusHours(24));
-			accountDeletionRequestDboMapper.insertSelective(wipeRequest);
-			accountDeletionService.executeConfirmedDeletion(wipeRequest.getAccountDeletionRequestId());
+			userService.eraseUserRecords(victim.id(), DeletionMode.PURGE);
 
 			UserDboExample victimScope = new UserDboExample();
 			victimScope.createCriteria().andUserIdEqualTo(victim.id());

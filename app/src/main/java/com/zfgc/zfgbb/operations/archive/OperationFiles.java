@@ -6,10 +6,19 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.UUID;
 
 public final class OperationFiles {
 
 	private OperationFiles() {}
+
+	public static boolean canonicalId(String id) {
+		try {
+			return UUID.fromString(id).toString().equals(id);
+		} catch (IllegalArgumentException | NullPointerException invalid) {
+			return false;
+		}
+	}
 
 	public static void deleteTree(Path root) throws IOException {
 		if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS))

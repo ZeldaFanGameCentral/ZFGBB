@@ -40,7 +40,7 @@ public class ContentTemplateCatalog {
 		String prefix = namespaceData.templateNamespace() + ":";
 		String path = code.regionMatches(true, 0, prefix, 0, prefix.length()) ? code : prefix + code;
 		WikiTitle title = namespaceData.resolve(path);
-		var page = wikiDataProvider.findPage(title.path());
+		var page = wikiDataProvider.findPage(title.path()).orElse(null);
 		List<ContentTemplateDbo> variants = page == null ? rows(code) : wikiRows(page.getWikiPageId());
 		if (page != null && variants.isEmpty()) {
 			variants = rows(code);
