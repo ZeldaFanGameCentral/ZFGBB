@@ -12,7 +12,6 @@ public record SmfConnectionParams(
 		String smfLegacyHost,
 		String appBaseUrl,
 		String attachmentsSourcePath,
-		String attachmentsTargetPath,
 		String avatarsSourcePath,
 		String cmsFilesSourcePath,
 		String wikiImagesSourcePath,
@@ -48,7 +47,7 @@ public record SmfConnectionParams(
 	public SmfConnectionParams withForce(boolean force) {
 		return new SmfConnectionParams(
 				jdbcUrl, username, password, smfTablePrefix, smfLegacyHost, appBaseUrl,
-				attachmentsSourcePath, attachmentsTargetPath, avatarsSourcePath, cmsFilesSourcePath,
+				attachmentsSourcePath, avatarsSourcePath, cmsFilesSourcePath,
 				wikiImagesSourcePath, force, createMemberWikiPages, discussionBoardId, resourcesBoardId,
 				talkBoardIds, groupPermissionMap, wikiNamespaceCaseModes, wikiNamespaceAliases, wikiNamespaceIds, wikiLegacyHost);
 	}

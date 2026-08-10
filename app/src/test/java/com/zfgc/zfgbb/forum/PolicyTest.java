@@ -125,8 +125,11 @@ import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
+import com.zfgc.zfgbb.mapstruct.users.AwardMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
+import com.zfgc.zfgbb.mapstruct.users.UserSettingsMap;
 import com.zfgc.zfgbb.model.users.User;
+import com.zfgc.zfgbb.mapstruct.cms.ProjectMapImpl;
 import com.zfgc.zfgbb.model.cms.ProjectNews;
 import com.zfgc.zfgbb.model.forum.Board;
 import com.zfgc.zfgbb.model.forum.BoardSummary;
@@ -696,6 +699,7 @@ class PolicyTest {
 			ReflectionTestUtils.setField(provider, "guestPermissionDataProvider", guestPermissionDataProvider);
 			ReflectionTestUtils.setField(provider, "projectNewsDao", projectNewsDao);
 			ReflectionTestUtils.setField(provider, "threadDao", threadDao);
+			ReflectionTestUtils.setField(provider, "projectMap", new ProjectMapImpl());
 			when(projectNewsDao.get(any()))
 					.thenReturn(List.of(newsRow(PUBLIC_THREAD_ID), newsRow(HIDDEN_THREAD_ID)));
 		}
@@ -798,6 +802,8 @@ class PolicyTest {
 					bioInfoDao,
 					mock(UserContactInfoDao.class),
 					userMap,
+					mock(UserSettingsMap.class),
+					mock(AwardMap.class),
 					userBioInfoMap,
 					mock(EmailAddressMap.class),
 					mock(UserSettingsDao.class),
@@ -925,6 +931,8 @@ class PolicyTest {
 					mock(UserBioInfoDao.class),
 					mock(UserContactInfoDao.class),
 					userMap,
+					mock(UserSettingsMap.class),
+					mock(AwardMap.class),
 					userBioInfoMap,
 					mock(EmailAddressMap.class),
 					mock(UserSettingsDao.class),

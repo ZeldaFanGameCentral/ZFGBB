@@ -3,6 +3,7 @@ package com.zfgc.zfgbb.web.filter;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -62,8 +63,8 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 			SignedJWT jwt = SignedJWT.parse(token);
 			Date exp = jwt.getJWTClaimsSet().getExpirationTime();
 			return exp != null && exp.toInstant().isBefore(Instant.now());
-		} catch (Exception e) {
-			return false;
+		} catch (ParseException unreadableToken) {
+			return true;
 		}
 	}
 

@@ -22,7 +22,6 @@ public class MigrateJobRequest {
 	private String wikiLegacyHost;
 	private String appBaseUrl;
 	private String attachmentsSourcePath;
-	private String attachmentsTargetPath;
 	private String avatarsSourcePath;
 	private String cmsFilesSourcePath;
 	private String wikiImagesSourcePath;

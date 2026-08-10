@@ -7,8 +7,10 @@ import java.nio.file.Path;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.zfgc.zfgbb.operations.contentstore.ContentRootProvider;
+
 @Service
-public class ContentRoot {
+public class ContentRoot implements ContentRootProvider {
 	private final Path contentRoot;
 
 	private volatile boolean directoryCreated;
@@ -24,6 +26,7 @@ public class ContentRoot {
 		return contentRoot;
 	}
 
+	@Override
 	public Path activeContentRoot() {
 		if (!directoryCreated) {
 			try {

@@ -75,8 +75,8 @@ import com.zfgc.zfgbb.services.system.SystemConfigService;
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 class MigrationAdminToolsTest extends MigrationE2E {
 
-	private static final Pattern EMPTIED_QUOTE_SHELL =
-			Pattern.compile("\\[quote[^\\]]*msg=\\d+[^\\]]*\\]\\[/quote\\]", Pattern.CASE_INSENSITIVE);
+	private static final Pattern EMPTIED_QUOTE_SHELL = Pattern.compile("\\[quote[^\\]]*msg=\\d+[^\\]]*\\]\\[/quote\\]",
+			Pattern.CASE_INSENSITIVE);
 
 	@Autowired
 	private ProjectService projectService;
@@ -90,28 +90,50 @@ class MigrationAdminToolsTest extends MigrationE2E {
 	@Autowired
 	private QuoteStripOperations quoteStripService;
 
-	@Autowired private BoardDboMapper boardDboMapper;
-	@Autowired private BrUserPermissionDboMapper brUserPermissionDboMapper;
-	@Autowired private CategoryDboMapper categoryDboMapper;
-	@Autowired private ContentResourceDboMapper contentResourceDboMapper;
-	@Autowired private CurrentMessageDboMapper currentMessageDboMapper;
-	@Autowired private EmailAddressDboMapper emailAddressDboMapper;
-	@Autowired private InstallRunDboMapper installRunDboMapper;
-	@Autowired private PermissionDboMapper permissionDboMapper;
-	@Autowired private PersonalMessageDboMapper personalMessageDboMapper;
-	@Autowired private ContentEntityDboMapper contentEntityDboMapper;
-	@Autowired private MigrationConflictDboMapper migrationConflictDboMapper;
-	@Autowired private ProjectDboMapper projectDboMapper;
-	@Autowired private ProjectDownloadDboMapper projectDownloadDboMapper;
-	@Autowired private ProjectScreenshotDboMapper projectScreenshotDboMapper;
-	@Autowired private ProjectViewDboMapper projectViewDboMapper;
-	@Autowired private QuoteStripAuditDboMapper quoteStripAuditDboMapper;
-	@Autowired private QuoteStripConversionMapper quoteStripConversionMapper;
-	@Autowired private QuoteStripRunDboMapper quoteStripRunDboMapper;
-	@Autowired private SystemConfigDboMapper systemConfigDboMapper;
-	@Autowired private UserContactInfoDboMapper userContactInfoDboMapper;
-	@Autowired private UserDboMapper userDboMapper;
-	@Autowired private UserRefreshTokenDboMapper userRefreshTokenDboMapper;
+	@Autowired
+	private BoardDboMapper boardDboMapper;
+	@Autowired
+	private BrUserPermissionDboMapper brUserPermissionDboMapper;
+	@Autowired
+	private CategoryDboMapper categoryDboMapper;
+	@Autowired
+	private ContentResourceDboMapper contentResourceDboMapper;
+	@Autowired
+	private CurrentMessageDboMapper currentMessageDboMapper;
+	@Autowired
+	private EmailAddressDboMapper emailAddressDboMapper;
+	@Autowired
+	private InstallRunDboMapper installRunDboMapper;
+	@Autowired
+	private PermissionDboMapper permissionDboMapper;
+	@Autowired
+	private PersonalMessageDboMapper personalMessageDboMapper;
+	@Autowired
+	private ContentEntityDboMapper contentEntityDboMapper;
+	@Autowired
+	private MigrationConflictDboMapper migrationConflictDboMapper;
+	@Autowired
+	private ProjectDboMapper projectDboMapper;
+	@Autowired
+	private ProjectDownloadDboMapper projectDownloadDboMapper;
+	@Autowired
+	private ProjectScreenshotDboMapper projectScreenshotDboMapper;
+	@Autowired
+	private ProjectViewDboMapper projectViewDboMapper;
+	@Autowired
+	private QuoteStripAuditDboMapper quoteStripAuditDboMapper;
+	@Autowired
+	private QuoteStripConversionMapper quoteStripConversionMapper;
+	@Autowired
+	private QuoteStripRunDboMapper quoteStripRunDboMapper;
+	@Autowired
+	private SystemConfigDboMapper systemConfigDboMapper;
+	@Autowired
+	private UserContactInfoDboMapper userContactInfoDboMapper;
+	@Autowired
+	private UserDboMapper userDboMapper;
+	@Autowired
+	private UserRefreshTokenDboMapper userRefreshTokenDboMapper;
 
 	private long screenshotsOf(Integer contentEntityId) {
 		ProjectScreenshotDboExample onEntity = new ProjectScreenshotDboExample();
@@ -284,7 +306,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 				"the emptied [quote msg=N][/quote] shell must remain in the stripped body");
 		assertFalse(EMPTIED_QUOTE_SHELL.matcher(beforeText).find(),
 				"the planned before-image must still carry the embedded quote text");
-		assertEquals(afterText, messageHistoryDboMapper.selectByPrimaryKey(auditRow.getMessageHistoryId()).getMessageText(),
+		assertEquals(afterText,
+				messageHistoryDboMapper.selectByPrimaryKey(auditRow.getMessageHistoryId()).getMessageText(),
 				"the live message_history body must match the applied after-image");
 	}
 
@@ -388,8 +411,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		MessageHistoryDboExample quoteFreeCurrentRevision = new MessageHistoryDboExample();
 		quoteFreeCurrentRevision.createCriteria().andCurrentFlagEqualTo(true).andMessageTextNotLike("%[quote%");
 		quoteFreeCurrentRevision.setLimit(1);
-		List<MessageHistoryDbo> quoteFreeHosts =
-				messageHistoryDboMapper.selectByExampleWithLimits(quoteFreeCurrentRevision);
+		List<MessageHistoryDbo> quoteFreeHosts = messageHistoryDboMapper
+				.selectByExampleWithLimits(quoteFreeCurrentRevision);
 		assertFalse(quoteFreeHosts.isEmpty(),
 				"the migrated corpus must offer a current revision carrying no quote markup to host the seeded quoter");
 		MessageHistoryDbo displacedHostRevision = quoteFreeHosts.get(0);
@@ -406,7 +429,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		messageHistoryDboMapper.insertSelective(upperCaseQuoter);
 		try {
 			assertTrue(quoteStripConversionMapper.loadQuoterTimestampRows().stream()
-							.anyMatch(quoter -> upperCaseQuoter.getMessageText().equals(quoter.getMessageText())),
+					.anyMatch(quoter -> upperCaseQuoter.getMessageText().equals(quoter.getMessageText())),
 					"a current revision whose opener is [QUOTE rather than [quote must still reach the quoter "
 							+ "index, or the live-splice guard never learns the quoted post is spliced into it");
 
@@ -429,6 +452,153 @@ class MigrationAdminToolsTest extends MigrationE2E {
 	private static long pregateCount(QuoteStripOperations.QuoteStripReport report, String pregateReason) {
 		Long pregated = report.pregateHistogram().get(pregateReason);
 		return pregated == null ? 0 : pregated;
+	}
+
+	@Nested
+	@Order(4)
+	@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+	class ConflictReview {
+
+		@Test
+		@Order(1)
+		void bulkResolveCommitsEachItemSeparatelyEvenWhenASiblingPoisonsTheBatch() throws Exception {
+			List<ContentEntityDbo> projects = contentEntityDboMapper.selectByExample(projectEntities());
+			assertTrue(projects.size() >= 2, "this test needs two projects to conflict over");
+			ContentEntityDbo winner = projects.get(0);
+			ContentEntityDbo poisoned = projects.get(1);
+			String survivingValue = "Bulk Winner " + UUID.randomUUID();
+			int winnerConflict = seedConflict(winner.getContentEntityId(), twoCandidates());
+			int poisonConflict = seedConflict(poisoned.getContentEntityId(), twoCandidates());
+			String adminToken = adminToken();
+
+			MvcResult bulk = mockMvc.perform(post("/admin/migrate/conflicts/resolve")
+					.header("Authorization", "Bearer " + adminToken)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(("[{\"id\":%d,\"sourceType\":\"CUSTOM\",\"customValue\":\"%s\"},"
+							+ "{\"id\":%d,\"sourceType\":\"CUSTOM\",\"customValue\":\"%s\"}]")
+							.formatted(winnerConflict, survivingValue, poisonConflict, "x".repeat(200))))
+					.andExpect(status().isOk())
+					.andReturn();
+
+			JsonNode outcomes = json.readTree(bulk.getResponse().getContentAsString());
+			assertEquals(2, outcomes.size(), "every requested id must be accounted for: " + outcomes);
+			assertTrue(outcomes.get(0).get("ok").asBoolean(), "the resolvable conflict should report ok");
+			assertFalse(outcomes.get(1).get("ok").asBoolean(),
+					"the oversize value must fail on its own instead of failing the batch");
+
+			assertEquals(survivingValue,
+					contentEntityDboMapper.selectByPrimaryKey(winner.getContentEntityId()).getAuthorName(),
+					"a sibling's SQL failure must not roll back an item that already succeeded");
+			assertEquals("RESOLVED", conflictById(winnerConflict).getStatus());
+			assertEquals("OPEN", conflictById(poisonConflict).getStatus(),
+					"the poisoned item must not be recorded as resolved");
+		}
+
+		@Test
+		@Order(2)
+		void bulkResolveNamesTheFailureForAnUnknownConflictId() throws Exception {
+			ContentEntityDbo project = contentEntityDboMapper.selectByExample(projectEntities()).get(0);
+			int conflictId = seedConflict(project.getContentEntityId(), twoCandidates());
+
+			MvcResult bulk = mockMvc.perform(post("/admin/migrate/conflicts/resolve")
+					.header("Authorization", "Bearer " + adminToken())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("[{\"id\":%d,\"sourceType\":\"THREAD\"},{\"id\":999999,\"sourceType\":\"CMS\"}]"
+							.formatted(conflictId)))
+					.andExpect(status().isOk())
+					.andReturn();
+
+			JsonNode outcomes = json.readTree(bulk.getResponse().getContentAsString());
+			assertTrue(outcomes.get(0).get("ok").asBoolean());
+			assertFalse(outcomes.get(1).get("ok").asBoolean());
+			assertEquals("ZfgcNotFoundException", outcomes.get(1).get("error").asString(),
+					"a failed row must name why it failed so the admin screen can show it");
+		}
+
+		@Test
+		@Order(3)
+		void reopeningClearsThePinWithoutRevertingWhatWasAlreadyWritten() throws Exception {
+			ContentEntityDbo project = contentEntityDboMapper.selectByExample(projectEntities()).get(0);
+			int conflictId = seedConflict(project.getContentEntityId(), twoCandidates());
+			String adminToken = adminToken();
+			mockMvc.perform(post("/admin/migrate/conflicts/" + conflictId + "/resolve")
+					.header("Authorization", "Bearer " + adminToken)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"sourceType\":\"CMS\"}"))
+					.andExpect(status().isOk());
+
+			MvcResult reopened = mockMvc.perform(post("/admin/migrate/conflicts/" + conflictId + "/reopen")
+					.header("Authorization", "Bearer " + adminToken))
+					.andExpect(status().isOk())
+					.andReturn();
+
+			JsonNode view = json.readTree(reopened.getResponse().getContentAsString());
+			assertEquals("OPEN", view.get("status").asString());
+			assertEquals("Cms Author",
+					contentEntityDboMapper.selectByPrimaryKey(project.getContentEntityId()).getAuthorName(),
+					"reopening reconsiders the choice; it must not silently rewrite the entity");
+			MigrationConflictDbo row = conflictById(conflictId);
+			assertNull(row.getResolvedSourceType(), "reopening must clear the pinned source");
+			assertNull(row.getResolvedValue(), "reopening must clear the pinned value");
+			assertNull(row.getResolvedByUserId(), "reopening must clear who resolved it");
+			assertNull(row.getResolvedTs(), "reopening must clear when it was resolved");
+		}
+
+		@Test
+		@Order(4)
+		void aConflictWhoseCandidateJsonCannotBeReadStillListsInsteadOfBreakingTheScreen() throws Exception {
+			ContentEntityDbo project = contentEntityDboMapper.selectByExample(projectEntities()).get(0);
+			int conflictId = seedConflict(project.getContentEntityId(), "this is not candidate json");
+			String adminToken = adminToken();
+
+			MvcResult listing = mockMvc.perform(get("/admin/migrate/conflicts")
+					.header("Authorization", "Bearer " + adminToken))
+					.andExpect(status().isOk())
+					.andReturn();
+
+			JsonNode damaged = null;
+			for (JsonNode row : json.readTree(listing.getResponse().getContentAsString()))
+				if (conflictId == row.get("id").asInt()) damaged = row;
+			assertNotNull(damaged, "one unreadable row must not take the whole conflict list down");
+			assertEquals(0, damaged.get("candidates").size(),
+					"an unreadable row should surface with no candidates rather than throw");
+
+			mockMvc.perform(post("/admin/migrate/conflicts/" + conflictId + "/resolve")
+					.header("Authorization", "Bearer " + adminToken)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"sourceType\":\"CMS\"}"))
+					.andExpect(status().isBadRequest());
+
+			MigrationConflictDboExample seeded = new MigrationConflictDboExample();
+			seeded.createCriteria().andMigrationConflictIdEqualTo(conflictId);
+			migrationConflictDboMapper.deleteByExample(seeded);
+		}
+
+		private String twoCandidates() {
+			return "[{\"sourceType\":\"CMS\",\"sourceRef\":\"project.author_name\","
+					+ "\"value\":\"Cms Author\",\"label\":\"CMS record\"},"
+					+ "{\"sourceType\":\"THREAD\",\"sourceRef\":\"thread:1\","
+					+ "\"value\":\"Thread Author\",\"label\":\"Forum thread\"}]";
+		}
+
+		private int seedConflict(Integer entityId, String candidates) {
+			MigrationConflictDboExample existing = new MigrationConflictDboExample();
+			existing.createCriteria().andEntityTypeEqualTo("PROJECT").andEntityIdEqualTo(entityId)
+					.andFieldNameEqualTo("author_name");
+			migrationConflictDboMapper.deleteByExample(existing);
+			MigrationConflictDbo seeded = new MigrationConflictDbo();
+			seeded.setEntityType("PROJECT");
+			seeded.setEntityId(entityId);
+			seeded.setFieldName("author_name");
+			seeded.setStatus("OPEN");
+			seeded.setCandidates(candidates);
+			migrationConflictDboMapper.insertSelective(seeded);
+			return migrationConflictDboMapper.selectByExample(existing).get(0).getMigrationConflictId();
+		}
+
+		private MigrationConflictDbo conflictById(int id) {
+			return migrationConflictDboMapper.selectByPrimaryKey(id);
+		}
 	}
 
 	@Nested
@@ -622,10 +792,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		@Order(4)
 		void reconciliationRefusesAnAmbiguousUserNameAndAnEmailHeldByAnother() {
 			int administratorUserId = findUserIdByName("test_admin");
-			String userNameHeldByAnother =
-					testQueryHelperMapper.findUsableUserNameOtherThan(administratorUserId);
-			String emailHeldByAnother =
-					testQueryHelperMapper.findEmailAddressHeldByAnother(administratorUserId);
+			String userNameHeldByAnother = testQueryHelperMapper.findUsableUserNameOtherThan(administratorUserId);
+			String emailHeldByAnother = testQueryHelperMapper.findEmailAddressHeldByAnother(administratorUserId);
 			assertNotNull(userNameHeldByAnother, "the restored corpus must contain another usable username");
 			assertNotNull(emailHeldByAnother, "the restored corpus must contain another usable email address");
 
@@ -817,8 +985,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		@Order(9)
 		void installingFromACorpusArchiveRestoresTheCorpusOntoTheRequestedAdministrator()
 				throws Exception {
-			BackupRestoreService.ArchiveInstallability classification =
-					installabilityClassifier.classifyInstallability(contentTarget);
+			BackupRestoreService.ArchiveInstallability classification = installabilityClassifier
+					.classifyInstallability(contentTarget);
 			assertTrue(classification.compatible(),
 					() -> "the migrated corpus must be shippable as installation content: "
 							+ classification.reason());
@@ -876,8 +1044,7 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		@Order(10)
 		void installingAsARestoredCorpusMemberAdoptsThatMemberAndRetiresTheAnchor() {
 			int anchorAdministratorId = findUserIdByName("corpus_owner");
-			String adoptedUserName =
-					testQueryHelperMapper.findMostProlificMember(0, anchorAdministratorId);
+			String adoptedUserName = testQueryHelperMapper.findMostProlificMember(0, anchorAdministratorId);
 			assertNotNull(adoptedUserName, "the corpus must contain an adoptable member");
 			int adoptedUserId = findUserIdByName(adoptedUserName);
 			MessageDboExample messagesOwned = new MessageDboExample();
@@ -916,7 +1083,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 					"the adopted member keeps their posts");
 			assertEquals(threadsOwnedBeforeAdoption, threadDboMapper.countByExample(threadsOwned),
 					"the adopted member keeps their threads");
-			assertEquals(personalMessagesSentBeforeAdoption, personalMessageDboMapper.countByExample(personalMessagesSent),
+			assertEquals(personalMessagesSentBeforeAdoption,
+					personalMessageDboMapper.countByExample(personalMessagesSent),
 					"the adopted member keeps their personal messages");
 			InstallRunDboExample adoptedInstall = new InstallRunDboExample();
 			adoptedInstall.createCriteria().andInstallIdEqualTo((short) 1).andStateEqualTo("INSTALLED")
@@ -943,8 +1111,8 @@ class MigrationAdminToolsTest extends MigrationE2E {
 		@Order(11)
 		void adoptingAMemberWhoSharesAnEmailAddressRowLeavesTheOtherOwnerIntact() {
 			int administratorUserId = installRunDboMapper.selectByPrimaryKey((short) 1).getAdminUserId();
-			List<Integer> members =
-					testQueryHelperMapper.findMembersHoldingAnEmailAddressOtherThan(administratorUserId);
+			List<Integer> members = testQueryHelperMapper
+					.findMembersHoldingAnEmailAddressOtherThan(administratorUserId);
 			assertTrue(members.size() >= 2,
 					"the corpus must hold two members with email addresses to share one");
 			int adoptedUserId = members.get(0);

@@ -68,7 +68,7 @@ public abstract class MigrationE2E extends MigrationTestSupport {
 	}
 
 	protected SmfConnectionParams params() {
-		return smfParams(smf, contentTarget.toString());
+		return smfParams(smf);
 	}
 
 	@Autowired

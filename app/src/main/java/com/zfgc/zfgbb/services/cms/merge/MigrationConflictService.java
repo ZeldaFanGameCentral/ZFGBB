@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.util.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,11 @@ import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.model.cms.ContentMergeSide;
 import com.zfgc.zfgbb.model.cms.MergeApplyRequest;
+import com.zfgc.zfgbb.mapstruct.cms.MigrationConflictMap;
+import com.zfgc.zfgbb.model.cms.ConflictCandidate;
+import com.zfgc.zfgbb.model.cms.ConflictView;
 import com.zfgc.zfgbb.model.cms.MergeCandidate;
+import com.zfgc.zfgbb.exception.ZfgcInvalidRequestException;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
 import com.zfgc.zfgbb.dao.cms.MigrationConflictDao;
 import com.zfgc.zfgbb.dao.cms.ContentEntityDao;
@@ -42,6 +47,7 @@ import com.zfgc.zfgbb.dao.users.UserDao;
 import lombok.RequiredArgsConstructor;
 import java.util.Collection;
 
+@Slf4j
 @Service
 @Transactional
 @UnfilteredBoardRead("migration job")
@@ -71,17 +77,11 @@ public class MigrationConflictService {
 
 	private final WikiPageDao wikiPageDao;
 
+	private final MigrationConflictMap conflictMap;
+
 	private final CmsSimilarityEngine similarityEngine;
 
 	private final CmsEntityMerger entityMerger;
-
-	public record Candidate(String sourceType, String sourceRef, String value, String label) {
-	}
-
-	public record ConflictView(Integer id, String entityType, Integer entityId, String entityLabel, String fieldName,
-			List<Candidate> candidates, String status, String resolvedSourceType, String resolvedValue,
-			OffsetDateTime detectedTs, OffsetDateTime resolvedTs) {
-	}
 
 	public record ResolveRequest(String sourceType, String customValue) {
 	}
@@ -95,7 +95,7 @@ public class MigrationConflictService {
 
 		int detected = 0;
 		for (ContentEntityDbo project : projects) {
-			List<Candidate> candidates = authorCandidates(project, threads, users);
+			List<ConflictCandidate> candidates = authorCandidates(project, threads, users);
 			long distinct = candidates.stream()
 					.map(candidate -> candidate.value().toLowerCase())
 					.filter(value -> !IGNORED_AUTHORS.contains(value))
@@ -109,18 +109,18 @@ public class MigrationConflictService {
 		return detected;
 	}
 
-	private List<Candidate> authorCandidates(ContentEntityDbo project, Map<Integer, ThreadDbo> threads,
+	private List<ConflictCandidate> authorCandidates(ContentEntityDbo project, Map<Integer, ThreadDbo> threads,
 			Map<Integer, UserDbo> users) {
-		List<Candidate> candidates = new ArrayList<>();
+		List<ConflictCandidate> candidates = new ArrayList<>();
 		if (StringUtils.hasText(project.getAuthorName())) {
-			candidates.add(new Candidate("CMS", "project.author_name", project.getAuthorName().trim(),
+			candidates.add(new ConflictCandidate("CMS", "project.author_name", project.getAuthorName().trim(),
 					"CMS record"));
 		}
 		ThreadDbo thread = project.getThreadId() == null ? null : threads.get(project.getThreadId());
 		if (thread != null && thread.getCreatedUserId() != null) {
 			UserDbo author = users.get(thread.getCreatedUserId());
 			if (author != null && StringUtils.hasText(author.getDisplayName())) {
-				candidates.add(new Candidate("THREAD", "thread:" + thread.getThreadId(),
+				candidates.add(new ConflictCandidate("THREAD", "thread:" + thread.getThreadId(),
 						author.getDisplayName().trim(), "Forum thread: " + thread.getThreadName()));
 			}
 		}
@@ -141,14 +141,14 @@ public class MigrationConflictService {
 	public ConflictView resolve(Integer id, String sourceType, String customValue, Integer userId) {
 		MigrationConflictDbo conflict = migrationConflictDao.find(id)
 				.orElseThrow(ZfgcNotFoundException::new);
-		List<Candidate> candidates = deserializeCandidates(conflict.getCandidates());
+		List<ConflictCandidate> candidates = deserializeCandidates(conflict.getCandidates());
 		String value;
 		if ("CUSTOM".equalsIgnoreCase(sourceType)) {
 			value = customValue == null ? "" : customValue.trim();
 		} else {
 			value = candidates.stream()
 					.filter(candidate -> candidate.sourceType().equalsIgnoreCase(sourceType))
-					.map(Candidate::value)
+					.map(ConflictCandidate::value)
 					.findFirst()
 					.orElseThrow(() -> new ZfgcNotFoundException());
 		}
@@ -174,6 +174,22 @@ public class MigrationConflictService {
 		return toView(conflict, projectTitles(List.of(conflict)));
 	}
 
+	public ConflictView reopen(Integer id) {
+		MigrationConflictDbo conflict = migrationConflictDao.find(id)
+				.orElseThrow(ZfgcNotFoundException::new);
+		conflict.setStatus(STATUS_OPEN);
+		conflict.setResolvedSourceType(null);
+		conflict.setResolvedValue(null);
+		conflict.setResolvedByUserId(null);
+		conflict.setResolvedTs(null);
+		migrationConflictDao.update(conflict);
+		return toView(conflict, projectTitles(List.of(conflict)));
+	}
+
+	public record BulkOutcome(Integer id, boolean ok, String error) {}
+
+	public record ResolveOne(Integer id, String sourceType, String customValue) {}
+
 	private void applyToEntity(MigrationConflictDbo conflict, String value) {
 		if ("PROJECT".equals(conflict.getEntityType()) && "author_name".equals(conflict.getFieldName())) {
 			ContentEntityDbo project = contentEntityDao.find(conflict.getEntityId()).orElse(null);
@@ -188,7 +204,7 @@ public class MigrationConflictService {
 				"no applier for " + conflict.getEntityType() + "." + conflict.getFieldName());
 	}
 
-	private void upsert(String entityType, Integer entityId, String fieldName, List<Candidate> candidates) {
+	private void upsert(String entityType, Integer entityId, String fieldName, List<ConflictCandidate> candidates) {
 		MigrationConflictDboExample ex = new MigrationConflictDboExample();
 		ex.createCriteria().andEntityTypeEqualTo(entityType).andEntityIdEqualTo(entityId)
 				.andFieldNameEqualTo(fieldName);
@@ -211,10 +227,17 @@ public class MigrationConflictService {
 	}
 
 	private ConflictView toView(MigrationConflictDbo row, Map<Integer, String> projectTitles) {
-		return new ConflictView(row.getMigrationConflictId(), row.getEntityType(), row.getEntityId(),
-				projectTitles.get(row.getEntityId()), row.getFieldName(), deserializeCandidates(row.getCandidates()),
-				row.getStatus(), row.getResolvedSourceType(), row.getResolvedValue(), row.getCreatedTs(),
-				row.getResolvedTs());
+		return conflictMap.toView(row, projectTitles.get(row.getEntityId()), readableCandidates(row));
+	}
+
+	private List<ConflictCandidate> readableCandidates(MigrationConflictDbo row) {
+		try {
+			return deserializeCandidates(row.getCandidates());
+		} catch (ZfgcInvalidRequestException unreadable) {
+			log.warn("conflict {} has candidates this service cannot read; listing it with none",
+					row.getMigrationConflictId(), unreadable);
+			return List.of();
+		}
 	}
 
 	private Map<Integer, ThreadDbo> threadsById(List<ContentEntityDbo> projects) {
@@ -254,16 +277,16 @@ public class MigrationConflictService {
 		return titles;
 	}
 
-	private List<Candidate> deserializeCandidates(String candidates) {
+	private List<ConflictCandidate> deserializeCandidates(String candidates) {
 		try {
-			return objectMapper.readValue(candidates, new TypeReference<List<Candidate>>() {
+			return objectMapper.readValue(candidates, new TypeReference<List<ConflictCandidate>>() {
 			});
 		} catch (JacksonException unreadable) {
-			throw new IllegalStateException("unreadable conflict candidates: " + candidates, unreadable);
+			throw new ZfgcInvalidRequestException("unreadable conflict candidates");
 		}
 	}
 
-	private String serializeCandidates(List<Candidate> candidates) {
+	private String serializeCandidates(List<ConflictCandidate> candidates) {
 		try {
 			return objectMapper.writeValueAsString(candidates);
 		} catch (JacksonException unwritable) {

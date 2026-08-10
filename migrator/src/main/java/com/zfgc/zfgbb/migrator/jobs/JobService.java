@@ -1,6 +1,8 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
 import java.sql.Connection;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +38,7 @@ import com.zfgc.zfgbb.migrator.converters.AbstractConverter;
 import com.zfgc.zfgbb.migrator.converters.cms.CmsSupport;
 import com.zfgc.zfgbb.migrator.web.SmfBoardSummary;
 import com.zfgc.zfgbb.migrator.web.SmfMemberGroupSummary;
+import com.zfgc.zfgbb.operations.contentstore.ContentRootProvider;
 import com.zfgc.zfgbb.operations.maintenance.MutationLeaseProvider;
 import com.zfgc.zfgbb.wiki.WikiTitle;
 
@@ -55,21 +58,24 @@ public class JobService {
 	private final TransactionTemplate targetTransactions;
 	private final Set<UUID> admittedJobs = ConcurrentHashMap.newKeySet();
 	private final Optional<MutationLeaseProvider> mutationLeases;
+	private final Optional<ContentRootProvider> contentRoots;
 	private MutationLeaseProvider.Lease pipelineLease;
 
 	public JobService(List<AbstractConverter<?>> converters, JdbcTemplate targetJdbc,
 			PlatformTransactionManager transactionManager,
 			@Qualifier("migrationJobExecutor") ExecutorService executor,
-			Optional<MutationLeaseProvider> mutationLeases) {
+			Optional<MutationLeaseProvider> mutationLeases,
+			Optional<ContentRootProvider> contentRoots) {
 		this.targetJdbc = targetJdbc;
 		this.targetTransactions = transactionManager == null ? null : new TransactionTemplate(transactionManager);
 		this.executor = executor;
 		this.mutationLeases = mutationLeases;
+		this.contentRoots = contentRoots;
 		this.convertersByType = converters.stream()
 				.collect(Collectors.toMap(AbstractConverter::getType, Function.identity()));
 		List<JobType> missing = new ArrayList<>();
 		for (JobType type : JobType.values()) {
-			if (type == JobType.MIGRATE_SMF_INSTALLATION || type == JobType.MIGRATE_CMS_INSTALLATION) {
+			if (type.isPipeline()) {
 				continue;
 			}
 			if (!convertersByType.containsKey(type)) {
@@ -86,12 +92,12 @@ public class JobService {
 		if (!admittedJobs.isEmpty())
 			throw new IllegalArgumentException("Another migration is queued or running; wait for it to finish");
 		validateTablePrefix(params.smfTablePrefix());
+		validateAssetRoots(type, params);
 		validateConnection(params);
 		try {
 			SmfConnectionParams requested = params;
 			params = targetTransactions.execute(status -> bootstrapNamespaces(requested));
-			List<JobType> steps = type == JobType.MIGRATE_SMF_INSTALLATION ? JobType.SMF_INSTALLATION_PIPELINE
-					: type == JobType.MIGRATE_CMS_INSTALLATION ? JobType.CMS_INSTALLATION_PIPELINE : List.of(type);
+			List<JobType> steps = type.expand();
 			SmfConnectionParams resolvedParams = params;
 			List<Job> submitted = steps.stream().map(step -> prepareOne(step, resolvedParams)).toList();
 			enqueuePrepared(submitted);
@@ -101,6 +107,47 @@ public class JobService {
 		} catch (RuntimeException e) {
 			throw e;
 		}
+	}
+
+	void validateAssetRoots(JobType type, SmfConnectionParams params) {
+		List<JobType> steps = type.expand();
+		if (steps.contains(JobType.ATTACHMENT_FILES)) {
+			requireConfigured("attachmentsSourcePath", params.attachmentsSourcePath());
+			requireReadableDirectory("attachmentsSourcePath", params.attachmentsSourcePath());
+		}
+		if (steps.contains(JobType.USER_BIO_INFO)) {
+			requireReadableDirectory("avatarsSourcePath", params.avatarsSourcePath());
+		}
+		if (steps.contains(JobType.PROJECTS) || steps.contains(JobType.RESOURCES)) {
+			requireReadableDirectory("cmsFilesSourcePath", params.cmsFilesSourcePath());
+		}
+		if (steps.contains(JobType.WIKI_PAGES)) {
+			requireReadableDirectory("wikiImagesSourcePath", params.wikiImagesSourcePath());
+		}
+	}
+
+	private static boolean isConfigured(String value) {
+		return value != null && !value.isBlank();
+	}
+
+	private static void requireConfigured(String field, String value) {
+		if (!isConfigured(value))
+			throw new IllegalArgumentException(field + " is required for this migration");
+	}
+
+	private static void requireReadableDirectory(String field, String configured) {
+		if (configured == null || configured.isBlank()) {
+			return;
+		}
+		Path path = Path.of(configured);
+		if (!path.isAbsolute())
+			throw new IllegalArgumentException(field + " must be an absolute path: " + configured);
+		if (!Files.exists(path))
+			throw new IllegalArgumentException(field + " does not exist: " + configured);
+		if (!Files.isDirectory(path))
+			throw new IllegalArgumentException(field + " is not a directory: " + configured);
+		if (!Files.isReadable(path))
+			throw new IllegalArgumentException(field + " is not readable by the server: " + configured);
 	}
 
 	synchronized void enqueuePrepared(List<Job> submitted) {
@@ -246,7 +293,7 @@ public class JobService {
 					while (rs.next()) result.put(rs.getString(1), rs.getString(2)); return result; });
 		Map<Integer, String> effectiveNamespaceIds = importNamespaceIds;
 		return new SmfConnectionParams(params.jdbcUrl(), params.username(), params.password(), params.smfTablePrefix(),
-				params.smfLegacyHost(), params.appBaseUrl(), params.attachmentsSourcePath(), params.attachmentsTargetPath(),
+				params.smfLegacyHost(), params.appBaseUrl(), params.attachmentsSourcePath(),
 				params.avatarsSourcePath(), params.cmsFilesSourcePath(), params.wikiImagesSourcePath(), params.force(),
 				params.createMemberWikiPages(), params.discussionBoardId(), params.resourcesBoardId(), params.talkBoardIds(),
 				params.groupPermissionMap(), Map.copyOf(resolvedModes), Map.copyOf(resolvedAliases),
@@ -334,7 +381,6 @@ public class JobService {
 		job.setSmfLegacyHost(params.smfLegacyHost());
 		job.setAppBaseUrl(params.appBaseUrl());
 		job.setAttachmentsSourcePath(params.attachmentsSourcePath());
-		job.setAttachmentsTargetPath(params.attachmentsTargetPath());
 		job.setAvatarsSourcePath(params.avatarsSourcePath());
 		job.setCmsFilesSourcePath(params.cmsFilesSourcePath());
 		job.setWikiImagesSourcePath(params.wikiImagesSourcePath());
@@ -351,6 +397,10 @@ public class JobService {
 		return job;
 	}
 
+	private String contentRootPath() {
+		return contentRoots.map(roots -> roots.activeContentRoot().toString()).orElse(null);
+	}
+
 	private void run(Job job) {
 		synchronized (job) {
 			if (job.getState() != JobState.QUEUED) {
@@ -365,7 +415,7 @@ public class JobService {
 		String error = null;
 		try {
 			dataSource = buildDataSource(job.getSmfJdbcUrl(), job.getSmfUser(), job.getSmfPassword());
-			JobContextHolder.set(dataSource, job.getAttachmentsSourcePath(), job.getAttachmentsTargetPath(),
+			JobContextHolder.set(dataSource, job.getAttachmentsSourcePath(), contentRootPath(),
 					job.getAvatarsSourcePath(), job.getCmsFilesSourcePath(), job.getWikiImagesSourcePath(),
 					job.getSmfTablePrefix(), job.getSmfLegacyHost(), job.getAppBaseUrl(), job.isForce(),
 					job.isCreateMemberWikiPages(), job.getDiscussionBoardId(), job.getResourcesBoardId(),
@@ -384,6 +434,11 @@ public class JobService {
 				outcome = JobState.FAILED;
 				error = e.getMessage();
 			}
+		} catch (Error e) {
+			log.error("Migrator job {} ({}) failed hard", job.getId(), job.getType(), e);
+			outcome = JobState.FAILED;
+			error = e.toString();
+			throw e;
 		} finally {
 			futures.remove(job.getId());
 			JobContextHolder.clear();
@@ -399,6 +454,40 @@ public class JobService {
 			accountTerminal(job);
 			job.setState(state);
 		}
+		if (state == JobState.FAILED) {
+			cancelRemainingAfterFailure(job);
+		}
+	}
+
+	private void cancelRemainingAfterFailure(Job failed) {
+		List<Job> queued = jobs.values().stream()
+				.filter(candidate -> admittedJobs.contains(candidate.getId()))
+				.filter(candidate -> candidate.getState() == JobState.QUEUED)
+				.toList();
+		if (queued.isEmpty()) {
+			return;
+		}
+		log.error("{} failed; cancelling the {} step(s) still queued in this run", failed.getType(), queued.size());
+		queued.forEach(job -> cancelQueued(job,
+				"Skipped because " + failed.getType() + " failed earlier in this run"));
+	}
+
+	public int cancelAll() {
+		List<UUID> admitted;
+		synchronized (this) {
+			admitted = List.copyOf(admittedJobs);
+		}
+		int cancelled = 0;
+		for (UUID id : admitted) {
+			Job job = jobs.get(id);
+			JobState before = job == null ? null : job.getState();
+			cancel(id);
+			JobState after = job == null ? null : job.getState();
+			if (before != after) {
+				cancelled++;
+			}
+		}
+		return cancelled;
 	}
 
 	private void dispatch(JobType type) throws Exception {

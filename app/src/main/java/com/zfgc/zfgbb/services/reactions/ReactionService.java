@@ -21,6 +21,7 @@ import com.zfgc.zfgbb.exception.ZfgcUnauthorizedException;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.reactions.ContentReactionSummary;
 import com.zfgc.zfgbb.model.reactions.ReactionRequest;
+import com.zfgc.zfgbb.mapstruct.reactions.ReactionTypeMap;
 import com.zfgc.zfgbb.model.reactions.ReactionTally;
 import com.zfgc.zfgbb.model.reactions.ReactionType;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,8 @@ public class ReactionService {
 	private static final int MAX_SUMMARY_IDS = 200;
 
 	private final ReactionDataProvider reactionDataProvider;
+
+	private final ReactionTypeMap reactionTypeMap;
 
 	private final AuthorityTiers authorityTiers;
 
@@ -112,15 +115,7 @@ public class ReactionService {
 		int totalPoints = 0;
 		for (ReactionType reactionType : reactionTypes) {
 			int count = countsByType.getOrDefault(reactionType.getReactionTypeId(), 0L).intValue();
-			ReactionTally tally = new ReactionTally();
-			tally.setReactionTypeId(reactionType.getReactionTypeId());
-			tally.setCode(reactionType.getCode());
-			tally.setLabel(reactionType.getLabel());
-			tally.setIcon(reactionType.getIcon());
-			tally.setPoints(reactionType.getPoints());
-			tally.setOrdinal(reactionType.getOrdinal());
-			tally.setCount(count);
-			summary.getTallies().add(tally);
+			summary.getTallies().add(reactionTypeMap.toTally(reactionType, count));
 			totalCount += count;
 			totalPoints += count * (reactionType.getPoints() == null ? 0 : reactionType.getPoints());
 		}

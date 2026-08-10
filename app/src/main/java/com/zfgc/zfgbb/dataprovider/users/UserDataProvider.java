@@ -42,6 +42,8 @@ import com.zfgc.zfgbb.dao.users.UserSettingsDao;
 import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
+import com.zfgc.zfgbb.mapstruct.users.AwardMap;
+import com.zfgc.zfgbb.mapstruct.users.UserSettingsMap;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.Award;
 import com.zfgc.zfgbb.model.users.EmailAddress;
@@ -69,6 +71,10 @@ public class UserDataProvider {
 	private final UserContactInfoDao userContactInfoDao;
 
 	private final UserMap userMap;
+
+	private final UserSettingsMap userSettingsMap;
+
+	private final AwardMap awardMap;
 
 	private final UserBioInfoMap userBioInfoMap;
 
@@ -144,29 +150,15 @@ public class UserDataProvider {
 	}
 
 	public UserSettings saveUserSettings(Integer userId, UserSettings settings) {
-		UserSettingsDbo dbo = new UserSettingsDbo();
-		dbo.setUserId(userId);
-		dbo.setTheme(settings.getTheme());
-		dbo.setSmileySet(settings.getSmileySet());
-		dbo.setNotifyAnnouncementsFlag(settings.getNotifyAnnouncementsFlag());
-		dbo.setNotifySendBodyFlag(settings.getNotifySendBodyFlag());
-		dbo.setSendHappyBirthdayFlag(settings.getSendHappyBirthdayFlag());
-
 		UserSettingsDbo existing = userSettingsDao.find(userId).orElse(null);
 		if (existing == null) {
-			userSettingsDao.insertSelective(dbo);
+			UserSettingsDbo created = new UserSettingsDbo();
+			created.setUserId(userId);
+			userSettingsMap.applyOnto(settings, created);
+			userSettingsDao.insertSelective(created);
 		} else {
-			dbo.setMigrationHash(existing.getMigrationHash());
-			if (dbo.getNotifyAnnouncementsFlag() == null) {
-				dbo.setNotifyAnnouncementsFlag(existing.getNotifyAnnouncementsFlag());
-			}
-			if (dbo.getNotifySendBodyFlag() == null) {
-				dbo.setNotifySendBodyFlag(existing.getNotifySendBodyFlag());
-			}
-			if (dbo.getSendHappyBirthdayFlag() == null) {
-				dbo.setSendHappyBirthdayFlag(existing.getSendHappyBirthdayFlag());
-			}
-			userSettingsDao.update(dbo);
+			userSettingsMap.applyOnto(settings, existing);
+			userSettingsDao.update(existing);
 		}
 		return toSettings(userSettingsDao.find(userId).orElse(null));
 	}
@@ -321,15 +313,7 @@ public class UserDataProvider {
 		AwardDboExample awardEx = new AwardDboExample();
 		awardEx.setOrderByClause("award_id");
 		return awardDao.get(awardEx).stream()
-				.map(awardDbo -> {
-					Award model = new Award();
-					model.setAwardId(awardDbo.getAwardId());
-					model.setCode(awardDbo.getCode());
-					model.setName(awardDbo.getName());
-					model.setDescription(awardDbo.getDescription());
-					model.setIcon(awardDbo.getIcon());
-					return model;
-				})
+				.map(awardMap::toCatalogEntry)
 				.toList();
 	}
 

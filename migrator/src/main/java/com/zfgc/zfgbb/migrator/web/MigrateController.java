@@ -112,11 +112,14 @@ public class MigrateController {
 
 		String attachmentsPath = resolveSubdir(extractDir, "attachments");
 		String avatarsPath = resolveSubdir(extractDir, "avatars");
+		String cmsFilesPath = resolveSubdir(extractDir, "files");
+		String wikiImagesPath = resolveSubdir(extractDir, "images");
 
-		logger.info("Extracted migration upload {} -> attachments={}, avatars={}",
-				uploadId, attachmentsPath, avatarsPath);
+		logger.info("Extracted migration upload {} -> attachments={}, avatars={}, files={}, images={}",
+				uploadId, attachmentsPath, avatarsPath, cmsFilesPath, wikiImagesPath);
 
-		return ResponseEntity.ok(new MigrateUploadResponse(uploadId, attachmentsPath, avatarsPath));
+		return ResponseEntity.ok(new MigrateUploadResponse(uploadId, attachmentsPath, avatarsPath,
+				cmsFilesPath, wikiImagesPath));
 	}
 
 	@PostMapping("/jobs")
@@ -145,7 +148,6 @@ public class MigrateController {
 				request.getSmfLegacyHost(),
 				effectiveAppBaseUrl,
 				request.getAttachmentsSourcePath(),
-				request.getAttachmentsTargetPath(),
 				request.getAvatarsSourcePath(),
 				request.getCmsFilesSourcePath(),
 				request.getWikiImagesSourcePath(),
@@ -175,6 +177,11 @@ public class MigrateController {
 	public Job get(@PathVariable UUID id) {
 		return jobService.get(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
+
+	@DeleteMapping("/jobs")
+	public ResponseEntity<Map<String, Integer>> cancelAll() {
+		return ResponseEntity.ok(Map.of("cancelled", jobService.cancelAll()));
 	}
 
 	@DeleteMapping("/jobs/{id}")

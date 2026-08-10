@@ -97,7 +97,7 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 		throw new IllegalStateException("SMF fixture never became reachable at " + smfJdbcUrl(smf), lastFailure);
 	}
 
-	protected SmfConnectionParams smfParams(ComposeContainer smf, String attachmentsTarget) {
+	protected SmfConnectionParams smfParams(ComposeContainer smf) {
 		return new SmfConnectionParams(
 				smfJdbcUrl(smf),
 				SMF_USERNAME,
@@ -106,7 +106,6 @@ public abstract class MigrationTestSupport extends ZfgbbIntegrationTest {
 				"localhost:8090",
 				"http://localhost:5173",
 				LEGACY_ASSETS.resolve("smf/attachments").toString(),
-				attachmentsTarget,
 				LEGACY_ASSETS.resolve("smf/avatars").toString(),
 				LEGACY_ASSETS.resolve("cms/uploads").toString(),
 				LEGACY_ASSETS.resolve("wiki/images").toString(),

@@ -276,19 +276,9 @@ public class ProjectDataProvider {
 					.forEach(thread -> threadNames.put(thread.getThreadId(), thread.getThreadName()));
 		}
 
-		return rows.stream().map(dbo -> {
-			ProjectNews entry = new ProjectNews();
-			entry.setThreadId(dbo.getThreadId());
-			entry.setSubject(dbo.getSubject());
-			entry.setBody(dbo.getBody());
-			entry.setAuthorUserId(dbo.getAuthorUserId());
-			entry.setAuthorName(dbo.getAuthorName());
-			entry.setPublishedTs(dbo.getPublishedTs());
-			if (dbo.getThreadId() != null) {
-				entry.setThreadName(threadNames.get(dbo.getThreadId()));
-			}
-			return entry;
-		}).sorted(Comparator.comparing(ProjectNews::getPublishedTs,
+		return rows.stream()
+				.map(dbo -> projectMap.toNews(dbo, threadNames.get(dbo.getThreadId())))
+				.sorted(Comparator.comparing(ProjectNews::getPublishedTs,
 				Comparator.nullsLast(Comparator.reverseOrder()))).toList();
 	}
 
@@ -327,22 +317,14 @@ public class ProjectDataProvider {
 		if (dbo == null) {
 			return null;
 		}
-		TeamInfo team = new TeamInfo();
-		team.setTeamId(dbo.getTeamId());
-		team.setName(dbo.getName());
-		team.setDescription(dbo.getDescription());
+		TeamInfo team = projectMap.toTeam(dbo);
 		TeamMemberDboExample ex = new TeamMemberDboExample();
 		ex.createCriteria().andTeamIdEqualTo(teamId);
 		List<TeamMemberDbo> members = teamMemberDao.get(ex);
 		Map<Integer, String> names = catalogDataProvider.displayNames(
 				members.stream().map(TeamMemberDbo::getUserId));
-		members.forEach(member -> {
-			TeamMember entry = new TeamMember();
-			entry.setUserId(member.getUserId());
-			entry.setDisplayName(names.get(member.getUserId()));
-			entry.setMemberRole(member.getMemberRole());
-			team.getMembers().add(entry);
-		});
+		members.forEach(member -> team.getMembers()
+				.add(projectMap.toTeamMember(member, names.get(member.getUserId()))));
 		return team;
 	}
 

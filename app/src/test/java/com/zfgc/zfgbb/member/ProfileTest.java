@@ -75,6 +75,43 @@ class ProfileTest extends PostgresIntegrationTest {
 	}
 
 	@Test
+	void aPartialSettingsSaveKeepsTheFieldsItDidNotSend() throws Exception {
+		String ownerName = "ppart_" + suffix;
+		register(ownerName, "password123");
+		String ownerToken = login(ownerName, "password123").get("accessToken").asString();
+		int ownerId = userIdOf(ownerName);
+
+		mockMvc.perform(post("/users/" + ownerId + "/settings")
+				.header("Authorization", "Bearer " + ownerToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"theme": "GORON", "smileySet": "CLASSIC", "notifyAnnouncementsFlag": true,
+						 "notifySendBodyFlag": true, "sendHappyBirthdayFlag": true}
+						"""))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/users/" + ownerId + "/settings")
+				.header("Authorization", "Bearer " + ownerToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"theme\": \"SHEIK\", \"smileySet\": \"NONE\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.theme").value("SHEIK"))
+				.andExpect(jsonPath("$.smileySet").value("NONE"))
+				.andExpect(jsonPath("$.notifyAnnouncementsFlag").value(true))
+				.andExpect(jsonPath("$.notifySendBodyFlag").value(true))
+				.andExpect(jsonPath("$.sendHappyBirthdayFlag").value(true));
+
+		mockMvc.perform(post("/users/" + ownerId + "/settings")
+				.header("Authorization", "Bearer " + ownerToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"notifySendBodyFlag\": false}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.notifySendBodyFlag").value(false))
+				.andExpect(jsonPath("$.theme").value("SHEIK"))
+				.andExpect(jsonPath("$.smileySet").value("NONE"));
+	}
+
+	@Test
 	void settingsSaveRoundTrip() throws Exception {
 		String ownerName = "pset_" + suffix;
 		register(ownerName, "password123");

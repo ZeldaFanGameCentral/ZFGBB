@@ -515,7 +515,7 @@ class ConversionTest {
 
 			IllegalStateException ex = assertThrows(IllegalStateException.class,
 					() -> new JobService(partial, null, null, mock(ExecutorService.class),
-							Optional.empty()));
+							Optional.empty(), Optional.empty()));
 			assertTrue(ex.getMessage().contains("CATEGORIES"),
 					"missing-converter list should call out CATEGORIES; was: " + ex.getMessage());
 		}
@@ -528,7 +528,44 @@ class ConversionTest {
 					.collect(Collectors.toList());
 
 			new JobService(full, null, null, mock(ExecutorService.class),
-					Optional.empty());
+					Optional.empty(), Optional.empty());
+		}
+
+		@Test
+		void pipelineTypesExpandAndLeafTypesStandAlone() {
+			assertEquals(List.of(JobType.CATEGORIES), JobType.CATEGORIES.expand());
+			assertEquals(JobType.USERS, JobType.SMF_INSTALLATION_PIPELINE.get(0),
+					"users must be migrated first; everything else carries their ids");
+			assertEquals(20, JobType.MIGRATE_SMF_INSTALLATION.expand().size());
+			assertEquals(List.of(JobType.PROJECTS, JobType.RESOURCES, JobType.CMS_COMMENTS, JobType.WIKI_PAGES),
+					JobType.MIGRATE_CMS_INSTALLATION.expand());
+		}
+
+		@Test
+		void migrateEverythingRunsBothPipelinesEndToEndWithoutRepeatingAStep() {
+			List<JobType> everything = JobType.MIGRATE_EVERYTHING.expand();
+
+			assertEquals(everything.size(), everything.stream().distinct().count(),
+					"no step may run twice in one pipeline: " + everything);
+			assertTrue(everything.stream().noneMatch(JobType::isPipeline),
+					"expansion must yield runnable steps only: " + everything);
+			assertTrue(everything.containsAll(JobType.SMF_INSTALLATION_PIPELINE)
+					&& everything.containsAll(JobType.CMS_INSTALLATION_PIPELINE),
+					"both halves must be present: " + everything);
+			assertTrue(everything.indexOf(JobType.USERS) < everything.indexOf(JobType.WIKI_PAGES),
+					"the SMF half must run before the CMS half, which references migrated users");
+		}
+
+		@Test
+		void everyRunnableJobTypeIsWiredIntoAPipeline() {
+			List<JobType> everything = JobType.MIGRATE_EVERYTHING.expand();
+			List<JobType> orphaned = Stream.of(JobType.values())
+					.filter(type -> !type.isPipeline())
+					.filter(type -> !everything.contains(type))
+					.toList();
+
+			assertTrue(orphaned.isEmpty(),
+					"JobType(s) that no pipeline runs, so a full migration silently skips them: " + orphaned);
 		}
 
 		private static final class StubConverter extends AbstractConverter<Void> {

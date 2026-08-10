@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.migrator.jobs;
 import java.util.List;
+import java.util.stream.Stream;
 
 public enum JobType {
 	USERS,
@@ -27,7 +28,8 @@ public enum JobType {
 	RESOURCES,
 	CMS_COMMENTS,
 	MIGRATE_SMF_INSTALLATION,
-	MIGRATE_CMS_INSTALLATION;
+	MIGRATE_CMS_INSTALLATION,
+	MIGRATE_EVERYTHING;
 
 	public static final List<JobType> SMF_INSTALLATION_PIPELINE = List.of(
 			USERS,
@@ -56,4 +58,18 @@ public enum JobType {
 			RESOURCES,
 			CMS_COMMENTS,
 			WIKI_PAGES);
+
+	public List<JobType> expand() {
+		return switch (this) {
+			case MIGRATE_SMF_INSTALLATION -> SMF_INSTALLATION_PIPELINE;
+			case MIGRATE_CMS_INSTALLATION -> CMS_INSTALLATION_PIPELINE;
+			case MIGRATE_EVERYTHING -> Stream.concat(SMF_INSTALLATION_PIPELINE.stream(),
+					CMS_INSTALLATION_PIPELINE.stream()).toList();
+			default -> List.of(this);
+		};
+	}
+
+	public boolean isPipeline() {
+		return !expand().equals(List.of(this));
+	}
 }
