@@ -16,7 +16,6 @@ public enum JobType {
 	POLLS,
 	POLL_CHOICES,
 	USER_POLL_CHOICES,
-	KARMA,
 	MIGRATE_SMF_INSTALLATION;
 
 	public static final java.util.List<JobType> SMF_INSTALLATION_PIPELINE = java.util.List.of(
@@ -34,6 +33,5 @@ public enum JobType {
 			USER_CONTACT_INFO,
 			POLLS,
 			POLL_CHOICES,
-			USER_POLL_CHOICES,
-			KARMA);
+			USER_POLL_CHOICES);
 }

@@ -25,6 +25,15 @@ public class CurrentMessageDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.created_ts")
     private OffsetDateTime createdTs;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.updated_ts")
+    private OffsetDateTime updatedTs;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.board_id")
+    private Integer boardId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.content_format")
+    private String contentFormat;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.message_id")
     public Integer getMessageId() {
         return messageId;
@@ -95,6 +104,36 @@ public class CurrentMessageDbo extends AbstractDbo {
         this.createdTs = createdTs;
     }
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.updated_ts")
+    public OffsetDateTime getUpdatedTs() {
+        return updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.updated_ts")
+    public void setUpdatedTs(OffsetDateTime updatedTs) {
+        this.updatedTs = updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.board_id")
+    public Integer getBoardId() {
+        return boardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.board_id")
+    public void setBoardId(Integer boardId) {
+        this.boardId = boardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.content_format")
+    public String getContentFormat() {
+        return contentFormat;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.current_message_view.content_format")
+    public void setContentFormat(String contentFormat) {
+        this.contentFormat = contentFormat;
+    }
+
     @Override
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.current_message_view")
     public Integer getPkId() {
@@ -110,6 +149,6 @@ public class CurrentMessageDbo extends AbstractDbo {
     @Override
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source Table: zfgbb.current_message_view")
     public OffsetDateTime getUpdatedTime() {
-        return null;
+        return updatedTs;
     }
 }

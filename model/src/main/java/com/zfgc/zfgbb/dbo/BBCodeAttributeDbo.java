@@ -7,9 +7,6 @@ public class BBCodeAttributeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.bb_code_attribute_id")
     private Integer bbCodeAttributeId;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
-    private Integer attributeDataType;
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_index")
     private Integer attributeIndex;
 
@@ -25,6 +22,12 @@ public class BBCodeAttributeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.updated_ts")
     private OffsetDateTime updatedTs;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
+    private String attributeDataType;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.semantic_role")
+    private String semanticRole;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.bb_code_attribute_id")
     public Integer getBbCodeAttributeId() {
         return bbCodeAttributeId;
@@ -33,16 +36,6 @@ public class BBCodeAttributeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.bb_code_attribute_id")
     public void setBbCodeAttributeId(Integer bbCodeAttributeId) {
         this.bbCodeAttributeId = bbCodeAttributeId;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
-    public Integer getAttributeDataType() {
-        return attributeDataType;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
-    public void setAttributeDataType(Integer attributeDataType) {
-        this.attributeDataType = attributeDataType;
     }
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_index")
@@ -93,6 +86,26 @@ public class BBCodeAttributeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.updated_ts")
     public void setUpdatedTs(OffsetDateTime updatedTs) {
         this.updatedTs = updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
+    public String getAttributeDataType() {
+        return attributeDataType;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.attribute_data_type")
+    public void setAttributeDataType(String attributeDataType) {
+        this.attributeDataType = attributeDataType;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.semantic_role")
+    public String getSemanticRole() {
+        return semanticRole;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute.semantic_role")
+    public void setSemanticRole(String semanticRole) {
+        this.semanticRole = semanticRole;
     }
 
     @Override

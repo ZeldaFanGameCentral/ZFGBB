@@ -1,24 +1,19 @@
 package com.zfgc.zfgbb.dataprovider.forum;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
 
-import com.zfgc.zfgbb.dao.BoardDao;
-import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
-import com.zfgc.zfgbb.dao.ThreadDao;
-import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
+import com.zfgc.zfgbb.authorization.BoardVisibilityChokepoint;
+import com.zfgc.zfgbb.dao.forum.BoardDao;
+import com.zfgc.zfgbb.dao.forum.ThreadDao;
 import com.zfgc.zfgbb.dao.forum.PollDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.dataprovider.AbstractDataProvider;
-import com.zfgc.zfgbb.dbo.AllMessagesInThreadViewDbo;
-import com.zfgc.zfgbb.dbo.AllMessagesInThreadViewDboExample;
 import com.zfgc.zfgbb.dbo.BoardPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDbo;
 import com.zfgc.zfgbb.dbo.LatestMessageInThreadViewDboExample;
@@ -26,18 +21,28 @@ import com.zfgc.zfgbb.dbo.MessageDboExample;
 import com.zfgc.zfgbb.dbo.PollChoiceDbo;
 import com.zfgc.zfgbb.dbo.PollChoiceDboExample;
 import com.zfgc.zfgbb.dbo.PollDbo;
-import com.zfgc.zfgbb.dbo.PollDboExample;
 import com.zfgc.zfgbb.dbo.ThreadDbo;
 import com.zfgc.zfgbb.dbo.ThreadDboExample;
+import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.exception.ZfgcNotFoundException;
-import com.zfgc.zfgbb.mappers.AllMessagesInThreadViewDboMapper;
-import com.zfgc.zfgbb.mappers.LatestMessageInThreadViewDboMapper;
-import com.zfgc.zfgbb.mappers.MessageDboMapper;
+import com.zfgc.zfgbb.dao.forum.BoardPermissionViewDao;
+import com.zfgc.zfgbb.dao.forum.LatestMessageInThreadViewDao;
+import com.zfgc.zfgbb.dao.forum.PollChoiceDao;
+import com.zfgc.zfgbb.dao.forum.UserPollChoiceDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
+import com.zfgc.zfgbb.dbo.PollDboExample;
+import com.zfgc.zfgbb.dbo.UserPollChoiceDboExample;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.mappers.custom.MessagePostCountMapper;
 import com.zfgc.zfgbb.mapstruct.forum.PollMap;
+import com.zfgc.zfgbb.mapstruct.forum.ThreadMap;
+import com.zfgc.zfgbb.mapstruct.users.UserMap;
+import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
 import com.zfgc.zfgbb.model.users.User;
-import com.zfgc.zfgbb.model.forum.LatestMessage;
 import com.zfgc.zfgbb.model.forum.Message;
 import com.zfgc.zfgbb.model.forum.Poll;
+import com.zfgc.zfgbb.model.forum.ForumPagination;
 import com.zfgc.zfgbb.model.forum.Thread;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.model.users.Permission;
@@ -45,52 +50,82 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-public class ThreadDataProvider extends AbstractDataProvider {
+@BoardVisibilityChokepoint
+public class ThreadDataProvider {
+
+	private static final int MAX_MESSAGES_PER_PAGE = 100;
+
+	public static final int DEFAULT_MESSAGES_PER_PAGE = ForumPagination.MESSAGES_PER_THREAD_PAGE;
 
 	private final ThreadDao threadDao;
-	
+
+	private final UserPollChoiceDao userPollChoiceDao;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
 	private final MessageDataProvider messageDataProvider;
-	
-	private final BoardPermissionViewDao boardPermissionDao;
+
+	private final BoardPermissionViewDao boardPermissionViewDao;
 
 	private final BoardDao boardDao;
-	
-	private final PollDao pollDao;
-	
-	private final PollChoiceDao pollChoiceDao;
-	
-	private final UserDao userDao;
-	
-	private final LatestMessageInThreadViewDboMapper latestMessageMapper;
-	
-	private final AllMessagesInThreadViewDboMapper allMessagesMapper;
-	
-	private final MessageDboMapper messageMapper;
-	
-	private final PollMap pollMap;
-	
-	public Thread getThread(Integer threadId, Integer page, Integer count) {
-		Optional<ThreadDbo> threadDb = threadDao.find(threadId);
-		return threadDb.map(threadOptional -> {
-			Thread result = map(threadOptional, Thread.class);
-			
-			//get messages
-			result.setMessages(super.convertDboListToModel(messageDataProvider.getMessagesForThread(threadId, page, count), Message.class));
 
-			//get permissions for the parent board
+	private final PollDao pollDao;
+
+	private final PollChoiceDao pollChoiceDao;
+
+	private final UserDao userDao;
+
+	private final LatestMessageInThreadViewDao latestMessageInThreadViewDao;
+
+	private final MessageDao messageDao;
+
+	private final PollMap pollMap;
+
+	private final ThreadMap threadMap;
+
+	private final UserMap userMap;
+
+	private final PermissionMap permissionMap;
+
+	public boolean threadExists(Integer threadId) {
+		ThreadDboExample example = new ThreadDboExample();
+		example.createCriteria().andThreadIdEqualTo(threadId);
+		return threadDao.exists(example);
+	}
+
+	public Integer nextPostInThread(Integer threadId) {
+		threadDao.lockForUpdate(threadId);
+		return messageDao.maxPostInThread(threadId) + 1;
+	}
+
+	public List<Integer> lockThreads(List<Integer> orderedThreadIds) {
+		return threadDao.lockForUpdate(orderedThreadIds);
+	}
+
+	public Thread getThread(Integer threadId, Integer page, Integer count) {
+		int pageSize = (count == null || count < 1) ? DEFAULT_MESSAGES_PER_PAGE : Math.min(count, MAX_MESSAGES_PER_PAGE);
+		Optional<ThreadDbo> threadDb = threadDao.find(threadId);
+		return threadDb.map(threadDbo -> {
+			Thread result = threadMap.toModel(threadDbo);
+
+			MessageDboExample ex = new MessageDboExample();
+			ex.createCriteria().andThreadIdEqualTo(threadId);
+			long msgCount = messageDao.count(ex);
+
+			List<Message> messages = (page == null || page <= 0)
+					? messageDataProvider.getMessagesFrom(threadId, (int) Math.max(1, msgCount - pageSize + 1), pageSize)
+					: messageDataProvider.getMessagesForThread(threadId, page, pageSize);
+			result.setMessages(messages);
+
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
 
 			boardDao.find(result.getBoardId())
 					.ifPresent(board -> result.setBoardName(board.getBoardName()));
 
-			//get poll info
 			result.setPollInfo(getPollInfo(threadId));
-			
-			MessageDboExample ex = new MessageDboExample();
-			ex.createCriteria().andThreadIdEqualTo(threadId);
-			long msgCount = messageMapper.countByExample(ex);
-			result.setPageCount((int)Math.ceil((double)msgCount / (double)count));
-			
+
+			result.setPageCount((int)Math.ceil((double)msgCount / (double)pageSize));
+
 			return result;
 		}).orElseThrow(() -> new ZfgcNotFoundException());
 	}
@@ -98,8 +133,7 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	public Poll getPollInfo(Integer threadId) {
 		PollDboExample pollEx = new PollDboExample();
 		pollEx.createCriteria().andThreadIdEqualTo(threadId);
-		return pollDao.get(pollEx).stream()
-						  .findFirst()
+		return pollDao.getOne(pollEx)
 						  .map(poll -> {
 							  	PollChoiceDboExample choiceEx = new PollChoiceDboExample();
 							  	choiceEx.createCriteria().andActiveFlagEqualTo(true)
@@ -107,97 +141,102 @@ public class ThreadDataProvider extends AbstractDataProvider {
 							  	List<PollChoiceDbo> choices = pollChoiceDao.get(choiceEx);
 							  	
 							  	Poll result = pollMap.toModel(poll, choices);
-								
+
 								return result;
 						  }).orElse(null);
 	}
 	
-	public List<Thread> getThreadsByBoardId(Integer boardId, Integer pageNo, Integer threadsPerPage, Boolean sticky){
-		//get a high level view of the threads for this board based on page number
-		LatestMessageInThreadViewDboExample exT = new LatestMessageInThreadViewDboExample();
-		if(pageNo != null && threadsPerPage != null) {
-			exT.setLimit(threadsPerPage);
-			exT.setOffset((pageNo - 1) * threadsPerPage);
+	public List<Thread> getThreadsByBoardId(Integer boardId, Integer pageNumber, Integer pageSize){
+		LatestMessageInThreadViewDboExample latestMessageEx = new LatestMessageInThreadViewDboExample();
+		if(pageNumber != null && pageSize != null) {
+			int safePageSize = Math.min(Math.max(pageSize, 1), MAX_MESSAGES_PER_PAGE);
+			int safePageNumber = Math.max(pageNumber, 1);
+			long zeroBasedOffset = (long) (safePageNumber - 1) * safePageSize;
+			if (zeroBasedOffset > Integer.MAX_VALUE)
+				return List.of();
+			latestMessageEx.setLimit(safePageSize);
+			latestMessageEx.setOffset((int) zeroBasedOffset);
 		}
-		exT.setOrderByClause("last_post_ts desc");
-		exT.createCriteria().andBoardIdEqualTo(boardId).andPinnedFlagEqualTo(sticky);
-		
-		//map them all by threadId
-		List<LatestMessageInThreadViewDbo> latestMessages = latestMessageMapper.selectByExampleWithLimits(exT);
-		List<Thread> result = super.convertDboListToModel(latestMessages, Thread.class);
+		latestMessageEx.setOrderByClause("pinned_flag desc, last_post_ts desc");
+		latestMessageEx.createCriteria().andBoardIdEqualTo(boardId);
+
+		List<LatestMessageInThreadViewDbo> latestMessages = latestMessageInThreadViewDao.get(latestMessageEx);
+		List<Thread> result = latestMessages.stream().map(threadMap::toThread).collect(Collectors.toList());
 		Map<Integer, LatestMessageInThreadViewDbo> messagesByThreadId = latestMessages.stream()
 																					  .collect(Collectors.toMap(LatestMessageInThreadViewDbo::getThreadId, Function.identity()));
-		//we don't need the original list anymore, so lets clear it to free up some memory
 		latestMessages.clear();
-		
-		//also get details of all the messages, mapped by threadId
-		//todo: find a better way to do this? it's fast, but I don't like the idea of loading all the posts for a thread
-		//just to get the latest one
-		//doing it via sql so far has been too slow
-		AllMessagesInThreadViewDboExample amEx = new AllMessagesInThreadViewDboExample();
-		List<AllMessagesInThreadViewDbo> fullMessageDetails = new ArrayList<>();
-		Map<Integer, List<AllMessagesInThreadViewDbo>> mappedMessageDetails = new HashMap<>();
-		
-		if(!result.isEmpty()) {
-			amEx.createCriteria().andThreadIdIn(result.stream().map(Thread::getThreadId).collect(Collectors.toList()));
-			amEx.setOrderByClause("post_ts desc");
-			fullMessageDetails = allMessagesMapper.selectByExample(amEx);
-			
-			mappedMessageDetails.putAll(fullMessageDetails.stream()
-					 									  .collect(Collectors.groupingBy(AllMessagesInThreadViewDbo::getThreadId)));
-			
-			//we don't need the original list anymore, so lets clear it to free up some memory
-			fullMessageDetails.clear();
+
+		if (result.isEmpty()) {
+			return result;
 		}
-		
-		//finally, link up all the data
-		result.forEach(th -> {
-			AllMessagesInThreadViewDbo latestDetails = mappedMessageDetails.get(th.getThreadId()).get(0);
-			th.setCreatedUser(userDao.find(th.getCreatedUserId())
-					.map(dbo -> map(dbo, User.class))
-					.orElseGet(User::orphaned));
-			th.setPostCount(messageDataProvider.getTotalPostsInThread(th.getThreadId()).intValue());
-			
-			LatestMessageInThreadViewDbo latestDbo = messagesByThreadId.get(th.getThreadId());
-			if(latestDbo != null) {
-				th.setLatestMessage(map(latestDbo, LatestMessage.class));
-				th.getLatestMessage().setOwnerId(latestDetails.getLastPostedUserId());
-				th.getLatestMessage().setOwnerName(latestDetails.getLastPostedUser());
+
+		List<Integer> threadIds = result.stream().map(Thread::getThreadId).filter(Objects::nonNull).toList();
+
+		Map<Integer, Integer> postCountsByThreadId = threadIds.isEmpty() ? Map.of() :
+				messageDao.postCountsByThreadIds(threadIds).stream()
+						.collect(Collectors.toMap(MessagePostCountMapper.ThreadPostCount::getThreadId,
+								MessagePostCountMapper.ThreadPostCount::getPostCount));
+
+		Map<Integer, MessagePostCountMapper.LatestMessageUser> latestMessageUserByThreadId = threadIds.isEmpty() ? Map.of() :
+				messageDao.latestMessageUsersByThreadIds(threadIds).stream()
+						.collect(Collectors.toMap(MessagePostCountMapper.LatestMessageUser::getThreadId, Function.identity()));
+
+		Map<Integer, User> startersByUserId = loadStarterUsers(result);
+
+		result.forEach(thread -> {
+			User starter = startersByUserId.get(thread.getCreatedUserId());
+			thread.setCreatedUser(starter != null ? starter : User.orphaned());
+
+			int postCount = postCountsByThreadId.getOrDefault(thread.getThreadId(), 0);
+			thread.setPostCount(postCount);
+
+			LatestMessageInThreadViewDbo latestDbo = messagesByThreadId.get(thread.getThreadId());
+			if (latestDbo != null) {
+				thread.setLatestMessage(threadMap.toLatestMessage(latestDbo));
+				MessagePostCountMapper.LatestMessageUser latestUser = latestMessageUserByThreadId.get(thread.getThreadId());
+				if (latestUser != null) {
+					thread.getLatestMessage().setOwnerId(latestUser.getLastPostedUserId());
+					thread.getLatestMessage().setOwnerName(latestUser.getLastPostedUser());
+				}
 			}
-			
-			//as we get done, clear out the details to free up memory
-			mappedMessageDetails.remove(th.getThreadId());
 		});
-		
+
 		return result;
+	}
+
+	private Map<Integer, User> loadStarterUsers(List<Thread> threads) {
+		List<Integer> starterUserIds = threads.stream().map(Thread::getCreatedUserId)
+				.filter(userId -> userId != null).distinct().toList();
+		if (starterUserIds.isEmpty())
+			return Map.of();
+		UserDboExample userEx = new UserDboExample();
+		userEx.createCriteria().andUserIdIn(starterUserIds);
+		return userDao.get(userEx).stream().map(userMap::toModel)
+				.collect(Collectors.toMap(User::getUserId, Function.identity()));
 	}
 	
 	public Thread getThread(Integer threadId) {
 		Optional<ThreadDbo> threadDb = threadDao.find(threadId);
-		return threadDb.map(threadOpt -> {
-			Thread result = map(threadOpt, Thread.class);
+		return threadDb.map(threadDbo -> {
+			Thread result = threadMap.toModel(threadDbo);
 			
-			//get permissions for the parent board
 			result.setBoardPermissions(getBoardPermissions(result.getBoardId()));
 			
 			MessageDboExample ex = new MessageDboExample();
 			ex.createCriteria().andThreadIdEqualTo(threadId);
-			long count = messageMapper.countByExample(ex);
-			result.setPageCount((int)Math.ceil(count / 10));
+			long count = messageDao.count(ex);
+			result.setPageCount((int)Math.ceil(count / (double) DEFAULT_MESSAGES_PER_PAGE));
 			
 			return result;
 		}).orElseThrow(() -> new ZfgcNotFoundException());
 	}
 	
 	public Thread saveThread(Thread thread) {
-		ThreadDbo threadDbo = map(thread, ThreadDbo.class);
+		ThreadDbo threadDbo = threadMap.toDbo(thread);
 		
-		//create the thread dbo first
-		threadDbo = threadDao.save(threadDbo);
+		threadDao.save(threadDbo);
 		thread.setThreadId(threadDbo.getThreadId());
-		thread.setCreatedTs(threadDbo.getCreatedTs());
-		thread.setUpdatedTs(threadDbo.getUpdatedTs());
-		
+
 		if(thread.getPollInfo() != null) {
 			PollDbo poll = pollMap.toDbo(thread.getPollInfo());
 			pollDao.save(poll);
@@ -209,25 +248,97 @@ public class ThreadDataProvider extends AbstractDataProvider {
 	public List<Permission> getBoardPermissions(Integer boardId){
 		BoardPermissionViewDboExample bEx = new BoardPermissionViewDboExample();
 		bEx.createCriteria().andBoardIdEqualTo(boardId);
-		return super.convertDboListToModel(boardPermissionDao.get(bEx), Permission.class);
-	}
-	
-	public void deleteThread(Integer threadId) {
-		messageDataProvider.deleteMessagesForThread(threadId);
-		ThreadDboExample ex = new ThreadDboExample();
-		ex.createCriteria().andThreadIdEqualTo(threadId);
-		
-		threadDao.deleteWhere(ex);
+		return boardPermissionViewDao.get(bEx).stream().map(permissionMap::toModel).collect(Collectors.toList());
 	}
 	
 	public Thread splitThread(ThreadSplit splitter, Thread newThread) {
 		newThread.getMessages().clear();
 		
-		newThread.setThreadName(splitter.getNewThreadTitle());
+		newThread.setThreadName(splitter.newThreadTitle());
 		newThread = saveThread(newThread);
-		messageDataProvider.moveMessagesToNewThread(splitter.getMessageIdsToMove(), newThread.getId());
-		
+		messageDataProvider.moveMessagesToNewThread(splitter.messageIdsToMove(), splitter.threadId(),
+				newThread.getId(), newThread.getBoardId());
+
 		return newThread;
 	}
-	
+
+	public void purgeOwnedPolls(Integer userId) {
+		List<Integer> pollIds = pollDao.findOwnedPollIds(userId);
+		if (!pollIds.isEmpty()) {
+			userPollChoiceDao.deleteUserPollVotes(userId);
+			pollChoiceDao.deleteUserPollChoices(userId);
+			deleteMigratorIdMapEntries("POLL", pollIds);
+			PollDboExample ownedPollsExample = new PollDboExample();
+			ownedPollsExample.createCriteria().andCreatedUserIdEqualTo(userId);
+			pollDao.deleteWhere(ownedPollsExample);
+		}
+		deleteOwnVotesAndRecount(userId);
+	}
+
+	public void orphanOwnedPolls(Integer userId, Integer sentinelId) {
+		List<Integer> pollIds = pollDao.findOwnedPollIds(userId);
+		if (!pollIds.isEmpty()) {
+			deleteMigratorIdMapEntries("POLL", pollIds);
+			pollDao.reassignPolls(userId, sentinelId);
+		}
+		deleteOwnVotesAndRecount(userId);
+	}
+
+	private void deleteOwnVotesAndRecount(Integer userId) {
+		List<Integer> votedChoiceIds = userPollChoiceDao.findVotedPollChoiceIds(userId);
+		UserPollChoiceDboExample ownVotesExample = new UserPollChoiceDboExample();
+		ownVotesExample.createCriteria().andUserIdEqualTo(userId);
+		userPollChoiceDao.deleteWhere(ownVotesExample);
+		if (!votedChoiceIds.isEmpty())
+			userPollChoiceDao.recountPollChoiceVotes(votedChoiceIds);
+	}
+
+	public void purgeThreadsWithGc(Integer userId, Integer sentinelId) {
+		List<Integer> ownedThreadIds = threadDao.findOwnedThreadIds(userId);
+		if (!ownedThreadIds.isEmpty())
+			deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
+		gcThreadsEmptiedByDeletion(ownedThreadIds);
+		threadDao.reassignThreads(userId, sentinelId);
+	}
+
+	public void gcThreadsEmptiedByDeletion(List<Integer> candidateThreadIds) {
+		if (candidateThreadIds.isEmpty())
+			return;
+		List<Integer> emptyThreadIds = threadDao.findEmptyThreadIdsAmong(candidateThreadIds);
+		if (emptyThreadIds.isEmpty())
+			return;
+		List<Integer> pollIds = pollDao.findPollIdsOnThreads(emptyThreadIds);
+		if (!pollIds.isEmpty())
+			deleteMigratorIdMapEntries("POLL", pollIds);
+		userPollChoiceDao.deleteVotesForPollsOnThreads(emptyThreadIds);
+		pollChoiceDao.deleteChoicesForPollsOnThreads(emptyThreadIds);
+		PollDboExample pollsOnThreadsExample = new PollDboExample();
+		pollsOnThreadsExample.createCriteria().andThreadIdIn(emptyThreadIds);
+		pollDao.deleteWhere(pollsOnThreadsExample);
+		deleteMigratorIdMapEntries("THREAD", emptyThreadIds);
+		threadDao.deleteThreadsByIds(emptyThreadIds);
+	}
+
+	public void orphanThreads(Integer userId, Integer sentinelId) {
+		List<Integer> ownedThreadIds = threadDao.findOwnedThreadIds(userId);
+		if (!ownedThreadIds.isEmpty())
+			deleteMigratorIdMapEntries("THREAD", ownedThreadIds);
+		threadDao.reassignThreads(userId, sentinelId);
+	}
+
+	public int countOwnedThreads(Integer userId) {
+		return threadDao.countOwnedThreads(userId);
+	}
+
+	public int countOwnedPolls(Integer userId) {
+		PollDboExample ownedPollsExample = new PollDboExample();
+		ownedPollsExample.createCriteria().andCreatedUserIdEqualTo(userId);
+		return (int) pollDao.count(ownedPollsExample);
+	}
+
+	private void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
+		migratorIdMapDao.deleteWhere(example);
+	}
 }

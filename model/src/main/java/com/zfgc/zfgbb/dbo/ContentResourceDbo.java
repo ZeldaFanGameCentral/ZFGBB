@@ -37,6 +37,9 @@ public class ContentResourceDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.file_size")
     private Long fileSize;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.storage_dir")
+    private String storageDir;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.content_resource_id")
     public Integer getContentResourceId() {
         return contentResourceId;
@@ -145,6 +148,16 @@ public class ContentResourceDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.file_size")
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.storage_dir")
+    public String getStorageDir() {
+        return storageDir;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.content_resource.storage_dir")
+    public void setStorageDir(String storageDir) {
+        this.storageDir = storageDir;
     }
 
     @Override

@@ -25,6 +25,12 @@ public class MessageDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.migration_hash")
     private String migrationHash;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.board_id")
+    private Integer boardId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.guest_author_name")
+    private String guestAuthorName;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.message_id")
     public Integer getMessageId() {
         return messageId;
@@ -93,6 +99,26 @@ public class MessageDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.migration_hash")
     public void setMigrationHash(String migrationHash) {
         this.migrationHash = migrationHash;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.board_id")
+    public Integer getBoardId() {
+        return boardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.board_id")
+    public void setBoardId(Integer boardId) {
+        this.boardId = boardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.guest_author_name")
+    public String getGuestAuthorName() {
+        return guestAuthorName;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message.guest_author_name")
+    public void setGuestAuthorName(String guestAuthorName) {
+        this.guestAuthorName = guestAuthorName;
     }
 
     @Override

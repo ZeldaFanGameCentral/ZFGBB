@@ -648,6 +648,76 @@ public class MessageHistoryDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andContentFormatIsNull() {
+            addCriterion("content_format is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatIsNotNull() {
+            addCriterion("content_format is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatEqualTo(String value) {
+            addCriterion("content_format =", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotEqualTo(String value) {
+            addCriterion("content_format <>", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatGreaterThan(String value) {
+            addCriterion("content_format >", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatGreaterThanOrEqualTo(String value) {
+            addCriterion("content_format >=", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLessThan(String value) {
+            addCriterion("content_format <", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLessThanOrEqualTo(String value) {
+            addCriterion("content_format <=", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLike(String value) {
+            addCriterion("content_format ilike", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotLike(String value) {
+            addCriterion("content_format not ilike", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatIn(List<String> values) {
+            addCriterion("content_format in", values, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotIn(List<String> values) {
+            addCriterion("content_format not in", values, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatBetween(String value1, String value2) {
+            addCriterion("content_format between", value1, value2, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotBetween(String value1, String value2) {
+            addCriterion("content_format not between", value1, value2, "contentFormat");
+            return (Criteria) this;
+        }
+
         public Criteria andMessageTextContains(String value) {
             addCriterion("message_text ilike", LikePatterns.contains(value), "messageText");
             return (Criteria) this;
@@ -655,6 +725,11 @@ public class MessageHistoryDboExample {
 
         public Criteria andMigrationHashContains(String value) {
             addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatContains(String value) {
+            addCriterion("content_format ilike", LikePatterns.contains(value), "contentFormat");
             return (Criteria) this;
         }
     }

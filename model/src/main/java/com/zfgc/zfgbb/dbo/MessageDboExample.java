@@ -578,8 +578,143 @@ public class MessageDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andBoardIdIsNull() {
+            addCriterion("board_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdIsNotNull() {
+            addCriterion("board_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdEqualTo(Integer value) {
+            addCriterion("board_id =", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotEqualTo(Integer value) {
+            addCriterion("board_id <>", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdGreaterThan(Integer value) {
+            addCriterion("board_id >", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("board_id >=", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdLessThan(Integer value) {
+            addCriterion("board_id <", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdLessThanOrEqualTo(Integer value) {
+            addCriterion("board_id <=", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdIn(List<Integer> values) {
+            addCriterion("board_id in", values, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotIn(List<Integer> values) {
+            addCriterion("board_id not in", values, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdBetween(Integer value1, Integer value2) {
+            addCriterion("board_id between", value1, value2, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("board_id not between", value1, value2, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameIsNull() {
+            addCriterion("guest_author_name is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameIsNotNull() {
+            addCriterion("guest_author_name is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameEqualTo(String value) {
+            addCriterion("guest_author_name =", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameNotEqualTo(String value) {
+            addCriterion("guest_author_name <>", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameGreaterThan(String value) {
+            addCriterion("guest_author_name >", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameGreaterThanOrEqualTo(String value) {
+            addCriterion("guest_author_name >=", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameLessThan(String value) {
+            addCriterion("guest_author_name <", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameLessThanOrEqualTo(String value) {
+            addCriterion("guest_author_name <=", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameLike(String value) {
+            addCriterion("guest_author_name ilike", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameNotLike(String value) {
+            addCriterion("guest_author_name not ilike", value, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameIn(List<String> values) {
+            addCriterion("guest_author_name in", values, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameNotIn(List<String> values) {
+            addCriterion("guest_author_name not in", values, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameBetween(String value1, String value2) {
+            addCriterion("guest_author_name between", value1, value2, "guestAuthorName");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameNotBetween(String value1, String value2) {
+            addCriterion("guest_author_name not between", value1, value2, "guestAuthorName");
+            return (Criteria) this;
+        }
+
         public Criteria andMigrationHashContains(String value) {
             addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andGuestAuthorNameContains(String value) {
+            addCriterion("guest_author_name ilike", LikePatterns.contains(value), "guestAuthorName");
             return (Criteria) this;
         }
     }

@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.dao;
 
+import java.util.Set;
+
 import java.util.Optional;
 
 import com.zfgc.zfgbb.persistence.CrudMapper;
@@ -43,6 +45,10 @@ public abstract class KeyedDao<Dbo, Example, PrimaryKey> extends ReadDao<Dbo, Ex
 
 	public int updateWhere(Dbo row, Example example) {
 		return crudMapper.updateByExampleSelective(row, example);
+	}
+
+	public int updateWhereSettingColumns(Dbo row, Set<String> columns, Example example) {
+		return crudMapper.updateByExampleSettingColumns(row, columns, example);
 	}
 
 	public void delete(PrimaryKey primaryKey) {

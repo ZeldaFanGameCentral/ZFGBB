@@ -768,6 +768,126 @@ public class ThreadDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andRecycledFromBoardIdIsNull() {
+            addCriterion("recycled_from_board_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdIsNotNull() {
+            addCriterion("recycled_from_board_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdEqualTo(Integer value) {
+            addCriterion("recycled_from_board_id =", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdNotEqualTo(Integer value) {
+            addCriterion("recycled_from_board_id <>", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdGreaterThan(Integer value) {
+            addCriterion("recycled_from_board_id >", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("recycled_from_board_id >=", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdLessThan(Integer value) {
+            addCriterion("recycled_from_board_id <", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdLessThanOrEqualTo(Integer value) {
+            addCriterion("recycled_from_board_id <=", value, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdIn(List<Integer> values) {
+            addCriterion("recycled_from_board_id in", values, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdNotIn(List<Integer> values) {
+            addCriterion("recycled_from_board_id not in", values, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdBetween(Integer value1, Integer value2) {
+            addCriterion("recycled_from_board_id between", value1, value2, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromBoardIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("recycled_from_board_id not between", value1, value2, "recycledFromBoardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdIsNull() {
+            addCriterion("recycled_from_thread_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdIsNotNull() {
+            addCriterion("recycled_from_thread_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdEqualTo(Integer value) {
+            addCriterion("recycled_from_thread_id =", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdNotEqualTo(Integer value) {
+            addCriterion("recycled_from_thread_id <>", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdGreaterThan(Integer value) {
+            addCriterion("recycled_from_thread_id >", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("recycled_from_thread_id >=", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdLessThan(Integer value) {
+            addCriterion("recycled_from_thread_id <", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdLessThanOrEqualTo(Integer value) {
+            addCriterion("recycled_from_thread_id <=", value, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdIn(List<Integer> values) {
+            addCriterion("recycled_from_thread_id in", values, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdNotIn(List<Integer> values) {
+            addCriterion("recycled_from_thread_id not in", values, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdBetween(Integer value1, Integer value2) {
+            addCriterion("recycled_from_thread_id between", value1, value2, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
+        public Criteria andRecycledFromThreadIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("recycled_from_thread_id not between", value1, value2, "recycledFromThreadId");
+            return (Criteria) this;
+        }
+
         public Criteria andThreadNameContains(String value) {
             addCriterion("thread_name ilike", LikePatterns.contains(value), "threadName");
             return (Criteria) this;

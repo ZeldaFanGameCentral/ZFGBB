@@ -155,8 +155,6 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 			user.setSignature(smfMember.getSignature() != null ? HtmlUtils.htmlUnescape(smfMember.getSignature()) : null);
 			user.setAvatarId(avatar.getAvatarId());
 			user.setBirthDate(smfMember.getBirthdate());
-			user.setKarmaBad(smfMember.getKarmaBad());
-			user.setKarmaGood(smfMember.getKarmaGood());
 			user.setHideEmailFlag(Boolean.TRUE.equals(smfMember.getHideEmail()));
 			user.setHideOnlineStatus(!Boolean.TRUE.equals(smfMember.getShowOnline()));
 			user.setGenderId(genderId);
@@ -169,8 +167,6 @@ public class UserBioInfoConverter extends AbstractConverter<Map<Integer, UserBio
 					+ (user.getCustomTitle() != null ? user.getCustomTitle() : "")
 					+ (user.getAvatarId() != null ? user.getAvatarId() : "")
 					+ (user.getPersonalText() != null ? user.getPersonalText() : "")
-					+ (user.getKarmaGood() != null ? user.getKarmaGood() : "")
-					+ (user.getKarmaBad() != null ? user.getKarmaBad() : "")
 					+ (user.getHideOnlineStatus() != null ? user.getHideOnlineStatus().toString() : "")
 					+ (user.getHideEmailFlag() != null ? user.getHideEmailFlag().toString() : "")
 					+ (user.getBirthDate() != null ? user.getBirthDate().toString() : "")

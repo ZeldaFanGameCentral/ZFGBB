@@ -588,6 +588,776 @@ public class BBCodeConfigDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andEnabledFlagIsNull() {
+            addCriterion("enabled_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagIsNotNull() {
+            addCriterion("enabled_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagEqualTo(Boolean value) {
+            addCriterion("enabled_flag =", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagNotEqualTo(Boolean value) {
+            addCriterion("enabled_flag <>", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagGreaterThan(Boolean value) {
+            addCriterion("enabled_flag >", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("enabled_flag >=", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagLessThan(Boolean value) {
+            addCriterion("enabled_flag <", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("enabled_flag <=", value, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagIn(List<Boolean> values) {
+            addCriterion("enabled_flag in", values, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagNotIn(List<Boolean> values) {
+            addCriterion("enabled_flag not in", values, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("enabled_flag between", value1, value2, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andEnabledFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("enabled_flag not between", value1, value2, "enabledFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeIsNull() {
+            addCriterion("source_reference_attribute is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeIsNotNull() {
+            addCriterion("source_reference_attribute is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeEqualTo(String value) {
+            addCriterion("source_reference_attribute =", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotEqualTo(String value) {
+            addCriterion("source_reference_attribute <>", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeGreaterThan(String value) {
+            addCriterion("source_reference_attribute >", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeGreaterThanOrEqualTo(String value) {
+            addCriterion("source_reference_attribute >=", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLessThan(String value) {
+            addCriterion("source_reference_attribute <", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLessThanOrEqualTo(String value) {
+            addCriterion("source_reference_attribute <=", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeLike(String value) {
+            addCriterion("source_reference_attribute ilike", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotLike(String value) {
+            addCriterion("source_reference_attribute not ilike", value, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeIn(List<String> values) {
+            addCriterion("source_reference_attribute in", values, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotIn(List<String> values) {
+            addCriterion("source_reference_attribute not in", values, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeBetween(String value1, String value2) {
+            addCriterion("source_reference_attribute between", value1, value2, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeNotBetween(String value1, String value2) {
+            addCriterion("source_reference_attribute not between", value1, value2, "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIsNull() {
+            addCriterion("source_reference_resolver is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIsNotNull() {
+            addCriterion("source_reference_resolver is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverEqualTo(String value) {
+            addCriterion("source_reference_resolver =", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotEqualTo(String value) {
+            addCriterion("source_reference_resolver <>", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverGreaterThan(String value) {
+            addCriterion("source_reference_resolver >", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverGreaterThanOrEqualTo(String value) {
+            addCriterion("source_reference_resolver >=", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLessThan(String value) {
+            addCriterion("source_reference_resolver <", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLessThanOrEqualTo(String value) {
+            addCriterion("source_reference_resolver <=", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverLike(String value) {
+            addCriterion("source_reference_resolver ilike", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotLike(String value) {
+            addCriterion("source_reference_resolver not ilike", value, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverIn(List<String> values) {
+            addCriterion("source_reference_resolver in", values, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotIn(List<String> values) {
+            addCriterion("source_reference_resolver not in", values, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverBetween(String value1, String value2) {
+            addCriterion("source_reference_resolver between", value1, value2, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverNotBetween(String value1, String value2) {
+            addCriterion("source_reference_resolver not between", value1, value2, "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIsNull() {
+            addCriterion("markdown_equivalent is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIsNotNull() {
+            addCriterion("markdown_equivalent is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentEqualTo(String value) {
+            addCriterion("markdown_equivalent =", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotEqualTo(String value) {
+            addCriterion("markdown_equivalent <>", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentGreaterThan(String value) {
+            addCriterion("markdown_equivalent >", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentGreaterThanOrEqualTo(String value) {
+            addCriterion("markdown_equivalent >=", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLessThan(String value) {
+            addCriterion("markdown_equivalent <", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLessThanOrEqualTo(String value) {
+            addCriterion("markdown_equivalent <=", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentLike(String value) {
+            addCriterion("markdown_equivalent ilike", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotLike(String value) {
+            addCriterion("markdown_equivalent not ilike", value, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentIn(List<String> values) {
+            addCriterion("markdown_equivalent in", values, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotIn(List<String> values) {
+            addCriterion("markdown_equivalent not in", values, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentBetween(String value1, String value2) {
+            addCriterion("markdown_equivalent between", value1, value2, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentNotBetween(String value1, String value2) {
+            addCriterion("markdown_equivalent not between", value1, value2, "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIsNull() {
+            addCriterion("markdown_canonical_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIsNotNull() {
+            addCriterion("markdown_canonical_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag =", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag <>", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagGreaterThan(Boolean value) {
+            addCriterion("markdown_canonical_flag >", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag >=", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagLessThan(Boolean value) {
+            addCriterion("markdown_canonical_flag <", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("markdown_canonical_flag <=", value, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagIn(List<Boolean> values) {
+            addCriterion("markdown_canonical_flag in", values, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotIn(List<Boolean> values) {
+            addCriterion("markdown_canonical_flag not in", values, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("markdown_canonical_flag between", value1, value2, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownCanonicalFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("markdown_canonical_flag not between", value1, value2, "markdownCanonicalFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIsNull() {
+            addCriterion("implicit_item_marker is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIsNotNull() {
+            addCriterion("implicit_item_marker is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerEqualTo(String value) {
+            addCriterion("implicit_item_marker =", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotEqualTo(String value) {
+            addCriterion("implicit_item_marker <>", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerGreaterThan(String value) {
+            addCriterion("implicit_item_marker >", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerGreaterThanOrEqualTo(String value) {
+            addCriterion("implicit_item_marker >=", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLessThan(String value) {
+            addCriterion("implicit_item_marker <", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLessThanOrEqualTo(String value) {
+            addCriterion("implicit_item_marker <=", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerLike(String value) {
+            addCriterion("implicit_item_marker ilike", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotLike(String value) {
+            addCriterion("implicit_item_marker not ilike", value, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerIn(List<String> values) {
+            addCriterion("implicit_item_marker in", values, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotIn(List<String> values) {
+            addCriterion("implicit_item_marker not in", values, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerBetween(String value1, String value2) {
+            addCriterion("implicit_item_marker between", value1, value2, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerNotBetween(String value1, String value2) {
+            addCriterion("implicit_item_marker not between", value1, value2, "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIsNull() {
+            addCriterion("implicit_item_code is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIsNotNull() {
+            addCriterion("implicit_item_code is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeEqualTo(String value) {
+            addCriterion("implicit_item_code =", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotEqualTo(String value) {
+            addCriterion("implicit_item_code <>", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeGreaterThan(String value) {
+            addCriterion("implicit_item_code >", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeGreaterThanOrEqualTo(String value) {
+            addCriterion("implicit_item_code >=", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLessThan(String value) {
+            addCriterion("implicit_item_code <", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLessThanOrEqualTo(String value) {
+            addCriterion("implicit_item_code <=", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeLike(String value) {
+            addCriterion("implicit_item_code ilike", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotLike(String value) {
+            addCriterion("implicit_item_code not ilike", value, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeIn(List<String> values) {
+            addCriterion("implicit_item_code in", values, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotIn(List<String> values) {
+            addCriterion("implicit_item_code not in", values, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeBetween(String value1, String value2) {
+            addCriterion("implicit_item_code between", value1, value2, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeNotBetween(String value1, String value2) {
+            addCriterion("implicit_item_code not between", value1, value2, "implicitItemCode");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagIsNull() {
+            addCriterion("honoured_in_forum_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagIsNotNull() {
+            addCriterion("honoured_in_forum_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag =", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag <>", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_forum_flag >", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag >=", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_forum_flag <", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_forum_flag <=", value, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_forum_flag in", values, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_forum_flag not in", values, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_forum_flag between", value1, value2, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInForumFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_forum_flag not between", value1, value2, "honouredInForumFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIsNull() {
+            addCriterion("honoured_in_wiki_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIsNotNull() {
+            addCriterion("honoured_in_wiki_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag =", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <>", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_wiki_flag >", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag >=", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_wiki_flag <=", value, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_wiki_flag in", values, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_wiki_flag not in", values, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_wiki_flag between", value1, value2, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInWikiFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_wiki_flag not between", value1, value2, "honouredInWikiFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIsNull() {
+            addCriterion("honoured_in_project_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIsNotNull() {
+            addCriterion("honoured_in_project_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag =", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag <>", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_project_flag >", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag >=", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_project_flag <", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_project_flag <=", value, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_project_flag in", values, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_project_flag not in", values, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_project_flag between", value1, value2, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInProjectFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_project_flag not between", value1, value2, "honouredInProjectFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIsNull() {
+            addCriterion("honoured_in_resource_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIsNotNull() {
+            addCriterion("honoured_in_resource_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag =", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag <>", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_resource_flag >", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag >=", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_resource_flag <", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_resource_flag <=", value, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_resource_flag in", values, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_resource_flag not in", values, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_resource_flag between", value1, value2, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInResourceFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_resource_flag not between", value1, value2, "honouredInResourceFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIsNull() {
+            addCriterion("honoured_in_signature_flag is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIsNotNull() {
+            addCriterion("honoured_in_signature_flag is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag =", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag <>", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagGreaterThan(Boolean value) {
+            addCriterion("honoured_in_signature_flag >", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagGreaterThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag >=", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagLessThan(Boolean value) {
+            addCriterion("honoured_in_signature_flag <", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagLessThanOrEqualTo(Boolean value) {
+            addCriterion("honoured_in_signature_flag <=", value, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagIn(List<Boolean> values) {
+            addCriterion("honoured_in_signature_flag in", values, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotIn(List<Boolean> values) {
+            addCriterion("honoured_in_signature_flag not in", values, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_signature_flag between", value1, value2, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
+        public Criteria andHonouredInSignatureFlagNotBetween(Boolean value1, Boolean value2) {
+            addCriterion("honoured_in_signature_flag not between", value1, value2, "honouredInSignatureFlag");
+            return (Criteria) this;
+        }
+
         public Criteria andCodeContains(String value) {
             addCriterion("code ilike", LikePatterns.contains(value), "code");
             return (Criteria) this;
@@ -595,6 +1365,31 @@ public class BBCodeConfigDboExample {
 
         public Criteria andEndTagContains(String value) {
             addCriterion("end_tag ilike", LikePatterns.contains(value), "endTag");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceAttributeContains(String value) {
+            addCriterion("source_reference_attribute ilike", LikePatterns.contains(value), "sourceReferenceAttribute");
+            return (Criteria) this;
+        }
+
+        public Criteria andSourceReferenceResolverContains(String value) {
+            addCriterion("source_reference_resolver ilike", LikePatterns.contains(value), "sourceReferenceResolver");
+            return (Criteria) this;
+        }
+
+        public Criteria andMarkdownEquivalentContains(String value) {
+            addCriterion("markdown_equivalent ilike", LikePatterns.contains(value), "markdownEquivalent");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemMarkerContains(String value) {
+            addCriterion("implicit_item_marker ilike", LikePatterns.contains(value), "implicitItemMarker");
+            return (Criteria) this;
+        }
+
+        public Criteria andImplicitItemCodeContains(String value) {
+            addCriterion("implicit_item_code ilike", LikePatterns.contains(value), "implicitItemCode");
             return (Criteria) this;
         }
     }

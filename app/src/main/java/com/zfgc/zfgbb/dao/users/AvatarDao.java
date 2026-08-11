@@ -1,5 +1,9 @@
 package com.zfgc.zfgbb.dao.users;
 
+import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Set;
+import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 import com.zfgc.zfgbb.dao.IdentityDao;
@@ -26,5 +30,17 @@ public class AvatarDao extends IdentityDao<AvatarDbo, AvatarDboExample> {
 		UserBioInfoDboExample claimedByAnotherUser = new UserBioInfoDboExample();
 		claimedByAnotherUser.createCriteria().andAvatarIdEqualTo(avatarId).andUserIdNotEqualTo(userId);
 		return !userBioInfoDao.exists(claimedByAnotherUser);
+	}
+
+	public Optional<Integer> findAvatarContentResourceId(Integer avatarId) {
+		AvatarDboExample byId = new AvatarDboExample();
+		byId.createCriteria().andAvatarIdEqualTo(avatarId);
+		return getOne(byId).map(AvatarDbo::getContentResourceId);
+	}
+
+	public Set<Integer> contentResourceIdsAmong(List<Integer> contentResourceIds) {
+		AvatarDboExample referencing = new AvatarDboExample();
+		referencing.createCriteria().andContentResourceIdIn(contentResourceIds);
+		return get(referencing).stream().map(AvatarDbo::getContentResourceId).collect(Collectors.toSet());
 	}
 }

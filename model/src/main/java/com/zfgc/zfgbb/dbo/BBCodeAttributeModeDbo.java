@@ -28,6 +28,9 @@ public class BBCodeAttributeModeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.updated_ts")
     private OffsetDateTime updatedTs;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.content_semantic_role")
+    private String contentSemanticRole;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.bb_code_attribute_mode_id")
     public Integer getBbCodeAttributeModeId() {
         return bbCodeAttributeModeId;
@@ -106,6 +109,16 @@ public class BBCodeAttributeModeDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.updated_ts")
     public void setUpdatedTs(OffsetDateTime updatedTs) {
         this.updatedTs = updatedTs;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.content_semantic_role")
+    public String getContentSemanticRole() {
+        return contentSemanticRole;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.bb_code_attribute_mode.content_semantic_role")
+    public void setContentSemanticRole(String contentSemanticRole) {
+        this.contentSemanticRole = contentSemanticRole;
     }
 
     @Override

@@ -858,6 +858,76 @@ public class ContentResourceDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andStorageDirIsNull() {
+            addCriterion("storage_dir is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirIsNotNull() {
+            addCriterion("storage_dir is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirEqualTo(String value) {
+            addCriterion("storage_dir =", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirNotEqualTo(String value) {
+            addCriterion("storage_dir <>", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirGreaterThan(String value) {
+            addCriterion("storage_dir >", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirGreaterThanOrEqualTo(String value) {
+            addCriterion("storage_dir >=", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirLessThan(String value) {
+            addCriterion("storage_dir <", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirLessThanOrEqualTo(String value) {
+            addCriterion("storage_dir <=", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirLike(String value) {
+            addCriterion("storage_dir ilike", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirNotLike(String value) {
+            addCriterion("storage_dir not ilike", value, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirIn(List<String> values) {
+            addCriterion("storage_dir in", values, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirNotIn(List<String> values) {
+            addCriterion("storage_dir not in", values, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirBetween(String value1, String value2) {
+            addCriterion("storage_dir between", value1, value2, "storageDir");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirNotBetween(String value1, String value2) {
+            addCriterion("storage_dir not between", value1, value2, "storageDir");
+            return (Criteria) this;
+        }
+
         public Criteria andFilenameContains(String value) {
             addCriterion("filename ilike", LikePatterns.contains(value), "filename");
             return (Criteria) this;
@@ -880,6 +950,11 @@ public class ContentResourceDboExample {
 
         public Criteria andMigrationHashContains(String value) {
             addCriterion("migration_hash ilike", LikePatterns.contains(value), "migrationHash");
+            return (Criteria) this;
+        }
+
+        public Criteria andStorageDirContains(String value) {
+            addCriterion("storage_dir ilike", LikePatterns.contains(value), "storageDir");
             return (Criteria) this;
         }
     }

@@ -16,6 +16,8 @@
     <plugin type="com.zfgc.zfgbb.mbg.ContainsCriterionPlugin"/>
     <!-- Emits updateByPrimaryKeyAndVersion(Dbo) on identity tables with a generated updated_ts. -->
     <plugin type="com.zfgc.zfgbb.mbg.VersionedUpdatePlugin"/>
+
+    <plugin type="com.zfgc.zfgbb.mbg.UpdateSettingColumnsPlugin"/>
     <!-- Emits selectByPrimaryKeyForUpdate on every table with a selectByPrimaryKey. -->
     <plugin type="com.zfgc.zfgbb.mbg.SelectForUpdatePlugin"/>
     <!-- Hoists the CRUD methods onto a generic root interface. Must stay last: it prunes the
@@ -34,6 +36,8 @@
     <javaModelGenerator targetPackage="com.zfgc.zfgbb.dbo" targetProject="src/main/java"/>
     <sqlMapGenerator targetPackage="com.zfgc.zfgbb.mappers" targetProject="src/main/resources"/>
     <javaClientGenerator targetPackage="com.zfgc.zfgbb.mappers" targetProject="src/main/java" type="XMLMAPPER"/>
+
+    <table schema="zfgbb" tableName="user_reaction_summary_view" domainObjectName="UserReactionSummaryViewDbo"/>
 
     <!-- ===== users ===== -->
 
@@ -69,6 +73,12 @@
     </table>
 
     <table schema="zfgbb" tableName="user_contact_info" domainObjectName="UserContactInfoDbo">
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="user_contact_types" domainObjectName="UserContactTypesDbo">
+      <generatedKey column="user_contact_types_id" sqlStatement="JDBC" identity="true"/>
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
       <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
@@ -187,11 +197,13 @@
       <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
-    <table schema="zfgbb" tableName="karma" domainObjectName="KarmaDbo">
-      <generatedKey column="karma_id" sqlStatement="JDBC" identity="true"/>
+    <table schema="zfgbb" tableName="reaction_type" domainObjectName="ReactionTypeDbo">
+      <generatedKey column="reaction_type_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="reaction" domainObjectName="ReactionDbo">
+      <generatedKey column="reaction_id" sqlStatement="JDBC" identity="true"/>
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
       <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table>
 
     <table schema="zfgbb" tableName="gender_lkup" domainObjectName="GenderLkupDbo">
@@ -202,11 +214,17 @@
 
     <!-- ===== bbcode ===== -->
 
-    <table schema="zfgbb" tableName="attribute_data_type" domainObjectName="AttributeDataTypeDbo">
-      <generatedKey column="attribute_data_type_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    <table schema="zfgbb" tableName="attribute_data_type" domainObjectName="AttributeDataTypeDbo"/>
+
+    <table schema="zfgbb" tableName="attribute_semantic_role" domainObjectName="AttributeSemanticRoleDbo"/>
+
+    <table schema="zfgbb" tableName="attribute_value_mapping" domainObjectName="AttributeValueMappingDbo">
+      <generatedKey column="attribute_value_mapping_id" sqlStatement="JDBC" identity="true"/>
     </table>
+
+    <table schema="zfgbb" tableName="list_style_type" domainObjectName="ListStyleTypeDbo"/>
+
+    <table schema="zfgbb" tableName="markdown_equivalent" domainObjectName="MarkdownEquivalentDbo"/>
 
     <table schema="zfgbb" tableName="bb_code_attribute" domainObjectName="BBCodeAttributeDbo">
       <generatedKey column="bb_code_attribute_id" sqlStatement="JDBC" identity="true"/>
@@ -228,6 +246,25 @@
 
     <!-- ===== cms (wiki / projects / resources) ===== -->
 
+    <table schema="zfgbb" tableName="wiki_page" domainObjectName="WikiPageDbo">
+      <generatedKey column="wiki_page_id" sqlStatement="JDBC" identity="true"/>
+	  <ignoreColumn column="canonical_title_key"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="wiki_page_revision" domainObjectName="WikiPageRevisionDbo">
+      <generatedKey column="wiki_page_revision_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="authored_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="current_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+    </table>
+
+    <table schema="zfgbb" tableName="wiki_page_category" domainObjectName="WikiPageCategoryDbo">
+      <generatedKey column="wiki_page_category_id" sqlStatement="JDBC" identity="true"/>
+    </table>
+    <table schema="zfgbb" tableName="wiki_namespace" domainObjectName="WikiNamespaceDbo"/>
     <table schema="zfgbb" tableName="migrator_attachment_ref_rewrites" domainObjectName="MigratorAttachmentRefRewriteDbo">
       <columnOverride column="rewritten_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
@@ -236,10 +273,25 @@
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
       <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
+    <table schema="zfgbb" tableName="wiki_namespace_alias" domainObjectName="WikiNamespaceAliasDbo"/>
+    <table schema="zfgbb" tableName="wiki_system_template_page" domainObjectName="WikiSystemTemplatePageDbo"/>
+    <table schema="zfgbb" tableName="migration_conflict" domainObjectName="MigrationConflictDbo">
+      <generatedKey column="migration_conflict_id" sqlStatement="JDBC" identity="true"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="resolved_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
 
     <table schema="zfgbb" tableName="migrator_id_map" domainObjectName="MigratorIdMapDbo">
       <generatedKey column="migrator_id_map_id" sqlStatement="JDBC" identity="true"/>
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+    </table>
+
+    <table schema="zfgbb" tableName="content_template" domainObjectName="ContentTemplateDbo">
+      <generatedKey column="content_template_id" sqlStatement="JDBC" identity="true"/>
+	  <ignoreColumn column="source_code"/>
+      <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
     </table>
 
     <table schema="zfgbb" tableName="personal_message_conversation" domainObjectName="PersonalMessageConversationDbo">
@@ -297,8 +349,13 @@
 
     <table schema="zfgbb" tableName="board_permission_view" domainObjectName="BoardPermissionViewDbo"/>
     <table schema="zfgbb" tableName="user_permission_view" domainObjectName="UserPermissionViewDbo"/>
+    <table schema="zfgbb" tableName="attachment_board_view" domainObjectName="AttachmentBoardViewDbo"/>
+    <table schema="zfgbb" tableName="recent_activity_view" domainObjectName="RecentActivityViewDbo">
+      <columnOverride column="last_post_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+    </table>
     <table schema="zfgbb" tableName="current_message_view" domainObjectName="CurrentMessageDbo">
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
+      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="latest_message_in_thread_view" domainObjectName="LatestMessageInThreadViewDbo">
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
@@ -309,15 +366,10 @@
       <columnOverride column="latest_message_created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
     </table>
     <table schema="zfgbb" tableName="child_board_view" domainObjectName="ChildBoardViewDbo"/>
-    <table schema="zfgbb" tableName="all_messages_in_thread_view" domainObjectName="AllMessagesInThreadViewDbo">
+    <table schema="zfgbb" tableName="wiki_revision_ref" domainObjectName="WikiRevisionRefDbo">
+      <columnOverride column="authored_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
       <columnOverride column="created_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-      <columnOverride column="updated_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-      <columnOverride column="post_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime"/>
-    </table>
-    <table schema="zfgbb" tableName="user_karma_view" domainObjectName="UserKarmaViewDbo">
-      <generatedKey column="karma_id" sqlStatement="JDBC" identity="true"/>
-      <columnOverride column="karma_given_ts" jdbcType="TIMESTAMP_WITH_TIMEZONE" javaType="java.time.OffsetDateTime" isGeneratedAlways="true"/>
-      <columnOverride column="is_positive" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
+      <columnOverride column="current_flag" jdbcType="BOOLEAN" javaType="java.lang.Boolean"/>
     </table>
 
     <table schema="zfgbb" tableName="smiley_set" domainObjectName="SmileySetDbo">

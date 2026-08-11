@@ -15,7 +15,6 @@ import com.zfgc.zfgbb.authorization.AllowAnonymous;
 import com.zfgc.zfgbb.model.system.InstallRequest;
 import com.zfgc.zfgbb.model.system.InstallResponse;
 import com.zfgc.zfgbb.model.system.InstallResult;
-import com.zfgc.zfgbb.model.system.InstallStatusResponse;
 import com.zfgc.zfgbb.model.users.LoginResponse;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
@@ -47,13 +46,6 @@ public class SystemController {
 		this.installToken = installToken;
 	}
 
-	@GetMapping("/status")
-	public ResponseEntity<InstallStatusResponse> status() {
-		boolean installed = systemConfigService.isInstalled();
-		String siteName = installed ? systemConfigService.get(SystemConfigService.Keys.SITE_NAME) : null;
-		return ResponseEntity.ok(new InstallStatusResponse(installed, siteName));
-	}
-
 	@PostMapping
 	public ResponseEntity<InstallResponse> install(
 			@RequestBody InstallRequest request,
@@ -77,7 +69,6 @@ public class SystemController {
 					base.installed(),
 					base.adminUserId(),
 					base.siteName(),
-					base.sampleDataApplied(),
 					tokens.accessToken(),
 					tokens.refreshToken());
 			return ResponseEntity.ok(withTokens);
