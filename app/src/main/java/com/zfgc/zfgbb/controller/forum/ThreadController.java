@@ -28,7 +28,6 @@ public class ThreadController extends BaseController {
 	private final ForumService forumService;
 	
 	@GetMapping("/template")
-	@AllowAnonymous
 	public ResponseEntity getThreadTemplate(@RequestParam("boardId") Integer boardId) {
 		Thread template = forumService.getThreadTemplate(boardId, super.zfgcUser());
 		return ResponseEntity.ok(template);

@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.testsupport.mappers;
 
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -39,6 +40,12 @@ public interface TestFixtureSetupMapper {
 			where permission_code in ('ZFGC_USER', 'ZFGC_GUEST')
 			""")
 	void grantGeneralBoardPermissions();
+
+	@Insert("""
+			insert into zfgbb.br_board_permission (board_id, permission_id)
+			values (#{boardId}, #{permissionId}) on conflict do nothing
+			""")
+	int grantBoardPermissionIfAbsent(@Param("boardId") int boardId, @Param("permissionId") int permissionId);
 
 	@Select("select setval(pg_get_serial_sequence('zfgbb.category', 'category_id'), greatest((select max(category_id) from zfgbb.category), 1), true)")
 	Long resetCategorySequence();

@@ -1,16 +1,13 @@
 package com.zfgc.zfgbb.testsupport;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Tag;
 import org.mybatis.spring.annotation.MapperScan;
@@ -21,7 +18,6 @@ import org.springframework.http.MediaType;
 
 import com.zfgc.zfgbb.dbo.*;
 import com.zfgc.zfgbb.mappers.*;
-import com.zfgc.zfgbb.testsupport.mappers.TestQueryHelperMapper;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,7 +26,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
-import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -57,12 +52,6 @@ public abstract class ZfgbbIntegrationTest {
 
 	@Autowired
 	protected MockMvc mockMvc;
-
-	@Autowired
-	protected javax.sql.DataSource dataSource;
-
-	@Autowired
-	protected TestQueryHelperMapper testQueryHelperMapper;
 
 	protected final ObjectMapper json = new ObjectMapper();
 
@@ -144,22 +133,11 @@ public abstract class ZfgbbIntegrationTest {
 		return json.readTree(result.getResponse().getContentAsString());
 	}
 
-	protected Cookie obtainXsrfCookie() throws Exception {
-		MvcResult result = mockMvc.perform(get("/users/loggedInUser"))
-				.andExpect(status().isOk())
-				.andExpect(cookie().exists("XSRF-TOKEN"))
-				.andReturn();
-		return result.getResponse().getCookie("XSRF-TOKEN");
-	}
-
 	@Autowired
 	private SystemConfigDboMapper systemConfigDboMapper;
 
 	@Autowired
 	private UserDboMapper baseUserDboMapper;
-
-	@Autowired
-	private MessageDboMapper baseMessageDboMapper;
 
 	private UserDbo userNamed(String userName) {
 		UserDboExample named = new UserDboExample();
@@ -172,48 +150,6 @@ public abstract class ZfgbbIntegrationTest {
 	protected Integer findUserIdByName(String userName) {
 		UserDbo user = userNamed(userName);
 		return user == null ? null : user.getUserId();
-	}
-
-	protected String findDisplayNameByName(String userName) {
-		UserDbo user = userNamed(userName);
-		return user == null ? null : user.getDisplayName();
-	}
-
-	private List<MessageDbo> postsInThread(int threadId, Consumer<MessageDboExample.Criteria> predicate,
-			String orderByClause) {
-		MessageDboExample posts = new MessageDboExample();
-		MessageDboExample.Criteria criteria = posts.createCriteria().andThreadIdEqualTo(threadId);
-		predicate.accept(criteria);
-		posts.setOrderByClause(orderByClause);
-		return baseMessageDboMapper.selectByExample(posts);
-	}
-
-	protected Integer findMessageIdAtPosition(int threadId, int postInThread) {
-		List<MessageDbo> matches = postsInThread(threadId,
-				criteria -> criteria.andPostInThreadEqualTo(postInThread), "post_in_thread");
-		assertTrue(matches.size() <= 1,
-				"a thread must hold at most one post at position " + postInThread + ": " + matches.size());
-		return matches.isEmpty() ? null : matches.get(0).getMessageId();
-	}
-
-	protected Integer findLatestMessageIdInThread(int threadId) {
-		List<MessageDbo> posts = postsInThread(threadId, criteria -> { }, "post_in_thread desc");
-		return posts.isEmpty() ? null : posts.get(0).getMessageId();
-	}
-
-	protected Integer findLatestMessageIdInThreadOwnedBy(int threadId, int ownerId) {
-		List<MessageDbo> posts = postsInThread(threadId,
-				criteria -> criteria.andOwnerIdEqualTo(ownerId), "post_in_thread desc");
-		return posts.isEmpty() ? null : posts.get(0).getMessageId();
-	}
-
-	protected List<Integer> listPostPositionsInThread(int threadId) {
-		return postsInThread(threadId, criteria -> { }, "post_in_thread").stream()
-				.map(MessageDbo::getPostInThread).toList();
-	}
-
-	protected static File projectFile(String relativePath) {
-		return resolveFromProjectRoot(relativePath).toFile();
 	}
 
 	protected static Path resolveFromProjectRoot(String relativePath) {

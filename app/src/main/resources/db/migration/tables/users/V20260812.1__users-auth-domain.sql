@@ -68,7 +68,7 @@ create table zfgbb.smiley (
 create table zfgbb.user_settings (
 	user_id integer not null primary key references zfgbb.user,
 	theme zfgbb.ui_theme,
-	smiley_set text references zfgbb.smiley_set(code),
+	smiley_set text not null default 'TPLINK' references zfgbb.smiley_set(code),
 	notify_announcements_flag boolean not null default false,
 	notify_send_body_flag boolean not null default false,
 	send_happy_birthday_flag boolean not null default false,
