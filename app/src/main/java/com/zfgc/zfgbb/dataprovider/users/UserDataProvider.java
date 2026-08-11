@@ -45,7 +45,8 @@ import com.zfgc.zfgbb.dbo.EmailAddressDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDbo;
 import com.zfgc.zfgbb.dbo.UserContactInfoDbo;
 import com.zfgc.zfgbb.dbo.UserContactInfoDboExample;
-import com.zfgc.zfgbb.dbo.UserAggregateDbo;
+import com.zfgc.zfgbb.dbo.AvatarDbo;
+import com.zfgc.zfgbb.dbo.AvatarDboExample;
 import com.zfgc.zfgbb.dbo.UserDbo;
 import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDbo;
@@ -126,7 +127,7 @@ public class UserDataProvider {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserNameEqualTo(userName);
 		return userDao.getOne(ex)
-				.map(dbo -> hydrateUser(dbo, UserLoadOptions.loggedIn()));
+				.flatMap(dbo -> hydrateUser(dbo, UserLoadOptions.loggedIn()));
 	}
 
 	public Optional<User> findUser(Integer userId) {
@@ -140,12 +141,12 @@ public class UserDataProvider {
 		UserDboExample ex = new UserDboExample();
 		ex.createCriteria().andUserIdEqualTo(userId).andActiveFlagEqualTo(true);
 		return userDao.getOne(ex)
-				.map(userDb -> hydrateUser(userDb, loadOptions));
+				.flatMap(userDb -> hydrateUser(userDb, loadOptions));
 	}
 
-	private User hydrateUser(UserDbo userDb, UserLoadOptions loadOptions) {
+	private Optional<User> hydrateUser(UserDbo userDb, UserLoadOptions loadOptions) {
 		Map<Integer, User> users = loadUsersByIds(List.of(userDb.getUserId()), loadOptions);
-		return users.get(userDb.getUserId());
+		return Optional.ofNullable(users.get(userDb.getUserId()));
 	}
 
 	private Map<Integer, User> loadUsersByIds(Collection<Integer> userIds, UserLoadOptions loadOptions) {
@@ -155,9 +156,63 @@ public class UserDataProvider {
 		if (distinctIds.isEmpty())
 			return Collections.emptyMap();
 
-		List<UserAggregateDbo> aggregates = userDao.hydrate(distinctIds);
-		if (aggregates.isEmpty())
+		UserDboExample userEx = new UserDboExample();
+		userEx.createCriteria().andUserIdIn(distinctIds);
+		List<UserDbo> userRows = userDao.get(userEx);
+		if (userRows.isEmpty())
 			return Collections.emptyMap();
+
+		Map<Integer, UserBioInfoDbo> biosByUserId = Collections.emptyMap();
+		if (loadOptions.loadBio()) {
+			UserBioInfoDboExample bioEx = new UserBioInfoDboExample();
+			bioEx.createCriteria().andUserIdIn(distinctIds);
+			biosByUserId = bioInfoDao.get(bioEx).stream()
+					.collect(Collectors.toMap(UserBioInfoDbo::getUserId, bio -> bio));
+		}
+
+		Map<Integer, UserContactInfoDbo> contactsByUserId = Collections.emptyMap();
+		if (loadOptions.loadContactInfo()) {
+			UserContactInfoDboExample contactEx = new UserContactInfoDboExample();
+			contactEx.createCriteria().andUserIdIn(distinctIds);
+			contactsByUserId = userContactInfoDao.get(contactEx).stream()
+					.collect(Collectors.toMap(UserContactInfoDbo::getUserId, contact -> contact));
+		}
+
+		Map<Integer, UserSettingsDbo> settingsByUserId = Collections.emptyMap();
+		if (loadOptions.loadSettings()) {
+			UserSettingsDboExample settingsEx = new UserSettingsDboExample();
+			settingsEx.createCriteria().andUserIdIn(distinctIds);
+			settingsByUserId = userSettingsDao.get(settingsEx).stream()
+					.collect(Collectors.toMap(UserSettingsDbo::getUserId, settings -> settings));
+		}
+
+		Map<Integer, AvatarDbo> avatarsById = Collections.emptyMap();
+		if (loadOptions.loadAvatar()) {
+			List<Integer> avatarIds = biosByUserId.values().stream()
+					.map(UserBioInfoDbo::getAvatarId)
+					.filter(id -> id != null)
+					.distinct()
+					.toList();
+			if (!avatarIds.isEmpty()) {
+				AvatarDboExample avatarEx = new AvatarDboExample();
+				avatarEx.createCriteria().andAvatarIdIn(avatarIds).andActiveFlagEqualTo(true);
+				avatarsById = avatarDao.get(avatarEx).stream()
+						.collect(Collectors.toMap(AvatarDbo::getAvatarId, avatar -> avatar));
+			}
+		}
+
+		Map<Integer, EmailAddressDbo> emailsById = Collections.emptyMap();
+		List<Integer> emailAddressIds = contactsByUserId.values().stream()
+				.map(UserContactInfoDbo::getEmailAddressId)
+				.filter(id -> id != null)
+				.distinct()
+				.toList();
+		if (!emailAddressIds.isEmpty()) {
+			EmailAddressDboExample emailEx = new EmailAddressDboExample();
+			emailEx.createCriteria().andEmailAddressIdIn(emailAddressIds);
+			emailsById = emailDao.get(emailEx).stream()
+					.collect(Collectors.toMap(EmailAddressDbo::getEmailAddressId, email -> email));
+		}
 
 		Map<Integer, List<Permission>> permissionsByUserId = Collections.emptyMap();
 		if (loadOptions.loadPermissions()) {
@@ -169,29 +224,34 @@ public class UserDataProvider {
 		}
 
 		Map<Integer, User> users = new HashMap<>();
-		for (UserAggregateDbo agg : aggregates) {
-			Integer userId = agg.getUser().getUserId();
+		for (UserDbo userRow : userRows) {
+			Integer userId = userRow.getUserId();
+			UserBioInfoDbo bioRow = biosByUserId.get(userId);
 			UserBioInfo bioInfo = null;
-			if (agg.getBio() != null && loadOptions.loadBio()) {
-				bioInfo = userBioInfoMap.toModel(agg.getBio())
+			if (bioRow != null && loadOptions.loadBio()) {
+				AvatarDbo avatarRow = bioRow.getAvatarId() != null ? avatarsById.get(bioRow.getAvatarId()) : null;
+				bioInfo = userBioInfoMap.toModel(bioRow)
 						.toBuilder()
-						.avatar(agg.getAvatar() != null && loadOptions.loadAvatar() ? avatarMap.toModel(agg.getAvatar()) : null)
+						.avatar(avatarRow != null && loadOptions.loadAvatar() ? avatarMap.toModel(avatarRow) : null)
 						.build();
 			}
 
+			UserContactInfoDbo contactRow = contactsByUserId.get(userId);
+			EmailAddressDbo emailRow = contactRow != null ? emailsById.get(contactRow.getEmailAddressId()) : null;
 			UserContactInfo contactInfo = null;
-			if (agg.getContact() != null && agg.getEmail() != null && loadOptions.loadContactInfo()) {
-				contactInfo = userContactInfoMap.toModel(agg.getContact(), agg.getEmail());
+			if (contactRow != null && emailRow != null && loadOptions.loadContactInfo()) {
+				contactInfo = userContactInfoMap.toModel(contactRow, emailRow);
 			}
 
 			UserSettings settings = null;
 			if (loadOptions.loadSettings()) {
-				settings = agg.getSettings() != null
-						? userSettingsMap.toModel(agg.getSettings())
+				UserSettingsDbo settingsRow = settingsByUserId.get(userId);
+				settings = settingsRow != null
+						? userSettingsMap.toModel(settingsRow)
 						: new UserSettings();
 			}
 
-			User user = userMap.toModel(agg.getUser())
+			User user = userMap.toModel(userRow)
 					.toBuilder()
 					.bioInfo(bioInfo)
 					.contactInfo(contactInfo)
@@ -218,22 +278,19 @@ public class UserDataProvider {
 		return users;
 	}
 
-	private UserSettings toSettings(UserSettingsDbo dbo) {
-		return dbo == null ? new UserSettings() : userSettingsMap.toModel(dbo);
-	}
-
 	public UserSettings saveUserSettings(Integer userId, UserSettings settings) {
-		UserSettingsDbo existing = userSettingsDao.find(userId).orElse(null);
-		if (existing == null) {
+		Optional<UserSettingsDbo> existing = userSettingsDao.find(userId);
+		if (existing.isPresent()) {
+			UserSettingsDbo current = existing.get();
+			userSettingsMap.applyOnto(settings, current);
+			userSettingsDao.update(current);
+		} else {
 			UserSettingsDbo created = new UserSettingsDbo();
 			created.setUserId(userId);
 			userSettingsMap.applyOnto(settings, created);
 			userSettingsDao.insertSelective(created);
-		} else {
-			userSettingsMap.applyOnto(settings, existing);
-			userSettingsDao.update(existing);
 		}
-		return toSettings(userSettingsDao.find(userId).orElse(null));
+		return userSettingsDao.find(userId).map(userSettingsMap::toModel).orElseGet(UserSettings::new);
 	}
 
 	public User createUser(User user) {

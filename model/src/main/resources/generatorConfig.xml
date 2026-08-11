@@ -16,6 +16,8 @@
     <plugin type="com.zfgc.zfgbb.mbg.ContainsCriterionPlugin"/>
     <!-- Emits updateByPrimaryKeyAndVersion(Dbo) on identity tables with a generated updated_ts. -->
     <plugin type="com.zfgc.zfgbb.mbg.VersionedUpdatePlugin"/>
+    <!-- Emits selectByPrimaryKeyForUpdate on every table with a selectByPrimaryKey. -->
+    <plugin type="com.zfgc.zfgbb.mbg.SelectForUpdatePlugin"/>
     <!-- Hoists the CRUD methods onto a generic root interface. Must stay last: it prunes the
          methods the other plugins have finished adding. -->
     <plugin type="com.zfgc.zfgbb.mbg.MapperRootInterfacePlugin"/>

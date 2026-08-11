@@ -511,7 +511,7 @@ class TokenTest {
 			private int consumeAttempts;
 
 			FixedTokenDao(UserRefreshTokenDbo token) {
-				super(null, null);
+				super(null);
 				this.token = token;
 			}
 

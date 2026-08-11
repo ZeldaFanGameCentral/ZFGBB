@@ -528,7 +528,7 @@ class SessionTest extends PostgresIntegrationTest {
 				assertEquals(contenders, outcomes.stream().filter(BadCredentialsException.class::isInstance).count(),
 						outcomes.toString());
 				assertEquals(0, outcomes.stream().filter(ConcurrentModificationException.class::isInstance).count(),
-						"atomic single-statement updates must never raise a concurrent-modification error");
+						"the user-row lock serializes lockout writes, so a concurrent-modification error must never surface");
 				assertEquals(contenders, failedLoginCount(raceUser),
 						"concurrent atomic increments must total exactly the contender count with no lost updates");
 				UserDboExample lockedAfterContention = new UserDboExample();

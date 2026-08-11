@@ -8,20 +8,22 @@ import com.zfgc.zfgbb.dao.IdentityDao;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
 import com.zfgc.zfgbb.mappers.UserRefreshTokenDboMapper;
-import com.zfgc.zfgbb.mappers.custom.RefreshTokenConsumeMapper;
 
 @Repository
 public class UserRefreshTokenDao extends IdentityDao<UserRefreshTokenDbo, UserRefreshTokenDboExample> {
 
-	private final RefreshTokenConsumeMapper refreshTokenConsumeMapper;
-
-	public UserRefreshTokenDao(UserRefreshTokenDboMapper mapper,
-			RefreshTokenConsumeMapper refreshTokenConsumeMapper) {
+	public UserRefreshTokenDao(UserRefreshTokenDboMapper mapper) {
 		super(mapper);
-		this.refreshTokenConsumeMapper = refreshTokenConsumeMapper;
 	}
 
 	public int consume(Integer userRefreshTokenId, OffsetDateTime now) {
-		return refreshTokenConsumeMapper.consumeToken(userRefreshTokenId, now);
+		UserRefreshTokenDbo consumed = new UserRefreshTokenDbo();
+		consumed.setRevokedFlag(true);
+		consumed.setRotatedTs(now);
+		UserRefreshTokenDboExample example = new UserRefreshTokenDboExample();
+		example.createCriteria().andUserRefreshTokenIdEqualTo(userRefreshTokenId)
+				.andRevokedFlagEqualTo(false)
+				.andExpiresTsGreaterThanOrEqualTo(now);
+		return updateWhere(consumed, example);
 	}
 }

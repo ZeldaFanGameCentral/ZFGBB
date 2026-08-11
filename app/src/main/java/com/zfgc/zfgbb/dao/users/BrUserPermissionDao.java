@@ -6,20 +6,23 @@ import com.zfgc.zfgbb.dao.KeyedDao;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDboExample;
 import com.zfgc.zfgbb.mappers.BrUserPermissionDboMapper;
-import com.zfgc.zfgbb.mappers.custom.UserPermissionGrantMapper;
 
 @Repository
 public class BrUserPermissionDao extends KeyedDao<BrUserPermissionDbo, BrUserPermissionDboExample, Integer> {
 
-	private final UserPermissionGrantMapper userPermissionGrantMapper;
-
-	public BrUserPermissionDao(BrUserPermissionDboMapper mapper,
-			UserPermissionGrantMapper userPermissionGrantMapper) {
+	public BrUserPermissionDao(BrUserPermissionDboMapper mapper) {
 		super(mapper);
-		this.userPermissionGrantMapper = userPermissionGrantMapper;
 	}
 
 	public int grantIfAbsent(Integer userId, Integer userPermissionId) {
-		return userPermissionGrantMapper.grantPermissionIfAbsent(userId, userPermissionId);
+		BrUserPermissionDboExample example = new BrUserPermissionDboExample();
+		example.createCriteria().andUserIdEqualTo(userId).andUserPermissionIdEqualTo(userPermissionId);
+		if (exists(example))
+			return 0;
+		BrUserPermissionDbo grant = new BrUserPermissionDbo();
+		grant.setUserId(userId);
+		grant.setUserPermissionId(userPermissionId);
+		insert(grant);
+		return 1;
 	}
 }
