@@ -648,6 +648,76 @@ public class BBCodeAttributeModeDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andContentSemanticRoleIsNull() {
+            addCriterion("content_semantic_role is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleIsNotNull() {
+            addCriterion("content_semantic_role is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleEqualTo(String value) {
+            addCriterion("content_semantic_role =", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleNotEqualTo(String value) {
+            addCriterion("content_semantic_role <>", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleGreaterThan(String value) {
+            addCriterion("content_semantic_role >", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleGreaterThanOrEqualTo(String value) {
+            addCriterion("content_semantic_role >=", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleLessThan(String value) {
+            addCriterion("content_semantic_role <", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleLessThanOrEqualTo(String value) {
+            addCriterion("content_semantic_role <=", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleLike(String value) {
+            addCriterion("content_semantic_role ilike", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleNotLike(String value) {
+            addCriterion("content_semantic_role not ilike", value, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleIn(List<String> values) {
+            addCriterion("content_semantic_role in", values, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleNotIn(List<String> values) {
+            addCriterion("content_semantic_role not in", values, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleBetween(String value1, String value2) {
+            addCriterion("content_semantic_role between", value1, value2, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleNotBetween(String value1, String value2) {
+            addCriterion("content_semantic_role not between", value1, value2, "contentSemanticRole");
+            return (Criteria) this;
+        }
+
         public Criteria andOpenTagContains(String value) {
             addCriterion("open_tag ilike", LikePatterns.contains(value), "openTag");
             return (Criteria) this;
@@ -655,6 +725,11 @@ public class BBCodeAttributeModeDboExample {
 
         public Criteria andCloseTagContains(String value) {
             addCriterion("close_tag ilike", LikePatterns.contains(value), "closeTag");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentSemanticRoleContains(String value) {
+            addCriterion("content_semantic_role ilike", LikePatterns.contains(value), "contentSemanticRole");
             return (Criteria) this;
         }
     }

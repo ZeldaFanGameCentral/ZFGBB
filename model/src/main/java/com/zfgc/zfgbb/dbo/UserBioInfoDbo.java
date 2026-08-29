@@ -53,12 +53,6 @@ public class UserBioInfoDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.time_format")
     private String timeFormat;
 
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_good")
-    private Integer karmaGood;
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_bad")
-    private Integer karmaBad;
-
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.hide_email_flag")
     private Boolean hideEmailFlag;
 
@@ -229,26 +223,6 @@ public class UserBioInfoDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.time_format")
     public void setTimeFormat(String timeFormat) {
         this.timeFormat = timeFormat;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_good")
-    public Integer getKarmaGood() {
-        return karmaGood;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_good")
-    public void setKarmaGood(Integer karmaGood) {
-        this.karmaGood = karmaGood;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_bad")
-    public Integer getKarmaBad() {
-        return karmaBad;
-    }
-
-    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.karma_bad")
-    public void setKarmaBad(Integer karmaBad) {
-        this.karmaBad = karmaBad;
     }
 
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.user_bio_info.hide_email_flag")

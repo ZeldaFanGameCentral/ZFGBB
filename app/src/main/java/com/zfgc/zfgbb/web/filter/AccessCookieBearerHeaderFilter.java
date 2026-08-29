@@ -33,7 +33,7 @@ public class AccessCookieBearerHeaderFilter extends OncePerRequestFilter {
 
 	private static final Set<String> COOKIE_INDEPENDENT_PATHS = Set.of(
 			"/users/auth/login", "/users/auth/refresh", "/users/auth/logout",
-			"/system/install", "/system/install/status", "/system/site");
+			"/system/install", "/system/site");
 
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {

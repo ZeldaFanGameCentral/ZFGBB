@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.persistence;
 
+import java.util.Set;
+
 import org.apache.ibatis.annotations.Param;
 
 public interface CrudMapper<Dbo, Example, PrimaryKey> extends ReadMapper<Dbo, Example> {
@@ -19,6 +21,9 @@ public interface CrudMapper<Dbo, Example, PrimaryKey> extends ReadMapper<Dbo, Ex
 	int updateByExample(@Param("row") Dbo row, @Param("example") Example example);
 
 	int updateByExampleSelective(@Param("row") Dbo row, @Param("example") Example example);
+
+	int updateByExampleSettingColumns(@Param("row") Dbo row, @Param("columns") Set<String> columns,
+			@Param("example") Example example);
 
 	int deleteByPrimaryKey(PrimaryKey primaryKey);
 

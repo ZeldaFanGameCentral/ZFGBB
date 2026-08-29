@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.dao.users;
 
+import java.util.Set;
+import java.util.List;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
@@ -12,6 +14,8 @@ import com.zfgc.zfgbb.mappers.UserDboMapper;
 
 @Repository
 public class UserDao extends IdentityDao<UserDbo, UserDboExample> {
+
+	private static final String DELETED_NAME = "[deleted]";
 
 	public UserDao(UserDboMapper mapper) {
 		super(mapper);
@@ -56,5 +60,32 @@ public class UserDao extends IdentityDao<UserDbo, UserDboExample> {
 		UserDboExample example = new UserDboExample();
 		example.createCriteria().andUserIdEqualTo(userId);
 		return updateWhere(row, example);
+	}
+
+	public Optional<Integer> findUserIdBySsoKey(String ssoKey) {
+		UserDboExample bySsoKey = new UserDboExample();
+		bySsoKey.createCriteria().andSsoKeyEqualTo(ssoKey);
+		return getOne(bySsoKey).map(UserDbo::getUserId);
+	}
+
+	public Optional<String> findUserName(Integer userId) {
+		UserDboExample byId = new UserDboExample();
+		byId.createCriteria().andUserIdEqualTo(userId);
+		return getOne(byId).map(UserDbo::getUserName);
+	}
+
+	public int neutralizeUserRow(Integer userId, String ssoKeyToken) {
+		UserDbo neutralized = new UserDbo();
+		neutralized.setDisplayName(DELETED_NAME);
+		neutralized.setUserName(DELETED_NAME);
+		neutralized.setSsoKey(ssoKeyToken);
+		neutralized.setFailedLoginCount(0);
+		neutralized.setActiveFlag(false);
+		neutralized.setTokensValidAfterTs(OffsetDateTime.now());
+		UserDboExample byId = new UserDboExample();
+		byId.createCriteria().andUserIdEqualTo(userId);
+		return updateWhereSettingColumns(neutralized, Set.of("display_name", "user_name", "sso_key",
+				"migration_hash", "password_hash", "password_algo", "password_salt", "password_changed_ts",
+				"locked_until_ts", "failed_login_count", "active_flag", "tokens_valid_after_ts"), byId);
 	}
 }

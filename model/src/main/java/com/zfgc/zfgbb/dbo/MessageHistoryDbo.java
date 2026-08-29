@@ -28,6 +28,9 @@ public class MessageHistoryDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.migration_hash")
     private String migrationHash;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.content_format")
+    private String contentFormat;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.message_history_id")
     public Integer getMessageHistoryId() {
         return messageHistoryId;
@@ -106,6 +109,16 @@ public class MessageHistoryDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.migration_hash")
     public void setMigrationHash(String migrationHash) {
         this.migrationHash = migrationHash;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.content_format")
+    public String getContentFormat() {
+        return contentFormat;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.message_history.content_format")
+    public void setContentFormat(String contentFormat) {
+        this.contentFormat = contentFormat;
     }
 
     @Override

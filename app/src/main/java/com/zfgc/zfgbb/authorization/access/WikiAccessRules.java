@@ -14,9 +14,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WikiAccessRules {
 
+	private static final String ROLE_WIKI_MODERATOR = "ROLE_ZFGC_WIKI_MODERATOR";
+
 	private final AuthorityTiers authorityTiers;
 
 	public record NamespaceEditPolicy(boolean systemManaged, Optional<String> editPermissionCode) {}
+
+	public boolean canModerateWiki(User user) {
+		return user != null && authorityTiers.hasRole(user, ROLE_WIKI_MODERATOR);
+	}
 
 	public enum NamespaceEditDenialReason {
 		SYSTEM_MANAGED,

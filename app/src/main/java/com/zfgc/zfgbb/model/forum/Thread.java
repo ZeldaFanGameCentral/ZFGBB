@@ -1,8 +1,8 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
@@ -11,8 +11,10 @@ import com.zfgc.zfgbb.model.users.Permission;
 import com.zfgc.zfgbb.model.Securable;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class Thread extends BaseModel implements Securable {
 	@JsonIgnore
 	private Integer threadId;
@@ -22,6 +24,11 @@ public class Thread extends BaseModel implements Securable {
     private Integer boardId;
     private String boardName;
     private Integer createdUserId;
+    private Integer recycledFromBoardId;
+    private Integer recycledFromThreadId;
+    private Boolean recycleBinEnabled;
+
+    private Set<String> allowedActions = Set.of();
 
     private User createdUser;
     private Integer postCount;

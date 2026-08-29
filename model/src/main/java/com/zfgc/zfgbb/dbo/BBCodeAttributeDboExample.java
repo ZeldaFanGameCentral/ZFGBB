@@ -208,66 +208,6 @@ public class BBCodeAttributeDboExample {
             return (Criteria) this;
         }
 
-        public Criteria andAttributeDataTypeIsNull() {
-            addCriterion("attribute_data_type is null");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeIsNotNull() {
-            addCriterion("attribute_data_type is not null");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeEqualTo(Integer value) {
-            addCriterion("attribute_data_type =", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotEqualTo(Integer value) {
-            addCriterion("attribute_data_type <>", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeGreaterThan(Integer value) {
-            addCriterion("attribute_data_type >", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeGreaterThanOrEqualTo(Integer value) {
-            addCriterion("attribute_data_type >=", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeLessThan(Integer value) {
-            addCriterion("attribute_data_type <", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeLessThanOrEqualTo(Integer value) {
-            addCriterion("attribute_data_type <=", value, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeIn(List<Integer> values) {
-            addCriterion("attribute_data_type in", values, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotIn(List<Integer> values) {
-            addCriterion("attribute_data_type not in", values, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeBetween(Integer value1, Integer value2) {
-            addCriterion("attribute_data_type between", value1, value2, "attributeDataType");
-            return (Criteria) this;
-        }
-
-        public Criteria andAttributeDataTypeNotBetween(Integer value1, Integer value2) {
-            addCriterion("attribute_data_type not between", value1, value2, "attributeDataType");
-            return (Criteria) this;
-        }
-
         public Criteria andAttributeIndexIsNull() {
             addCriterion("attribute_index is null");
             return (Criteria) this;
@@ -578,8 +518,158 @@ public class BBCodeAttributeDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andAttributeDataTypeIsNull() {
+            addCriterion("attribute_data_type is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeIsNotNull() {
+            addCriterion("attribute_data_type is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeEqualTo(String value) {
+            addCriterion("attribute_data_type =", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotEqualTo(String value) {
+            addCriterion("attribute_data_type <>", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeGreaterThan(String value) {
+            addCriterion("attribute_data_type >", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeGreaterThanOrEqualTo(String value) {
+            addCriterion("attribute_data_type >=", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLessThan(String value) {
+            addCriterion("attribute_data_type <", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLessThanOrEqualTo(String value) {
+            addCriterion("attribute_data_type <=", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeLike(String value) {
+            addCriterion("attribute_data_type ilike", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotLike(String value) {
+            addCriterion("attribute_data_type not ilike", value, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeIn(List<String> values) {
+            addCriterion("attribute_data_type in", values, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotIn(List<String> values) {
+            addCriterion("attribute_data_type not in", values, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeBetween(String value1, String value2) {
+            addCriterion("attribute_data_type between", value1, value2, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeNotBetween(String value1, String value2) {
+            addCriterion("attribute_data_type not between", value1, value2, "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIsNull() {
+            addCriterion("semantic_role is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIsNotNull() {
+            addCriterion("semantic_role is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleEqualTo(String value) {
+            addCriterion("semantic_role =", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotEqualTo(String value) {
+            addCriterion("semantic_role <>", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleGreaterThan(String value) {
+            addCriterion("semantic_role >", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleGreaterThanOrEqualTo(String value) {
+            addCriterion("semantic_role >=", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLessThan(String value) {
+            addCriterion("semantic_role <", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLessThanOrEqualTo(String value) {
+            addCriterion("semantic_role <=", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleLike(String value) {
+            addCriterion("semantic_role ilike", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotLike(String value) {
+            addCriterion("semantic_role not ilike", value, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleIn(List<String> values) {
+            addCriterion("semantic_role in", values, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotIn(List<String> values) {
+            addCriterion("semantic_role not in", values, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleBetween(String value1, String value2) {
+            addCriterion("semantic_role between", value1, value2, "semanticRole");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleNotBetween(String value1, String value2) {
+            addCriterion("semantic_role not between", value1, value2, "semanticRole");
+            return (Criteria) this;
+        }
+
         public Criteria andNameContains(String value) {
             addCriterion("name ilike", LikePatterns.contains(value), "name");
+            return (Criteria) this;
+        }
+
+        public Criteria andAttributeDataTypeContains(String value) {
+            addCriterion("attribute_data_type ilike", LikePatterns.contains(value), "attributeDataType");
+            return (Criteria) this;
+        }
+
+        public Criteria andSemanticRoleContains(String value) {
+            addCriterion("semantic_role ilike", LikePatterns.contains(value), "semanticRole");
             return (Criteria) this;
         }
     }

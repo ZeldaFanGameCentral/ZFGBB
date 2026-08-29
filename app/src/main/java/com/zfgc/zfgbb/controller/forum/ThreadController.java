@@ -1,6 +1,11 @@
 package com.zfgc.zfgbb.controller.forum;
 
+import com.zfgc.zfgbb.authorization.AllowAnonymous;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,74 +17,84 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.zfgc.zfgbb.model.forum.Message;
+import com.zfgc.zfgbb.model.forum.CreateThreadRequest;
+import com.zfgc.zfgbb.model.forum.RestoreResponse;
 import com.zfgc.zfgbb.model.forum.Thread;
+import com.zfgc.zfgbb.model.forum.ThreadDeletionResponse;
 import com.zfgc.zfgbb.model.forum.ThreadSplit;
 import com.zfgc.zfgbb.controller.BaseController;
 import com.zfgc.zfgbb.services.forum.ForumService;
-import com.zfgc.zfgbb.authorization.AllowAnonymous;
+import com.zfgc.zfgbb.services.forum.ForumModerationOrchestrator;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/thread")
 @RequiredArgsConstructor
 public class ThreadController extends BaseController {
-	
 	private final ForumService forumService;
+
+	private final ForumModerationOrchestrator forumModerationOrchestrator;
 	
 	@GetMapping("/template")
-	public ResponseEntity getThreadTemplate(@RequestParam("boardId") Integer boardId) {
+	public ResponseEntity<Thread> getThreadTemplate(@RequestParam("boardId") Integer boardId) {
 		Thread template = forumService.getThreadTemplate(boardId, super.zfgcUser());
 		return ResponseEntity.ok(template);
 	}
 	
 	@PostMapping
-	public ResponseEntity saveThread(@RequestParam("boardId") Integer boardId, @RequestBody Thread thread) {
-		thread.setBoardId(boardId);
-		Thread saved = forumService.saveThread(thread, super.zfgcUser());
-		return ResponseEntity.ok(saved);
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_WRITE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<Thread> saveThread(@RequestParam("boardId") Integer boardId,
+			@Valid @RequestBody CreateThreadRequest request) {
+		Thread saved = forumService.createThread(boardId, request, super.zfgcUser());
+		return ResponseEntity.status(HttpStatus.CREATED).body(saved);
 	}
 	
 	@GetMapping("/{threadId}")
 	@AllowAnonymous
-	public ResponseEntity getThread(@PathVariable("threadId") Integer threadId, @RequestParam("numPerPage") Integer numPerPage, @RequestParam("pageNo") Integer pageNo) {
-		return ResponseEntity.ok(forumService.getThread(threadId, pageNo, numPerPage, super.zfgcUser()));
+	public ResponseEntity<Thread> getThread(@PathVariable("threadId") Integer threadId,
+			@RequestParam(name = "pageSize", required = false) Integer pageSize, @RequestParam("page") Integer page) {
+		return ResponseEntity.ok(forumService.getThread(threadId, page, pageSize, super.zfgcUser()));
 	}
-	
+
 	@DeleteMapping("/{threadId}")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_DELETER')")
-	public ResponseEntity deleteThread(@PathVariable("threadId") Integer threadId) {
-		forumService.deleteThread(threadId, super.zfgcUser());
-		return ResponseEntity.ok().build();
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<ThreadDeletionResponse> deleteThread(@PathVariable("threadId") Integer threadId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.deleteThread(threadId, super.zfgcUser()));
 	}
-	
+
+	@PutMapping("/{threadId}/restore")
+	@PreAuthorize("hasPermission(#threadId, 'THREAD', 'thread.restore')")
+	public ResponseEntity<RestoreResponse> restoreThread(@PathVariable("threadId") Integer threadId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.restoreThread(threadId, super.zfgcUser()));
+	}
+
 	@PutMapping("/{threadId}/move/{boardId}")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity moveThread(@PathVariable("threadId") Integer threadId, @PathVariable("boardId") Integer boardId) {
-		return ResponseEntity.ok(forumService.moveThread(threadId, boardId, super.zfgcUser()));
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<Thread> moveThread(@PathVariable("threadId") Integer threadId, @PathVariable("boardId") Integer boardId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.moveThread(threadId, boardId, super.zfgcUser()));
 	}
 	
 	@PutMapping("/{threadId}/lockToggle")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity lockToggleThread(@PathVariable("threadId") Integer threadId) {
-		return ResponseEntity.ok(forumService.toggleLocked(threadId, super.zfgcUser()));
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<Thread> lockToggleThread(@PathVariable("threadId") Integer threadId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.toggleLocked(threadId, super.zfgcUser()));
 	}
 	
 	@PutMapping("/{threadId}/stickyToggle")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity stickyToggleThread(@PathVariable("threadId") Integer threadId) {
-		return ResponseEntity.ok(forumService.toggleSticky(threadId, super.zfgcUser()));
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<Thread> stickyToggleThread(@PathVariable("threadId") Integer threadId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.toggleSticky(threadId, super.zfgcUser()));
 	}
 	
 	@GetMapping("/{threadId}/split")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity getThreadSplitTemplate(@PathVariable("threadId") Integer threadId) {
-		return ResponseEntity.ok(forumService.getSplitTemplate(threadId, super.zfgcUser()));
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<ThreadSplit> getThreadSplitTemplate(@PathVariable("threadId") Integer threadId) {
+		return ResponseEntity.ok(forumModerationOrchestrator.getSplitTemplate(threadId, super.zfgcUser()));
 	}
 	
 	@PostMapping("/{threadId}/split")
-	@PreAuthorize("hasRole('ROLE_ZFGC_THREAD_EDITOR')")
-	public ResponseEntity splitThread(@PathVariable("threadId") Integer threadId, @RequestBody ThreadSplit threadSplit) {
-		return ResponseEntity.ok(forumService.splitThread(threadSplit, super.zfgcUser()));
+	@PreAuthorize("hasRole('ROLE_ZFGC_FORUM_MODERATE') and !hasRole('ROLE_ZFGC_READ_ONLY')")
+	public ResponseEntity<Thread> splitThread(@PathVariable("threadId") Integer threadId, @Valid @RequestBody ThreadSplit threadSplit) {
+		return ResponseEntity.ok(forumModerationOrchestrator.splitThread(threadSplit, super.zfgcUser()));
 	}
 }

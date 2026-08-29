@@ -29,14 +29,4 @@ public interface MigratorTimestampMapper {
 			@Param("createdTs") OffsetDateTime createdTs,
 			@Param("updatedTs") OffsetDateTime updatedTs);
 
-	@Update("""
-			update zfgbb.karma
-			set created_ts = #{createdTs},
-			    updated_ts = #{updatedTs}
-			where karma_id = #{karmaId}
-			""")
-	int setKarmaTimestamps(
-			@Param("karmaId") Integer karmaId,
-			@Param("createdTs") OffsetDateTime createdTs,
-			@Param("updatedTs") OffsetDateTime updatedTs);
 }

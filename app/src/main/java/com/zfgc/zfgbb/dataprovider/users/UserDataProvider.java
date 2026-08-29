@@ -1,14 +1,21 @@
 package com.zfgc.zfgbb.dataprovider.users;
 
+import com.zfgc.zfgbb.dao.meta.AdvisoryLockDao;
 import java.util.UUID;
 import com.zfgc.zfgbb.dao.cms.ContentResourceDao;
+import com.zfgc.zfgbb.dao.forum.MessageDao;
+import com.zfgc.zfgbb.dao.meta.MigratorIdMapDao;
 import com.zfgc.zfgbb.dao.users.AccountDeletionAuditDao;
 import com.zfgc.zfgbb.dbo.AccountDeletionAuditDbo;
 import com.zfgc.zfgbb.dbo.AccountDeletionAuditDboExample;
 import com.zfgc.zfgbb.dbo.ContentResourceDboExample;
+import com.zfgc.zfgbb.dbo.MigratorIdMapDboExample;
 import com.zfgc.zfgbb.dao.users.UserPermissionViewDao;
+import com.zfgc.zfgbb.dao.users.UserReactionSummaryViewDao;
 import com.zfgc.zfgbb.dao.users.UserRefreshTokenDao;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDbo;
+import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDbo;
+import com.zfgc.zfgbb.dbo.UserReactionSummaryViewDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionViewDboExample;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDbo;
 import com.zfgc.zfgbb.dbo.UserRefreshTokenDboExample;
@@ -31,12 +38,12 @@ import com.zfgc.zfgbb.dao.users.BrUserPermissionDao;
 import com.zfgc.zfgbb.dao.users.EmailAddressDao;
 import com.zfgc.zfgbb.dao.users.UserBioInfoDao;
 import com.zfgc.zfgbb.dao.users.UserDao;
-import com.zfgc.zfgbb.dao.users.UserErasureDao;
 import com.zfgc.zfgbb.dao.users.UserPermissionGroupAssocDao;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDboExample;
 import com.zfgc.zfgbb.dbo.UserBioInfoDboExample;
 import com.zfgc.zfgbb.dbo.UserPermissionGroupAssocDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDboExample;
+import com.zfgc.zfgbb.dbo.UserWarningDboExample;
 import com.zfgc.zfgbb.model.users.UserSummary;
 import com.zfgc.zfgbb.dataprovider.loadoption.UserLoadOptions;
 import com.zfgc.zfgbb.dbo.BrUserPermissionDbo;
@@ -52,14 +59,17 @@ import com.zfgc.zfgbb.dbo.UserDboExample;
 import com.zfgc.zfgbb.dbo.UserSettingsDbo;
 import com.zfgc.zfgbb.dao.users.UserContactInfoDao;
 import com.zfgc.zfgbb.dao.users.UserSettingsDao;
+import com.zfgc.zfgbb.dao.users.UserWarningDao;
 import com.zfgc.zfgbb.mapstruct.users.AvatarMap;
 import com.zfgc.zfgbb.mapstruct.users.EmailAddressMap;
 import com.zfgc.zfgbb.mapstruct.users.UserBioInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserContactInfoMap;
 import com.zfgc.zfgbb.mapstruct.users.UserMap;
 import com.zfgc.zfgbb.mapstruct.users.PermissionMap;
+import com.zfgc.zfgbb.mapstruct.users.ReactionSummaryMap;
 import com.zfgc.zfgbb.mapstruct.users.UserSettingsMap;
 import com.zfgc.zfgbb.model.users.Permission;
+import com.zfgc.zfgbb.model.users.ReactionSummary;
 import com.zfgc.zfgbb.model.users.User;
 import com.zfgc.zfgbb.model.users.UserBioInfo;
 import com.zfgc.zfgbb.model.users.UserContactInfo;
@@ -71,6 +81,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserDataProvider {
 
+	private final AdvisoryLockDao advisoryLockDao;
+
 	private static final String SITE_ADMIN_PERMISSION_CODE = "ZFGC_SITE_ADMIN";
 
 	private static final int ANONYMIZATION_SENTINEL_USER_ID = 0;
@@ -78,6 +90,8 @@ public class UserDataProvider {
 	private static final Integer ZFGC_USER_PERMISSION_ID = 1;
 
 	private final UserDao userDao;
+
+	private final MessageDao messageDao;
 
 	private final BrUserPermissionDao brUserPermissionDao;
 
@@ -97,11 +111,19 @@ public class UserDataProvider {
 
 	private final UserSettingsDao userSettingsDao;
 
+	private final UserWarningDao userWarningDao;
+
+	private final UserReactionSummaryViewDao userReactionSummaryViewDao;
+
+	private final ReactionSummaryMap reactionSummaryMap;
+
+	private final GuestPermissionDataProvider guestPermissionDataProvider;
+
+	private final MigratorIdMapDao migratorIdMapDao;
+
 	private final UserPermissionViewDao userPermissionViewDao;
 
 	private final UserRefreshTokenDao userRefreshTokenDao;
-
-	private final UserErasureDao userErasureDao;
 
 	private final AccountDeletionAuditDao accountDeletionAuditDao;
 
@@ -223,6 +245,18 @@ public class UserDataProvider {
 							Collectors.mapping(permissionMap::toModel, Collectors.toList())));
 		}
 
+		Map<Integer, ReactionSummary> reactionByUserId = Collections.emptyMap();
+		if (loadOptions.loadReactions()) {
+			UserReactionSummaryViewDboExample reactionEx = new UserReactionSummaryViewDboExample();
+			reactionEx.createCriteria().andUserIdIn(distinctIds);
+			reactionByUserId = userReactionSummaryViewDao.get(reactionEx).stream()
+					.collect(Collectors.toMap(UserReactionSummaryViewDbo::getUserId, reactionSummaryMap::toModel));
+		}
+
+		Map<Integer, Integer> postCountByOwnerId = Collections.emptyMap();
+		if (loadOptions.loadBio())
+			postCountByOwnerId = guestPermissionDataProvider.guestVisiblePostCountsByOwner(distinctIds);
+
 		Map<Integer, User> users = new HashMap<>();
 		for (UserDbo userRow : userRows) {
 			Integer userId = userRow.getUserId();
@@ -232,6 +266,7 @@ public class UserDataProvider {
 				AvatarDbo avatarRow = bioRow.getAvatarId() != null ? avatarsById.get(bioRow.getAvatarId()) : null;
 				bioInfo = userBioInfoMap.toModel(bioRow)
 						.toBuilder()
+						.postCount(postCountByOwnerId.getOrDefault(userId, 0))
 						.avatar(avatarRow != null && loadOptions.loadAvatar() ? avatarMap.toModel(avatarRow) : null)
 						.build();
 			}
@@ -255,6 +290,7 @@ public class UserDataProvider {
 					.toBuilder()
 					.bioInfo(bioInfo)
 					.contactInfo(contactInfo)
+					.reactionSummary(reactionByUserId.get(userId))
 					.awards(Collections.emptyList())
 					.permissions(permissionsByUserId.getOrDefault(userId, Collections.emptyList()))
 					.settings(settings)
@@ -265,16 +301,11 @@ public class UserDataProvider {
 		return users;
 	}
 
-
-
 	public Map<Integer, User> findPublicAuthorsByIds(Collection<Integer> requestedUserIds) {
 		UserLoadOptions loadOptions = UserLoadOptions.publicProfile();
 		Map<Integer, User> users = loadUsersByIds(requestedUserIds, loadOptions);
-		for (User author : users.values()) {
+		for (User author : users.values())
 			author.retainPublicRankPermissions();
-			if (author.getBioInfo() != null)
-				author.getBioInfo().setSignature(null);
-		}
 		return users;
 	}
 
@@ -436,9 +467,6 @@ public class UserDataProvider {
 		return emailDao.getOne(ex);
 	}
 
-
-
-
 	public List<Integer> siteAdministratorIdsWithUsableCredentials() {
 		UserPermissionViewDboExample siteAdministrators = new UserPermissionViewDboExample();
 		siteAdministrators.createCriteria().andPermissionCodeEqualTo(SITE_ADMIN_PERMISSION_CODE)
@@ -485,7 +513,7 @@ public class UserDataProvider {
 	}
 
 	public Integer ensureSentinelUser() {
-		Optional<Integer> existing = userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY);
+		Optional<Integer> existing = userDao.findUserIdBySsoKey(SENTINEL_SSO_KEY);
 		if (existing.isPresent())
 			return existing.get();
 		UserDbo sentinel = new UserDbo();
@@ -499,48 +527,58 @@ public class UserDataProvider {
 	}
 
 	public List<UserSummary> listUsers() {
-		return userErasureDao.listUsers();
+		Set<Integer> siteAdminIds = userPermissionViewDao.siteAdminUserIds();
+		UserDboExample everyUser = new UserDboExample();
+		everyUser.setOrderByClause("user_id");
+		return userDao.get(everyUser).stream().map(user -> {
+			UserSummary summary = new UserSummary();
+			summary.setUserId(user.getUserId());
+			summary.setUserName(user.getUserName());
+			summary.setDisplayName(user.getDisplayName());
+			summary.setSiteAdmin(siteAdminIds.contains(user.getUserId()));
+			return summary;
+		}).toList();
 	}
 
 	public boolean isSentinelUser(Integer userId) {
-		return userErasureDao.findUserIdBySsoKey(SENTINEL_SSO_KEY).filter(userId::equals).isPresent();
+		return userDao.findUserIdBySsoKey(SENTINEL_SSO_KEY).filter(userId::equals).isPresent();
 	}
 
 	public boolean isSiteAdmin(Integer userId) {
-		return userErasureDao.isSiteAdmin(userId);
+		return userPermissionViewDao.isSiteAdmin(userId);
 	}
 
 	public boolean isLastSiteAdmin(Integer userId) {
-		userErasureDao.acquireAdminRosterLock();
-		return userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1;
+		advisoryLockDao.acquireAdminRosterLock();
+		return userPermissionViewDao.isSiteAdmin(userId) && userPermissionViewDao.countSiteAdmins() <= 1;
 	}
 
 	public boolean adminReplacementRequired(Integer userId) {
-		return userErasureDao.isSiteAdmin(userId) && userErasureDao.countSiteAdmins() <= 1;
+		return userPermissionViewDao.isSiteAdmin(userId) && userPermissionViewDao.countSiteAdmins() <= 1;
 	}
 
 	public Optional<String> findUserName(Integer userId) {
-		return userErasureDao.findUserName(userId);
+		return userDao.findUserName(userId);
 	}
 
 	public Optional<String> findPrimaryEmailAddress(Integer userId) {
-		return userErasureDao.findPrimaryEmailAddress(userId);
+		return emailDao.findPrimaryEmailAddress(userId);
 	}
 
 	public List<Integer> findEmailAddressIds(Integer userId) {
-		return userErasureDao.findEmailAddressIds(userId);
+		return userContactInfoDao.findEmailAddressIds(userId);
 	}
 
 	public void neutralizeIdentity(Integer userId) {
-		userErasureDao.neutralizeUserRow(userId, SENTINEL_SSO_KEY + userId);
-		userErasureDao.scrubUserBioInfo(userId);
+		userDao.neutralizeUserRow(userId, SENTINEL_SSO_KEY + userId);
+		bioInfoDao.scrubUserBioInfo(userId);
 		BrUserPermissionDboExample brUserPermissionExample = new BrUserPermissionDboExample();
 		brUserPermissionExample.createCriteria().andUserIdEqualTo(userId);
 		brUserPermissionDao.deleteWhere(brUserPermissionExample);
 		UserPermissionGroupAssocDboExample userPermissionGroupAssocExample = new UserPermissionGroupAssocDboExample();
 		userPermissionGroupAssocExample.createCriteria().andUserIdEqualTo(userId);
 		userPermissionGroupAssocDao.deleteWhere(userPermissionGroupAssocExample);
-		userErasureDao.deleteUserContactTypes(userId);
+		userContactInfoDao.deleteUserContactTypes(userId);
 		UserSettingsDboExample userSettingsExample = new UserSettingsDboExample();
 		userSettingsExample.createCriteria().andUserIdEqualTo(userId);
 		userSettingsDao.deleteWhere(userSettingsExample);
@@ -552,7 +590,7 @@ public class UserDataProvider {
 	public List<Integer> releaseEmailAddresses(List<Integer> emailAddressIds) {
 		List<Integer> retainedSharedAddressIds = new ArrayList<>();
 		for (Integer emailAddressId : emailAddressIds.stream().distinct().toList()) {
-			userErasureDao.deleteEmailAddressIfUnreferenced(emailAddressId);
+			emailDao.deleteEmailAddressIfUnreferenced(emailAddressId);
 			if (emailDao.existsWithPrimaryKey(emailAddressId))
 				retainedSharedAddressIds.add(emailAddressId);
 		}
@@ -560,11 +598,11 @@ public class UserDataProvider {
 	}
 
 	public Optional<Integer> findBioAvatarId(Integer userId) {
-		return userErasureDao.findBioAvatarId(userId);
+		return bioInfoDao.findBioAvatarId(userId);
 	}
 
 	public Optional<Integer> findAvatarContentResourceId(Integer avatarId) {
-		return userErasureDao.findAvatarContentResourceId(avatarId);
+		return avatarDao.findAvatarContentResourceId(avatarId);
 	}
 
 	public void deleteBioInfo(Integer userId) {
@@ -577,24 +615,36 @@ public class UserDataProvider {
 		avatarDao.delete(avatarId);
 	}
 
+	public void deleteUserSettings(Integer userId) {
+		userSettingsDao.delete(userId);
+	}
+
+	public void deleteUserWarnings(Integer userId) {
+		UserWarningDboExample subjectWarnings = new UserWarningDboExample();
+		subjectWarnings.createCriteria().andUserIdEqualTo(userId);
+		userWarningDao.deleteWhere(subjectWarnings);
+	}
+
 	public void deleteUserRow(Integer userId) {
 		userDao.delete(userId);
 	}
 
-	public void nullAwardGranters(Integer userId) {
-		userErasureDao.nullAwardGranters(userId);
+	public void scrubIssuedWarnings(Integer userId) {
+		userWarningDao.scrubIssuedWarnings(userId);
 	}
 
-	public void scrubIssuedWarnings(Integer userId) {
-		userErasureDao.scrubIssuedWarnings(userId);
+	public void deleteMigratorIdMapEntries(String entityType, List<Integer> zfgbbIds) {
+		MigratorIdMapDboExample example = new MigratorIdMapDboExample();
+		example.createCriteria().andEntityTypeEqualTo(entityType).andZfgbbIdIn(zfgbbIds);
+		migratorIdMapDao.deleteWhere(example);
 	}
 
 	public void reassignContentResources(Integer userId, Integer sentinelId) {
-		userErasureDao.reassignContentResources(userId, sentinelId);
+		contentResourceDao.reassignContentResources(userId, sentinelId);
 	}
 
 	public List<Integer> findOwnedUnreferencedContentResourceIds(Integer userId, int chunkSize) {
-		return userErasureDao.findOwnedUnreferencedContentResourceIds(userId, chunkSize);
+		return contentResourceDao.findOwnedUnreferencedContentResourceIds(userId, chunkSize);
 	}
 
 	public void recordDeletionRequestedAudit(Integer userId, String mode, OffsetDateTime requestedTs) {
@@ -636,7 +686,7 @@ public class UserDataProvider {
 		audit.setMode(mode);
 		audit.setInitiatedBy("SELF");
 		audit.setRequestedTs(timestamp);
-		audit.setMessageCount(userErasureDao.countOwnedMessages(userId));
+		audit.setMessageCount(messageDao.countOwnedMessages(userId));
 		audit.setContentResourceCount(countOwnedContentResources(userId));
 		audit.setCreatedTs(timestamp);
 		accountDeletionAuditDao.insertSelective(audit);
@@ -644,7 +694,7 @@ public class UserDataProvider {
 	}
 
 	public int countOwnedMessages(Integer userId) {
-		return userErasureDao.countOwnedMessages(userId);
+		return messageDao.countOwnedMessages(userId);
 	}
 
 	public int countOwnedContentResources(Integer userId) {

@@ -22,8 +22,6 @@
     <result column="website_url" jdbcType="VARCHAR" property="websiteUrl" />
     <result column="location" jdbcType="VARCHAR" property="location" />
     <result column="time_format" jdbcType="VARCHAR" property="timeFormat" />
-    <result column="karma_good" jdbcType="INTEGER" property="karmaGood" />
-    <result column="karma_bad" jdbcType="INTEGER" property="karmaBad" />
     <result column="hide_email_flag" jdbcType="BIT" property="hideEmailFlag" />
     <result column="hide_online_status" jdbcType="BIT" property="hideOnlineStatus" />
     <result column="gender_id" jdbcType="INTEGER" property="genderId" />
@@ -102,8 +100,7 @@
     -->
     user_id, custom_title, personal_text, created_ts, updated_ts, signature, migration_hash, 
     avatar_id, date_registered, last_login, real_name, birth_date, website_title, website_url, 
-    location, time_format, karma_good, karma_bad, hide_email_flag, hide_online_status, 
-    gender_id, preferred_timezone
+    location, time_format, hide_email_flag, hide_online_status, gender_id, preferred_timezone
   </sql>
   <select id="selectByExample" parameterType="com.zfgc.zfgbb.dbo.UserBioInfoDboExample" resultMap="BaseResultMap">
     <!--
@@ -161,17 +158,15 @@
       date_registered, last_login, 
       real_name, birth_date, website_title, 
       website_url, location, time_format, 
-      karma_good, karma_bad, hide_email_flag, 
-      hide_online_status, gender_id, preferred_timezone
-      )
+      hide_email_flag, hide_online_status, gender_id, 
+      preferred_timezone)
     values (#{userId,jdbcType=INTEGER}, #{customTitle,jdbcType=VARCHAR}, #{personalText,jdbcType=VARCHAR}, 
       #{signature,jdbcType=VARCHAR}, #{migrationHash,jdbcType=VARCHAR}, #{avatarId,jdbcType=INTEGER}, 
       #{dateRegistered,jdbcType=TIMESTAMP_WITH_TIMEZONE}, #{lastLogin,jdbcType=TIMESTAMP_WITH_TIMEZONE}, 
       #{realName,jdbcType=VARCHAR}, #{birthDate,jdbcType=DATE}, #{websiteTitle,jdbcType=VARCHAR}, 
       #{websiteUrl,jdbcType=VARCHAR}, #{location,jdbcType=VARCHAR}, #{timeFormat,jdbcType=VARCHAR}, 
-      #{karmaGood,jdbcType=INTEGER}, #{karmaBad,jdbcType=INTEGER}, #{hideEmailFlag,jdbcType=BIT}, 
-      #{hideOnlineStatus,jdbcType=BIT}, #{genderId,jdbcType=INTEGER}, #{preferredTimezone,jdbcType=VARCHAR}
-      )
+      #{hideEmailFlag,jdbcType=BIT}, #{hideOnlineStatus,jdbcType=BIT}, #{genderId,jdbcType=INTEGER}, 
+      #{preferredTimezone,jdbcType=VARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.zfgc.zfgbb.dbo.UserBioInfoDbo">
     <!--
@@ -221,12 +216,6 @@
       </if>
       <if test="timeFormat != null">
         time_format,
-      </if>
-      <if test="karmaGood != null">
-        karma_good,
-      </if>
-      <if test="karmaBad != null">
-        karma_bad,
       </if>
       <if test="hideEmailFlag != null">
         hide_email_flag,
@@ -283,12 +272,6 @@
       </if>
       <if test="timeFormat != null">
         #{timeFormat,jdbcType=VARCHAR},
-      </if>
-      <if test="karmaGood != null">
-        #{karmaGood,jdbcType=INTEGER},
-      </if>
-      <if test="karmaBad != null">
-        #{karmaBad,jdbcType=INTEGER},
       </if>
       <if test="hideEmailFlag != null">
         #{hideEmailFlag,jdbcType=BIT},
@@ -363,12 +346,6 @@
       <if test="row.timeFormat != null">
         time_format = #{row.timeFormat,jdbcType=VARCHAR},
       </if>
-      <if test="row.karmaGood != null">
-        karma_good = #{row.karmaGood,jdbcType=INTEGER},
-      </if>
-      <if test="row.karmaBad != null">
-        karma_bad = #{row.karmaBad,jdbcType=INTEGER},
-      </if>
       <if test="row.hideEmailFlag != null">
         hide_email_flag = #{row.hideEmailFlag,jdbcType=BIT},
       </if>
@@ -406,8 +383,6 @@
       website_url = #{row.websiteUrl,jdbcType=VARCHAR},
       location = #{row.location,jdbcType=VARCHAR},
       time_format = #{row.timeFormat,jdbcType=VARCHAR},
-      karma_good = #{row.karmaGood,jdbcType=INTEGER},
-      karma_bad = #{row.karmaBad,jdbcType=INTEGER},
       hide_email_flag = #{row.hideEmailFlag,jdbcType=BIT},
       hide_online_status = #{row.hideOnlineStatus,jdbcType=BIT},
       gender_id = #{row.genderId,jdbcType=INTEGER},
@@ -462,12 +437,6 @@
       <if test="timeFormat != null">
         time_format = #{timeFormat,jdbcType=VARCHAR},
       </if>
-      <if test="karmaGood != null">
-        karma_good = #{karmaGood,jdbcType=INTEGER},
-      </if>
-      <if test="karmaBad != null">
-        karma_bad = #{karmaBad,jdbcType=INTEGER},
-      </if>
       <if test="hideEmailFlag != null">
         hide_email_flag = #{hideEmailFlag,jdbcType=BIT},
       </if>
@@ -502,8 +471,6 @@
       website_url = #{websiteUrl,jdbcType=VARCHAR},
       location = #{location,jdbcType=VARCHAR},
       time_format = #{timeFormat,jdbcType=VARCHAR},
-      karma_good = #{karmaGood,jdbcType=INTEGER},
-      karma_bad = #{karmaBad,jdbcType=INTEGER},
       hide_email_flag = #{hideEmailFlag,jdbcType=BIT},
       hide_online_status = #{hideOnlineStatus,jdbcType=BIT},
       gender_id = #{genderId,jdbcType=INTEGER},
@@ -534,6 +501,72 @@
       offset ${offset}
     </if>
   </select>
+  <update id="updateByExampleSettingColumns" parameterType="map">
+    <!--
+      Generated Code - @mbg.generated
+      This element is automatically generated by MyBatis Generator, do not modify.
+    -->
+    update zfgbb.user_bio_info
+    <set>
+      <if test="columns.contains('user_id')">
+        user_id = #{row.userId,jdbcType=INTEGER},
+      </if>
+      <if test="columns.contains('custom_title')">
+        custom_title = #{row.customTitle,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('personal_text')">
+        personal_text = #{row.personalText,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('signature')">
+        signature = #{row.signature,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('migration_hash')">
+        migration_hash = #{row.migrationHash,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('avatar_id')">
+        avatar_id = #{row.avatarId,jdbcType=INTEGER},
+      </if>
+      <if test="columns.contains('date_registered')">
+        date_registered = #{row.dateRegistered,jdbcType=TIMESTAMP_WITH_TIMEZONE},
+      </if>
+      <if test="columns.contains('last_login')">
+        last_login = #{row.lastLogin,jdbcType=TIMESTAMP_WITH_TIMEZONE},
+      </if>
+      <if test="columns.contains('real_name')">
+        real_name = #{row.realName,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('birth_date')">
+        birth_date = #{row.birthDate,jdbcType=DATE},
+      </if>
+      <if test="columns.contains('website_title')">
+        website_title = #{row.websiteTitle,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('website_url')">
+        website_url = #{row.websiteUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('location')">
+        location = #{row.location,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('time_format')">
+        time_format = #{row.timeFormat,jdbcType=VARCHAR},
+      </if>
+      <if test="columns.contains('hide_email_flag')">
+        hide_email_flag = #{row.hideEmailFlag,jdbcType=BIT},
+      </if>
+      <if test="columns.contains('hide_online_status')">
+        hide_online_status = #{row.hideOnlineStatus,jdbcType=BIT},
+      </if>
+      <if test="columns.contains('gender_id')">
+        gender_id = #{row.genderId,jdbcType=INTEGER},
+      </if>
+      <if test="columns.contains('preferred_timezone')">
+        preferred_timezone = #{row.preferredTimezone,jdbcType=VARCHAR},
+      </if>
+    </set>
+    <if test="example != null">
+      <include refid="com.zfgc.zfgbb.mappers.UserBioInfoDboMapper.Update_By_Example_Where_Clause" />
+    </if>
+  </update>
   <select id="selectByPrimaryKeyForUpdate" parameterType="java.lang.Integer" resultMap="BaseResultMap">
     <!--
       Generated Code - @mbg.generated

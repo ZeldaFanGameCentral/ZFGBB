@@ -1,13 +1,15 @@
 package com.zfgc.zfgbb.model.forum;
 
-import java.time.OffsetDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.zfgc.zfgbb.model.BaseModel;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder(toBuilder=true)
 public class PollChoice extends BaseModel {
 
@@ -16,8 +18,10 @@ public class PollChoice extends BaseModel {
 	private String choiceText;
 	private Boolean activeFlag;
 	private Integer votes;
+	@JsonIgnore
 	private String migrationHash;
 	private Integer seqno;
+	private Double percentage;
 	
 	@Override
 	public Integer getId() {

@@ -1,5 +1,7 @@
 package com.zfgc.zfgbb.migrator.jobs;
 
+import java.util.Map;
+
 import javax.sql.DataSource;
 
 public class JobContextHolder {
@@ -10,6 +12,8 @@ public class JobContextHolder {
 	private static final ThreadLocal<String> ATTACHMENTS_SOURCE_PATH = new ThreadLocal<>();
 	private static final ThreadLocal<String> ATTACHMENTS_TARGET_PATH = new ThreadLocal<>();
 	private static final ThreadLocal<String> AVATARS_SOURCE_PATH = new ThreadLocal<>();
+	private static final ThreadLocal<String> CMS_FILES_SOURCE_PATH = new ThreadLocal<>();
+	private static final ThreadLocal<Map<Integer, String>> WIKI_NAMESPACE_IDS = new ThreadLocal<>();
 	private static final ThreadLocal<String> TABLE_PREFIX = new ThreadLocal<>();
 	private static final ThreadLocal<String> LEGACY_HOST = new ThreadLocal<>();
 	private static final ThreadLocal<String> APP_BASE_URL = new ThreadLocal<>();
@@ -49,6 +53,14 @@ public class JobContextHolder {
 		return AVATARS_SOURCE_PATH.get();
 	}
 
+	public static String getCmsFilesSourcePath() {
+		return CMS_FILES_SOURCE_PATH.get();
+	}
+
+	public static Map<Integer, String> getWikiNamespaceIds() {
+		return WIKI_NAMESPACE_IDS.get();
+	}
+
 	public static String getTablePrefix() {
 		String value = TABLE_PREFIX.get();
 		return value != null ? value : DEFAULT_TABLE_PREFIX;
@@ -72,6 +84,8 @@ public class JobContextHolder {
 		ATTACHMENTS_SOURCE_PATH.remove();
 		ATTACHMENTS_TARGET_PATH.remove();
 		AVATARS_SOURCE_PATH.remove();
+		CMS_FILES_SOURCE_PATH.remove();
+		WIKI_NAMESPACE_IDS.remove();
 		TABLE_PREFIX.remove();
 		LEGACY_HOST.remove();
 		APP_BASE_URL.remove();

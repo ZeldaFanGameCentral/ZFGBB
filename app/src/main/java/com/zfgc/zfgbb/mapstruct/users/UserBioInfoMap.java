@@ -19,8 +19,6 @@ public interface UserBioInfoMap {
 	
 	@Mapping(target="migrationHash", ignore=true)
 	@Mapping(target="avatarId", source="avatar.avatarId")
-	@Mapping(target="karmaGood", ignore=true)
-	@Mapping(target="karmaBad", ignore=true)
 	UserBioInfoDbo toDbo(UserBioInfo model);
 	
 }

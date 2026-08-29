@@ -1,5 +1,6 @@
 package com.zfgc.zfgbb.testsupport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -8,6 +9,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Tag;
 import org.mybatis.spring.annotation.MapperScan;
@@ -94,7 +98,8 @@ public abstract class ZfgbbIntegrationTest {
 				  "adminDisplayName": "%s",
 				  "adminEmail": "%s@fake-email.fake.tld.thing",
 				  "adminPassword": "%s",
-				  "siteName": "ZFGC Test"
+				  "siteName": "ZFGC Test",
+				  "provisionRecycleBin": false
 				}
 				""".formatted(ADMIN_USER, ADMIN_DISPLAY_NAME, ADMIN_USER, ADMIN_PASSWORD);
 		mockMvc.perform(post("/system/install")
@@ -134,10 +139,22 @@ public abstract class ZfgbbIntegrationTest {
 	}
 
 	@Autowired
+	private BoardDboMapper boardDboMapper;
+
+	@Autowired
 	private SystemConfigDboMapper systemConfigDboMapper;
 
 	@Autowired
+	private BrBoardPermissionDboMapper brBoardPermissionDboMapper;
+
+	@Autowired
+	private PermissionDboMapper permissionDboMapper;
+
+	@Autowired
 	private UserDboMapper baseUserDboMapper;
+
+	@Autowired
+	private MessageDboMapper baseMessageDboMapper;
 
 	private UserDbo userNamed(String userName) {
 		UserDboExample named = new UserDboExample();
@@ -150,6 +167,61 @@ public abstract class ZfgbbIntegrationTest {
 	protected Integer findUserIdByName(String userName) {
 		UserDbo user = userNamed(userName);
 		return user == null ? null : user.getUserId();
+	}
+
+	private List<MessageDbo> postsInThread(int threadId, Consumer<MessageDboExample.Criteria> predicate,
+			String orderByClause) {
+		MessageDboExample posts = new MessageDboExample();
+		MessageDboExample.Criteria criteria = posts.createCriteria().andThreadIdEqualTo(threadId);
+		predicate.accept(criteria);
+		posts.setOrderByClause(orderByClause);
+		return baseMessageDboMapper.selectByExample(posts);
+	}
+
+	protected Integer findMessageIdAtPosition(int threadId, int postInThread) {
+		List<MessageDbo> matches = postsInThread(threadId,
+				criteria -> criteria.andPostInThreadEqualTo(postInThread), "post_in_thread");
+		assertTrue(matches.size() <= 1,
+				"a thread must hold at most one post at position " + postInThread + ": " + matches.size());
+		return matches.isEmpty() ? null : matches.get(0).getMessageId();
+	}
+
+	protected Integer findLatestMessageIdInThread(int threadId) {
+		List<MessageDbo> posts = postsInThread(threadId, criteria -> { }, "post_in_thread desc");
+		return posts.isEmpty() ? null : posts.get(0).getMessageId();
+	}
+
+	protected List<Integer> listPostPositionsInThread(int threadId) {
+		return postsInThread(threadId, criteria -> { }, "post_in_thread").stream()
+				.map(MessageDbo::getPostInThread).toList();
+	}
+
+	protected void assertRecycleBinProvisioned() {
+		BoardDboExample ex = new BoardDboExample();
+		ex.createCriteria().andBoardNameEqualTo("Recycle Bin");
+		var boards = boardDboMapper.selectByExample(ex);
+		assertEquals(1, boards.size(), "exactly one recycle board must be provisioned");
+
+		SystemConfigDboExample cfgEx = new SystemConfigDboExample();
+		cfgEx.createCriteria().andConfigKeyEqualTo("recycle_board_id")
+				.andConfigValueEqualTo(String.valueOf(boards.get(0).getBoardId()));
+		assertEquals(1, systemConfigDboMapper.countByExample(cfgEx),
+				"recycle_board_id must point at the provisioned recycle board");
+
+		PermissionDboExample moderationPermissionEx = new PermissionDboExample();
+		moderationPermissionEx.createCriteria()
+				.andPermissionCodeIn(List.of("ZFGC_SITE_ADMIN", "ZFGC_SITE_MODERATOR"));
+		Set<Integer> moderationPermissionIds = permissionDboMapper.selectByExample(moderationPermissionEx)
+				.stream().map(PermissionDbo::getPermissionId).collect(Collectors.toSet());
+		assertEquals(2, moderationPermissionIds.size(),
+				"ZFGC_SITE_ADMIN and ZFGC_SITE_MODERATOR permissions must both exist");
+
+		BrBoardPermissionDboExample permEx = new BrBoardPermissionDboExample();
+		permEx.createCriteria().andBoardIdEqualTo(boards.get(0).getBoardId());
+		Set<Integer> recyclePermissionIds = brBoardPermissionDboMapper.selectByExample(permEx)
+				.stream().map(BrBoardPermissionDbo::getPermissionId).collect(Collectors.toSet());
+		assertEquals(moderationPermissionIds, recyclePermissionIds,
+				"the recycle board is visible to admins and moderators only");
 	}
 
 	protected static Path resolveFromProjectRoot(String relativePath) {

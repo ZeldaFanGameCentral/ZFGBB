@@ -9,8 +9,10 @@ import com.zfgc.zfgbb.model.BaseModel;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 @Builder(toBuilder=true)
 public class Poll extends BaseModel {
 	@JsonIgnore
@@ -19,15 +21,16 @@ public class Poll extends BaseModel {
 	private Integer threadId;
 	private Boolean votingLockedFlag;
 	
-	@JsonIgnore
 	private OffsetDateTime expireTime;
 	private Boolean hideResultsFlag;
 	private Boolean changeVoteFlag;
 	private Integer createdUserId;
 	private Boolean guestVoteFlag;
 	private Integer guestVoteCount;
+	@JsonIgnore
 	private Integer resetPoll;
 	private Integer maxVotes;
+	@JsonIgnore
 	private String migrationHash;
     
     @Builder.Default
@@ -43,6 +46,6 @@ public class Poll extends BaseModel {
 	}
 	
 	public Integer getVotes() {
-		return answers.stream().mapToInt(ans -> ans.getVotes()).sum() + guestVoteCount;
+		return answers.stream().mapToInt(ans -> ans.getVotes()).sum();
 	}
 }

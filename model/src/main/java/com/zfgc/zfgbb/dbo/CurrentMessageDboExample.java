@@ -578,8 +578,203 @@ public class CurrentMessageDboExample {
             return (Criteria) this;
         }
 
+        public Criteria andUpdatedTsIsNull() {
+            addCriterion("updated_ts is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsIsNotNull() {
+            addCriterion("updated_ts is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsEqualTo(OffsetDateTime value) {
+            addCriterion("updated_ts =", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsNotEqualTo(OffsetDateTime value) {
+            addCriterion("updated_ts <>", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsGreaterThan(OffsetDateTime value) {
+            addCriterion("updated_ts >", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsGreaterThanOrEqualTo(OffsetDateTime value) {
+            addCriterion("updated_ts >=", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsLessThan(OffsetDateTime value) {
+            addCriterion("updated_ts <", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsLessThanOrEqualTo(OffsetDateTime value) {
+            addCriterion("updated_ts <=", value, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsIn(List<OffsetDateTime> values) {
+            addCriterion("updated_ts in", values, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsNotIn(List<OffsetDateTime> values) {
+            addCriterion("updated_ts not in", values, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsBetween(OffsetDateTime value1, OffsetDateTime value2) {
+            addCriterion("updated_ts between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andUpdatedTsNotBetween(OffsetDateTime value1, OffsetDateTime value2) {
+            addCriterion("updated_ts not between", value1, value2, "updatedTs");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdIsNull() {
+            addCriterion("board_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdIsNotNull() {
+            addCriterion("board_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdEqualTo(Integer value) {
+            addCriterion("board_id =", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotEqualTo(Integer value) {
+            addCriterion("board_id <>", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdGreaterThan(Integer value) {
+            addCriterion("board_id >", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdGreaterThanOrEqualTo(Integer value) {
+            addCriterion("board_id >=", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdLessThan(Integer value) {
+            addCriterion("board_id <", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdLessThanOrEqualTo(Integer value) {
+            addCriterion("board_id <=", value, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdIn(List<Integer> values) {
+            addCriterion("board_id in", values, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotIn(List<Integer> values) {
+            addCriterion("board_id not in", values, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdBetween(Integer value1, Integer value2) {
+            addCriterion("board_id between", value1, value2, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andBoardIdNotBetween(Integer value1, Integer value2) {
+            addCriterion("board_id not between", value1, value2, "boardId");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatIsNull() {
+            addCriterion("content_format is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatIsNotNull() {
+            addCriterion("content_format is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatEqualTo(String value) {
+            addCriterion("content_format =", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotEqualTo(String value) {
+            addCriterion("content_format <>", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatGreaterThan(String value) {
+            addCriterion("content_format >", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatGreaterThanOrEqualTo(String value) {
+            addCriterion("content_format >=", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLessThan(String value) {
+            addCriterion("content_format <", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLessThanOrEqualTo(String value) {
+            addCriterion("content_format <=", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatLike(String value) {
+            addCriterion("content_format ilike", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotLike(String value) {
+            addCriterion("content_format not ilike", value, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatIn(List<String> values) {
+            addCriterion("content_format in", values, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotIn(List<String> values) {
+            addCriterion("content_format not in", values, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatBetween(String value1, String value2) {
+            addCriterion("content_format between", value1, value2, "contentFormat");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatNotBetween(String value1, String value2) {
+            addCriterion("content_format not between", value1, value2, "contentFormat");
+            return (Criteria) this;
+        }
+
         public Criteria andMessageTextContains(String value) {
             addCriterion("message_text ilike", LikePatterns.contains(value), "messageText");
+            return (Criteria) this;
+        }
+
+        public Criteria andContentFormatContains(String value) {
+            addCriterion("content_format ilike", LikePatterns.contains(value), "contentFormat");
             return (Criteria) this;
         }
     }

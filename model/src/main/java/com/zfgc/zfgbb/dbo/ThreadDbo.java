@@ -34,6 +34,12 @@ public class ThreadDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.migration_hash")
     private String migrationHash;
 
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_board_id")
+    private Integer recycledFromBoardId;
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_thread_id")
+    private Integer recycledFromThreadId;
+
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.thread_id")
     public Integer getThreadId() {
         return threadId;
@@ -132,6 +138,26 @@ public class ThreadDbo extends AbstractDbo {
     @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.migration_hash")
     public void setMigrationHash(String migrationHash) {
         this.migrationHash = migrationHash;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_board_id")
+    public Integer getRecycledFromBoardId() {
+        return recycledFromBoardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_board_id")
+    public void setRecycledFromBoardId(Integer recycledFromBoardId) {
+        this.recycledFromBoardId = recycledFromBoardId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_thread_id")
+    public Integer getRecycledFromThreadId() {
+        return recycledFromThreadId;
+    }
+
+    @Generated(value="org.mybatis.generator.api.MyBatisGenerator", comments="Source field: zfgbb.thread.recycled_from_thread_id")
+    public void setRecycledFromThreadId(Integer recycledFromThreadId) {
+        this.recycledFromThreadId = recycledFromThreadId;
     }
 
     @Override

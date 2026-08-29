@@ -247,9 +247,11 @@ public class AuthService {
 
 	public void revoke(String rawToken) {
 		lookup(rawToken).ifPresent(dbo -> {
-			UserRefreshTokenDboExample token = new UserRefreshTokenDboExample();
-			token.createCriteria().andUserRefreshTokenIdEqualTo(dbo.getUserRefreshTokenId());
-			revokeMatching(token, OffsetDateTime.now(ZoneOffset.UTC));
+			UserRefreshTokenDboExample family = new UserRefreshTokenDboExample();
+			family.createCriteria().andFamilyIdEqualTo(dbo.getFamilyId());
+			revokeMatching(family, OffsetDateTime.now(ZoneOffset.UTC));
+			for (UserRefreshTokenDbo member : refreshTokenDao.get(family))
+				successorCache.invalidate(member.getUserRefreshTokenId());
 		});
 	}
 

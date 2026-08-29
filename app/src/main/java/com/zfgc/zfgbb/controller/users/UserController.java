@@ -18,6 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.validation.Valid;
 
+import com.zfgc.zfgbb.model.users.User;
+import com.zfgc.zfgbb.model.users.AccountDeletionConfirmation;
+import com.zfgc.zfgbb.model.users.AccountDeletionPreview;
+import com.zfgc.zfgbb.model.users.AccountDeletionRequest;
+import com.zfgc.zfgbb.model.users.AccountDeletionState;
 import com.zfgc.zfgbb.model.users.UserResponse;
 import com.zfgc.zfgbb.model.users.AuthCredentials;
 import com.zfgc.zfgbb.model.users.LoginResponse;
@@ -27,6 +32,7 @@ import com.zfgc.zfgbb.model.users.TokenPair;
 import com.zfgc.zfgbb.services.auth.AuthCookieService;
 import com.zfgc.zfgbb.services.auth.AuthService;
 import com.zfgc.zfgbb.services.users.UserRegistrationService;
+import com.zfgc.zfgbb.services.users.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -37,6 +43,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserController extends BaseController {
 
 	private final UserRegistrationService userRegistrationService;
+	private final UserService userService;
 	private final AuthService authService;
 	private final AuthCookieService cookieService;
 	@Value("${zfgbb.registration.enabled:false}")
@@ -107,5 +114,30 @@ public class UserController extends BaseController {
 		}
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(new UserResponse(userRegistrationService.createNewUser(request)));
+	}
+
+	@PostMapping("/account/delete")
+	public ResponseEntity<AccountDeletionState> requestAccountDeletion(
+			@Valid @RequestBody AccountDeletionRequest body) {
+		return ResponseEntity.status(HttpStatus.ACCEPTED)
+				.body(userService.requestDeletion(zfgcUser(), body));
+	}
+
+	@PostMapping("/account/delete/preview")
+	public ResponseEntity<AccountDeletionPreview> previewAccountDeletion() {
+		return ResponseEntity.ok(userService.previewDeletion(zfgcUser()));
+	}
+
+	@PostMapping("/account/delete/confirm")
+	@AllowAnonymous
+	public ResponseEntity<AccountDeletionState> confirmAccountDeletion(
+			@Valid @RequestBody(required = false) AccountDeletionConfirmation body, HttpServletRequest httpRequest) {
+		UserService.AccountDeletionConfirmOutcome outcome = userService
+				.confirmDeletion(body == null ? null : body.token(), httpRequest.getRemoteAddr());
+		User caller = zfgcUser();
+		if (outcome.subjectUserId() != null && outcome.subjectUserId().equals(caller.getUserId())) {
+			return cookieService.clearTokenCookies(ResponseEntity.ok()).body(outcome.state());
+		}
+		return ResponseEntity.ok(outcome.state());
 	}
 }

@@ -70,6 +70,7 @@ select zfgbb.create_permission(8, 'Forum Moderate', 'ZFGC_FORUM_MODERATE');
 select zfgbb.create_permission(9, 'Read Only', 'ZFGC_READ_ONLY');
 select zfgbb.create_permission(10, 'Site Admin', 'ZFGC_SITE_ADMIN');
 select zfgbb.create_permission(11, 'Site Moderator', 'ZFGC_SITE_MODERATOR');
+select zfgbb.create_permission(12, 'Wiki Moderator', 'ZFGC_WIKI_MODERATOR');
 
 --select zfgbb.create_permission_group(1, 'Member', '', -1, null);
 --select zfgbb.create_permission_group(2, 'Admin', '', -1, 1);

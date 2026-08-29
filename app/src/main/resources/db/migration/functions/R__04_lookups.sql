@@ -15,6 +15,8 @@ end; $$;
 
 select zfgbb.create_content_types(1, 'AVR', 'Avatar');
 select zfgbb.create_content_types(2, 'ATC', 'Attachment');
+select zfgbb.create_content_types(3, 'IMG', 'CMS Image');
+select zfgbb.create_content_types(4, 'DL', 'CMS Download');
 
 create or replace function zfgbb.create_gender_lkup(
     p_code text,

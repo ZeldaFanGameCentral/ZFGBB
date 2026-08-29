@@ -38,7 +38,7 @@ public class AllowAnonymousRequestMatcher implements RequestMatcher {
 			if (chain != null && chain.getHandler() instanceof HandlerMethod handlerMethod) {
 				return Optional.of(handlerMethod);
 			}
-		} catch (Exception e) {
+		} catch (Exception matcherFailure) {
 			return Optional.empty();
 		} finally {
 			if (parsedHere) {

@@ -127,6 +127,22 @@
     </dependency>
 
     <dependency>
+      <groupId>org.commonmark</groupId>
+      <artifactId>commonmark</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.nibor.autolink</groupId>
+      <artifactId>autolink</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.samskivert</groupId>
+      <artifactId>jmustache</artifactId>
+      <version>1.16</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
@@ -215,13 +231,10 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
         <configuration>
           <skip>false</skip>
+          <profiles>local</profiles>
+          <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
           <systemPropertyVariables>
-            <spring.profiles.active>${SPRING_PROFILES_ACTIVE}</spring.profiles.active>
-            <spring.datasource.url>${SPRING_DATASOURCE_URL}</spring.datasource.url>
-            <spring.datasource.username>${SPRING_DATASOURCE_USERNAME}</spring.datasource.username>
-            <spring.datasource.password>${SPRING_DATASOURCE_PASSWORD}</spring.datasource.password>
-            <zfgbb.content.path>${ZFGBB_CONTENT_PATH}</zfgbb.content.path>
-            <zfgbb.content.images>${ZFGBB_CONTENT_IMAGES}</zfgbb.content.images>
+            <zfgbb.content.base>${maven.multiModuleProjectDirectory}</zfgbb.content.base>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -296,26 +309,5 @@
       </plugin>
     </plugins>
   </build>
-
-  <profiles>
-    <profile>
-      <id>seed</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-maven-plugin</artifactId>
-            <configuration>
-              <locations>
-                <location>classpath:db/seed</location>
-              </locations>
-              <table>flyway_seed_history</table>
-              <baselineVersion>0</baselineVersion>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
