@@ -44,8 +44,8 @@
     <mybatis.version>3.5.19</mybatis.version>
     <mysql-connector.version>26.7.0</mysql-connector.version>
     <postgresql.version>42.7.13</postgresql.version>
-    <flyway.version>13.3.0</flyway.version>
-    <jsoup.version>1.23.1</jsoup.version>
+    <flyway.version>13.4.0</flyway.version>
+    <jsoup.version>1.23.2</jsoup.version>
 
     <testcontainers.version>2.0.5</testcontainers.version>
   </properties>
